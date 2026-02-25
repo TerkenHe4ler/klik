@@ -417,11 +417,14 @@ function openTab(name) {
 }
 
 /* -----------------------------------------
-   START
+   RESET GRY
 ----------------------------------------- */
 function resetGame() {
     localStorage.clear();
     location.reload();
 }
 
+/* -----------------------------------------
+   START
+----------------------------------------- */
 showQuestion();
