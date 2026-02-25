@@ -179,4 +179,3 @@ body {
 /* convenience: pokaż dom jako domyślną zawartość w sidebar */
 #home { display: block; }
 #dragons, #merchant { display: none; }
-/* ...existing code... */
