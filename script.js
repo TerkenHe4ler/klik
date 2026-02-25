@@ -428,3 +428,35 @@ function resetGame() {
    START
 ----------------------------------------- */
 showQuestion();
+document.addEventListener('DOMContentLoaded', () => {
+    const reset = document.querySelector('.reset-tab');
+    if (!reset) return;
+
+    const play = () => {
+        // restart animacji jeśli już leci
+        reset.classList.remove('playing');
+        // wymuszenie reflow, żeby animacja mogła się ponownie uruchomić
+        void reset.offsetWidth;
+        reset.classList.add('playing');
+    };
+
+    reset.addEventListener('click', play);
+
+    // usuń klasę po zakończeniu animacji
+    reset.addEventListener('animationend', () => {
+        reset.classList.remove('playing');
+    });
+
+    // obsługa klawiatury (Enter / Space)
+    reset.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            play();
+        }
+    });
+
+    // jeśli element nie jest buttonem, warto ustawić tabindex, żeby był fokusowalny
+    if (!reset.hasAttribute('tabindex') && reset.tagName !== 'BUTTON' && reset.tagName !== 'A') {
+        reset.setAttribute('tabindex', '0');
+    }
+});

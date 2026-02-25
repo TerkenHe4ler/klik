@@ -128,7 +128,13 @@ body {
     border-radius: 6px;
     cursor: pointer;
     transition: 0.2s;
-    animation: rubyPulse 2.2s infinite ease-in-out;
+    /* animacja uruchamiana tylko gdy ma klasę .playing */
+    /* animation: rubyPulse 2.2s infinite ease-in-out; */
+}
+
+/* klasa dodawana przez JS — uruchamia jeden cykl animacji */
+.reset-tab.playing {
+    animation: rubyPulse 2.2s 1 ease-in-out;
 }
 
 /* HOVER – jaśniejszy rubin */
