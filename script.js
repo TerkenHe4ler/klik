@@ -136,8 +136,10 @@ function finalizeDragon() {
    START GRY — POKAZANIE ZAKŁADEK
 ----------------------------------------- */
 function startGame() {
-    document.getElementById("sidebar").style.display = "block";
-    document.getElementById("intro").style.display = "none";
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) sidebar.style.display = "block";
+    const intro = document.getElementById("intro");
+    if (intro) intro.style.display = "none";
 
     updateDragonsTab();
     updateHomeTab();
@@ -149,6 +151,7 @@ function startGame() {
 ----------------------------------------- */
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
+    if (!list) return;
 
     let html = "";
 
@@ -189,6 +192,7 @@ function updateDragonsTab() {
 ----------------------------------------- */
 function updateHomeTab() {
     const home = document.getElementById("home-content");
+    if (!home) return;
 
     let html = "";
 
@@ -256,7 +260,9 @@ function heatEgg2() {
 }
 
 function renameDragon1() {
-    const newName = document.getElementById("name1").value.trim();
+    const el = document.getElementById("name1");
+    if (!el) return;
+    const newName = el.value.trim();
     if (!newName) return;
 
     dragonName = newName;
@@ -267,7 +273,9 @@ function renameDragon1() {
 }
 
 function renameDragon2() {
-    const newName = document.getElementById("name2").value.trim();
+    const el = document.getElementById("name2");
+    if (!el) return;
+    const newName = el.value.trim();
     if (!newName) return;
 
     secondDragonName = newName;
@@ -315,6 +323,7 @@ let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
+    if (!box) return;
 
     if (secondDragonUnlocked) {
         box.innerHTML = `
@@ -340,8 +349,9 @@ function updateMerchantTab() {
 
 function merchantNext() {
     const box = document.getElementById("merchant-content");
+    if (!box) return;
 
-    if (merchantStep < 3) {
+    if (merchantStep < merchantQuestions.length) {
         const q = merchantQuestions[merchantStep];
 
         box.innerHTML = `
@@ -395,14 +405,16 @@ function merchantConfirm(element) {
     localStorage.setItem("secondLastHeat", "0");
 
     const box = document.getElementById("merchant-content");
-    box.innerHTML = `
-        <div class="dialog-window">
-            <div class="dialog-title">Handlarz</div>
-            <div class="dialog-text">
-                „Dobrze. Oto twoje jajo. Dbaj o nie, a wykluje się potężny smok.”
+    if (box) {
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Handlarz</div>
+                <div class="dialog-text">
+                    „Dobrze. Oto twoje jajo. Dbaj o nie, a wykluje się potężny smok.”
+                </div>
             </div>
-        </div>
-    `;
+        `;
+    }
 
     updateDragonsTab();
     updateHomeTab();
@@ -413,7 +425,8 @@ function merchantConfirm(element) {
 ----------------------------------------- */
 function openTab(name) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-    document.getElementById(name).style.display = "block";
+    const el = document.getElementById(name);
+    if (el) el.style.display = "block";
 }
 
 /* -----------------------------------------
@@ -425,48 +438,48 @@ function resetGame() {
 }
 
 /* -----------------------------------------
-   START
+   START and RESET ANIMATION HANDLING
 ----------------------------------------- */
-// przenieś start do DOMContentLoaded — bezpieczniejsze jeśli skrypt ładuje się w head
 document.addEventListener('DOMContentLoaded', () => {
     showQuestion();
 
     const reset = document.querySelector('.reset-tab');
     if (!reset) return;
 
-    const play = () => {
-        // restart animacji jeśli już leci
-        reset.classList.remove('playing');
-        void reset.offsetWidth; // reflow
-        reset.classList.add('playing');
-    };
-
-    // jednorazowy handler, który po zakończeniu animacji wywoła reset gry
-    const onAnimationEnd = function (e) {
-        if (e.animationName !== 'rubyPulse') return;
-        reset.classList.remove('playing');
-        reset.removeEventListener('animationend', onAnimationEnd);
-        // dopiero po animacji wykonujemy reset
-        resetGame();
-    };
-
-    reset.addEventListener('click', () => {
-        play();
-        // podłączamy handler tylko dla tego kliknięcia
-        reset.addEventListener('animationend', onAnimationEnd);
-    });
-
-    // obsługa klawiatury (Enter / Space)
-    reset.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            play();
-            reset.addEventListener('animationend', onAnimationEnd);
-        }
-    });
-
-    // jeśli element nie jest buttonem, ustaw tabindex, żeby był fokusowalny
+    // ensure focusable & accessible
     if (!reset.hasAttribute('tabindex') && reset.tagName !== 'BUTTON' && reset.tagName !== 'A') {
         reset.setAttribute('tabindex', '0');
     }
+    if (!reset.hasAttribute('role')) reset.setAttribute('role', 'button');
+
+    const playAnimation = () => {
+        reset.classList.remove('playing');
+        // force reflow so same animation can restart
+        void reset.offsetWidth;
+        reset.classList.add('playing');
+    };
+
+    const onAnimationEnd = (e) => {
+        // only act for our animation
+        if (e.animationName !== 'rubyPulse') return;
+        reset.classList.remove('playing');
+        // perform reset after animation
+        resetGame();
+    };
+
+    // click handler: start animation and wait for a single animationend
+    reset.addEventListener('click', () => {
+        playAnimation();
+        reset.addEventListener('animationend', onAnimationEnd, { once: true });
+    });
+
+    // keyboard activation (Enter / Space)
+    reset.addEventListener('keydown', (e) => {
+        const key = e.key || e.keyCode;
+        if (key === 'Enter' || key === ' ' || key === 'Spacebar' || key === 13 || key === 32) {
+            e.preventDefault();
+            playAnimation();
+            reset.addEventListener('animationend', onAnimationEnd, { once: true });
+        }
+    });
 });
