@@ -419,4 +419,9 @@ function openTab(name) {
 /* -----------------------------------------
    START
 ----------------------------------------- */
+function resetGame() {
+    localStorage.clear();
+    location.reload();
+}
+
 showQuestion();
