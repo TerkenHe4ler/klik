@@ -116,24 +116,16 @@ body {
     border-radius: 6px;
 }
 
-/* PRZYCISK RESETU — TERAZ DZIAŁA POPRAWNIE */
-#dev-reset {
-    margin-top: auto; /* PRZYCISK SCHODZI NA SAM DÓŁ SIDEBARU */
-    margin-bottom: 20px;
-
-    padding: 10px;
-    background: white;
-    color: #b30000;
-    border: 2px solid #b30000;
-    border-radius: 6px;
+/* RUBINOWA ZAKŁADKA RESETU */
+.reset-tab {
+    background: #3a0d0d;
+    border: 1px solid #b30000;
+    color: #ffb3b3;
     font-weight: bold;
-    cursor: pointer;
-    text-align: center;
-
-    transition: 0.2s;
 }
 
-#dev-reset:hover {
-    background: #ffe5e5;
+.reset-tab:hover {
+    background: #4d0f0f;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+    color: white;
 }
