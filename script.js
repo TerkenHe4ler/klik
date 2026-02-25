@@ -427,24 +427,33 @@ function resetGame() {
 /* -----------------------------------------
    START
 ----------------------------------------- */
-showQuestion();
+// przenieś start do DOMContentLoaded — bezpieczniejsze jeśli skrypt ładuje się w head
 document.addEventListener('DOMContentLoaded', () => {
+    showQuestion();
+
     const reset = document.querySelector('.reset-tab');
     if (!reset) return;
 
     const play = () => {
         // restart animacji jeśli już leci
         reset.classList.remove('playing');
-        // wymuszenie reflow, żeby animacja mogła się ponownie uruchomić
-        void reset.offsetWidth;
+        void reset.offsetWidth; // reflow
         reset.classList.add('playing');
     };
 
-    reset.addEventListener('click', play);
-
-    // usuń klasę po zakończeniu animacji
-    reset.addEventListener('animationend', () => {
+    // jednorazowy handler, który po zakończeniu animacji wywoła reset gry
+    const onAnimationEnd = function (e) {
+        if (e.animationName !== 'rubyPulse') return;
         reset.classList.remove('playing');
+        reset.removeEventListener('animationend', onAnimationEnd);
+        // dopiero po animacji wykonujemy reset
+        resetGame();
+    };
+
+    reset.addEventListener('click', () => {
+        play();
+        // podłączamy handler tylko dla tego kliknięcia
+        reset.addEventListener('animationend', onAnimationEnd);
     });
 
     // obsługa klawiatury (Enter / Space)
@@ -452,10 +461,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             play();
+            reset.addEventListener('animationend', onAnimationEnd);
         }
     });
 
-    // jeśli element nie jest buttonem, warto ustawić tabindex, żeby był fokusowalny
+    // jeśli element nie jest buttonem, ustaw tabindex, żeby był fokusowalny
     if (!reset.hasAttribute('tabindex') && reset.tagName !== 'BUTTON' && reset.tagName !== 'A') {
         reset.setAttribute('tabindex', '0');
     }
