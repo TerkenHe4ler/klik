@@ -7,14 +7,15 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: #1a1a1a;
-            color: #eee;
+            background: #0a0f1a;
+            color: #dfe8ff;
             display: flex;
         }
 
+        /* Sidebar */
         #sidebar {
             width: 200px;
-            background: #2b2b2b;
+            background: #111a2b;
             height: 100vh;
             padding: 20px;
             box-sizing: border-box;
@@ -22,77 +23,123 @@
             right: 0;
             top: 0;
             display: none;
+            border-left: 2px solid #cfd8ff;
         }
 
         #sidebar h2 {
             text-align: center;
+            color: #cfd8ff;
         }
 
         .tab {
             padding: 10px;
             margin: 10px 0;
-            background: #3a3a3a;
+            background: #16233a;
             cursor: pointer;
             text-align: center;
-            border-radius: 5px;
+            border-radius: 6px;
+            border: 1px solid #cfd8ff;
+            transition: 0.2s;
         }
 
         .tab:hover {
-            background: #505050;
+            background: #1f3357;
         }
 
+        /* Content */
         #content {
             flex: 1;
             padding: 20px;
             margin-right: 220px;
         }
 
-        .question-box {
-            background: #2b2b2b;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .answer {
-            background: #3a3a3a;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .answer:hover {
-            background: #505050;
-        }
-
         .tab-content {
             display: none;
         }
 
+        /* Fantasy dialog window */
+        .dialog-window {
+            background: rgba(10, 20, 40, 0.85);
+            border: 2px solid #cfd8ff;
+            border-radius: 14px;
+            padding: 20px;
+            max-width: 600px;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(150, 170, 255, 0.4);
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dialog-title {
+            font-size: 22px;
+            color: #cfd8ff;
+            border-bottom: 1px solid #cfd8ff;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .dialog-text {
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .dialog-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: linear-gradient(#1a2d4d, #0f1b33);
+            border: 1px solid #cfd8ff;
+            border-radius: 8px;
+            color: #dfe8ff;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.2s;
+        }
+
+        .dialog-button:hover {
+            background: #243b63;
+            box-shadow: 0 0 10px rgba(150, 170, 255, 0.4);
+        }
+
+        /* Smoki table */
+        .dragon-slot {
+            background: rgba(10, 20, 40, 0.7);
+            border: 1px solid #cfd8ff;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
         .button {
-            background: #444;
+            background: #1a2d4d;
             padding: 10px 15px;
-            border-radius: 5px;
+            border-radius: 6px;
+            border: 1px solid #cfd8ff;
+            cursor: pointer;
             display: inline-block;
             margin-top: 10px;
-            cursor: pointer;
+            transition: 0.2s;
         }
 
         .button:hover {
-            background: #666;
-        }
-
-        img.dragon-img, img.egg-img {
-            width: 200px;
-            display: block;
-            margin: 10px 0;
+            background: #243b63;
         }
 
         input.name-input {
             padding: 8px;
             margin-top: 10px;
             width: 200px;
+            background: #0f1b33;
+            border: 1px solid #cfd8ff;
+            color: #dfe8ff;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -121,6 +168,11 @@
         <h2>Praca</h2>
         <p>Tu będą misje.</p>
     </div>
+
+    <div id="merchant" class="tab-content">
+        <h2>Handlarz Smoczych Jaj</h2>
+        <div id="merchant-content"></div>
+    </div>
 </div>
 
 <div id="sidebar">
@@ -129,194 +181,316 @@
     <div class="tab" onclick="openTab('dragons')">Smoki</div>
     <div class="tab" onclick="openTab('home')">Dom</div>
     <div class="tab" onclick="openTab('work')">Praca</div>
+    <div class="tab" onclick="openTab('merchant')">Handlarz</div>
 </div>
 
 <script>
-    /* --- PYTANIA --- */
-    const questions = [
-        {
-            text: "Wędrując przez góry Sarak, napotykasz porzucone obozowisko. Co robisz?",
-            answers: [
-                { text: "Szukam śladów walki. Ogień mnie prowadzi.", element: "ogien" },
-                { text: "Szukam mokrych śladów. Woda zna drogę.", element: "woda" },
-                { text: "Wsłuchuję się w ziemię.", element: "ziemia" },
-                { text: "Podążam za wiatrem.", element: "powietrze" }
-            ]
-        },
-        {
-            text: "W ruinach świątyni słyszysz dźwięk. Co robisz?",
-            answers: [
-                { text: "Wchodzę bez wahania.", element: "ogien" },
-                { text: "Szukam wilgoci.", element: "woda" },
-                { text: "Dotykam kamieni.", element: "ziemia" },
-                { text: "Słucham echa.", element: "powietrze" }
-            ]
-        },
-        {
-            text: "Na rozdrożu spotykasz wędrowca. Co robisz?",
-            answers: [
-                { text: "Pytam o drogę.", element: "ogien" },
-                { text: "Płynę z losem.", element: "woda" },
-                { text: "Słucham historii.", element: "ziemia" },
-                { text: "Idę za intuicją.", element: "powietrze" }
-            ]
-        }
-    ];
+/* ------------------------------
+   STARTOWY SYSTEM PIERWSZEGO SMOKA
+--------------------------------*/
+const questions = [
+    {
+        text: "Wędrując przez góry Sarak, napotykasz porzucone obozowisko. Co robisz?",
+        answers: [
+            { text: "Szukam śladów walki. Ogień mnie prowadzi.", element: "ogien" },
+            { text: "Szukam mokrych śladów. Woda zna drogę.", element: "woda" },
+            { text: "Wsłuchuję się w ziemię.", element: "ziemia" },
+            { text: "Podążam za wiatrem.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "W ruinach świątyni słyszysz dźwięk. Co robisz?",
+        answers: [
+            { text: "Wchodzę bez wahania.", element: "ogien" },
+            { text: "Szukam wilgoci.", element: "woda" },
+            { text: "Dotykam kamieni.", element: "ziemia" },
+            { text: "Słucham echa.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Na rozdrożu spotykasz wędrowca. Co robisz?",
+        answers: [
+            { text: "Pytam o drogę.", element: "ogien" },
+            { text: "Płynę z losem.", element: "woda" },
+            { text: "Słucham historii.", element: "ziemia" },
+            { text: "Idę za intuicją.", element: "powietrze" }
+        ]
+    }
+];
 
-    let currentQuestion = 0;
-    let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+let currentQuestion = 0;
+let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
-    let chosenDragon = localStorage.getItem("chosenDragon");
-    let dragonName = localStorage.getItem("dragonName") || "Twój Smok";
+let chosenDragon = localStorage.getItem("chosenDragon");
+let dragonName = localStorage.getItem("dragonName") || "Twój Smok";
 
-    let eggHeats = Number(localStorage.getItem("eggHeats")) || 0;
-    let lastHeat = Number(localStorage.getItem("lastHeat")) || 0;
+let eggHeats = Number(localStorage.getItem("eggHeats")) || 0;
+let lastHeat = Number(localStorage.getItem("lastHeat")) || 0;
 
-    const eggImages = {
-        ogien: "https://i.imgur.com/8d1Q2yM.png",
-        woda: "https://i.imgur.com/1qV8q8Q.png",
-        ziemia: "https://i.imgur.com/7Q5m1mH.png",
-        powietrze: "https://i.imgur.com/5v8q2lP.png"
-    };
+/* ------------------------------
+   DRUGI SMOK — ZMIENNE
+--------------------------------*/
+let secondDragonUnlocked = localStorage.getItem("secondDragonUnlocked") === "true";
+let secondDragonElement = localStorage.getItem("secondDragonElement") || null;
+let secondEggHeats = Number(localStorage.getItem("secondEggHeats")) || 0;
+let secondLastHeat = Number(localStorage.getItem("secondLastHeat")) || 0;
+let secondDragonName = localStorage.getItem("secondDragonName") || "Drugi Smok";
 
-    const dragonImages = {
-        ogien: "https://i.imgur.com/6x5Vj6W.png",
-        woda: "https://i.imgur.com/9p1Y2dF.png",
-        ziemia: "https://i.imgur.com/4t3Q8cN.png",
-        powietrze: "https://i.imgur.com/2b7K1pM.png"
-    };
-
-    /* --- START GRY --- */
-    function showQuestion() {
-        if (chosenDragon) {
-            startGame();
-            return;
-        }
-
-        const intro = document.getElementById("intro");
-        const q = questions[currentQuestion];
-
-        let html = `<div class='question-box'><h2>${q.text}</h2>`;
-
-        q.answers.forEach(a => {
-            html += `<div class='answer' onclick='chooseAnswer("${a.element}")'>${a.text}</div>`;
-        });
-
-        html += "</div>";
-        intro.innerHTML = html;
+/* ------------------------------
+   START GRY
+--------------------------------*/
+function showQuestion() {
+    if (chosenDragon) {
+        startGame();
+        return;
     }
 
-    function chooseAnswer(element) {
-        elementScores[element]++;
-        currentQuestion++;
+    const intro = document.getElementById("intro");
+    const q = questions[currentQuestion];
 
-        if (currentQuestion < questions.length) showQuestion();
-        else finalizeDragon();
-    }
+    let html = `<div class='dialog-window'>
+        <div class='dialog-title'>Pytanie ${currentQuestion + 1}</div>
+        <div class='dialog-text'>${q.text}</div>`;
 
-    function finalizeDragon() {
-        const intro = document.getElementById("intro");
+    q.answers.forEach(a => {
+        html += `<div class='dialog-button' onclick='chooseAnswer("${a.element}")'>${a.text}</div>`;
+    });
 
-        const chosen = Object.entries(elementScores).sort((a,b)=>b[1]-a[1])[0][0];
-        chosenDragon = chosen;
-        localStorage.setItem("chosenDragon", chosen);
+    html += "</div>";
+    intro.innerHTML = html;
+}
 
-        intro.innerHTML = `<h2>Twój smok będzie żywiołu: ${chosen}</h2>`;
-        setTimeout(startGame, 1500);
-    }
+function chooseAnswer(element) {
+    elementScores[element]++;
+    currentQuestion++;
 
-    /* --- GRA --- */
-    function startGame() {
-        document.getElementById("sidebar").style.display = "block";
-        document.getElementById("intro").style.display = "none";
+    if (currentQuestion < questions.length) showQuestion();
+    else finalizeDragon();
+}
 
-        updateDragonsTab();
-        updateHomeTab();
-    }
+function finalizeDragon() {
+    const intro = document.getElementById("intro");
 
-    /* --- ZAKŁADKA SMOKI --- */
-    function updateDragonsTab() {
-        const list = document.getElementById("dragons-list");
+    const chosen = Object.entries(elementScores).sort((a,b)=>b[1]-a[1])[0][0];
+    chosenDragon = chosen;
+    localStorage.setItem("chosenDragon", chosen);
 
-        if (eggHeats < 3) {
-            list.innerHTML = `
-                <p>Smok jeszcze się nie wykluł.</p>
-                <img class="egg-img" src="${eggImages[chosenDragon]}">
-            `;
-        } else {
-            list.innerHTML = `
-                <h3>${dragonName}</h3>
-                <img class="dragon-img" src="${dragonImages[chosenDragon]}">
-                <p>Żywioł: ${chosenDragon}</p>
+    intro.innerHTML = `
+        <div class='dialog-window'>
+            <div class='dialog-title'>Twój smok</div>
+            <div class='dialog-text'>Wybrałeś żywioł: <b>${chosen}</b></div>
+        </div>
+    `;
 
-                <input class="name-input" id="newName" placeholder="Nowe imię">
-                <div class="button" onclick="renameDragon()">Zmień imię</div>
-            `;
-        }
-    }
+    setTimeout(startGame, 1500);
+}
 
-    function renameDragon() {
-        const newName = document.getElementById("newName").value.trim();
-        if (newName.length > 0) {
-            dragonName = newName;
-            localStorage.setItem("dragonName", newName);
-            updateDragonsTab();
-            updateHomeTab();
-        }
-    }
+function startGame() {
+    document.getElementById("sidebar").style.display = "block";
+    document.getElementById("intro").style.display = "none";
 
-    /* --- ZAKŁADKA DOM --- */
-    function updateHomeTab() {
-        const home = document.getElementById("home-content");
+    updateDragonsTab();
+    updateHomeTab();
+    updateMerchantTab();
+}
 
-        if (eggHeats < 3) {
-            const now = Date.now();
-            const canHeat = now - lastHeat >= 60 * 1000;
+/* ------------------------------
+   ZAKŁADKA SMOKI
+--------------------------------*/
+function updateDragonsTab() {
+    const list = document.getElementById("dragons-list");
 
-            home.innerHTML = `
-                <h3>Twoje jajko</h3>
-                <img class="egg-img" src="${eggImages[chosenDragon]}">
-                <p>Ogrzania: ${eggHeats} / 3</p>
+    let html = "";
 
-                ${canHeat
-                    ? `<div class="button" onclick="heatEgg()">Ogrzej jajko</div>`
-                    : `<p>Możesz ogrzać jajko za chwilę...</p>`
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 1:</b><br>
+            Imię: ${dragonName}<br>
+            Żywioł: ${chosenDragon}<br>
+            Status: ${eggHeats < 3 ? "Jajko" : "Wykluty smok"}
+        </div>
+    `;
+
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 2:</b><br>
+            ${secondDragonUnlocked ?
+                `Imię: ${secondDragonName}<br>
+                 Żywioł: ${secondDragonElement}<br>
+                 Status: ${secondEggHeats < 3 ? "Jajko" : "Wykluty smok"}`
+                :
+                "🔒 Zablokowany — odwiedź Handlarza"
+            }
+        </div>
+    `;
+
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 3:</b><br>
+            🔒 Zablokowany
+        </div>
+    `;
+
+    list.innerHTML = html;
+}
+
+/* ------------------------------
+   ZAKŁADKA DOM
+--------------------------------*/
+function updateHomeTab() {
+    const home = document.getElementById("home-content");
+
+    let html = "";
+
+    /* Smok 1 */
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 1</b><br>
+            Ogrzania: ${eggHeats}/3<br>
+            ${eggHeats < 3 ?
+                `<div class="button" onclick="heatEgg1()">Ogrzej jajko</div>`
+                :
+                `<div>Smok wykluty</div>
+                 <input class="name-input" id="name1" placeholder="Nowe imię">
+                 <div class="button" onclick="renameDragon1()">Zmień imię</div>`
+            }
+        </div>
+    `;
+
+    /* Smok 2 */
+    if (secondDragonUnlocked) {
+        html += `
+            <div class="dragon-slot">
+                <b>Smok 2</b><br>
+                Ogrzania: ${secondEggHeats}/3<br>
+                ${secondEggHeats < 3 ?
+                    `<div class="button" onclick="heatEgg2()">Ogrzej jajko</div>`
+                    :
+                    `<div>Smok wykluty</div>
+                     <input class="name-input" id="name2" placeholder="Nowe imię">
+                     <div class="button" onclick="renameDragon2()">Zmień imię</div>`
                 }
-            `;
-        } else {
-            home.innerHTML = `
-                <h3>${dragonName}</h3>
-                <img class="dragon-img" src="${dragonImages[chosenDragon]}">
-                <p>Twój smok wykluł się z jajka.</p>
-            `;
-        }
+            </div>
+        `;
     }
 
-    function heatEgg() {
-        const now = Date.now();
-        if (now - lastHeat < 60 * 1000) return;
+    home.innerHTML = html;
+}
 
-        eggHeats++;
-        lastHeat = now;
+function heatEgg1() {
+    const now = Date.now();
+    if (now - lastHeat < 60000) return;
 
-        localStorage.setItem("eggHeats", eggHeats);
-        localStorage.setItem("lastHeat", lastHeat);
+    eggHeats++;
+    lastHeat = now;
 
-        updateHomeTab();
-        updateDragonsTab();
+    localStorage.setItem("eggHeats", eggHeats);
+    localStorage.setItem("lastHeat", lastHeat);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function heatEgg2() {
+    const now = Date.now();
+    if (now - secondLastHeat < 60000) return;
+
+    secondEggHeats++;
+    secondLastHeat = now;
+
+    localStorage.setItem("secondEggHeats", secondEggHeats);
+    localStorage.setItem("secondLastHeat", secondLastHeat);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function renameDragon1() {
+    const newName = document.getElementById("name1").value.trim();
+    if (!newName) return;
+
+    dragonName = newName;
+    localStorage.setItem("dragonName", newName);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function renameDragon2() {
+    const newName = document.getElementById("name2").value.trim();
+    if (!newName) return;
+
+    secondDragonName = newName;
+    localStorage.setItem("secondDragonName", newName);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+/* ------------------------------
+   HANDLARZ — PYTANIA
+--------------------------------*/
+const merchantQuestions = [
+    {
+        text: "Wchodzisz do jaskini pełnej starożytnych run. Co robisz?",
+        answers: [
+            { text: "Dotykam najjaśniejszej runy — ogień.", element: "ogien" },
+            { text: "Szukam wilgoci — woda.", element: "woda" },
+            { text: "Badam skały — ziemia.", element: "ziemia" },
+            { text: "Nasłuchuję echa — powietrze.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Na pustkowiu widzisz wir energii. Co robisz?",
+        answers: [
+            { text: "Wchodzę w niego — ogień mnie nie zatrzyma.", element: "ogien" },
+            { text: "Obserwuję jego ruch — jak woda.", element: "woda" },
+            { text: "Dotykam ziemi, by poczuć drgania.", element: "ziemia" },
+            { text: "Pozwalam wiatrowi mnie poprowadzić.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Spotykasz ducha starożytnego smoka. Co robisz?",
+        answers: [
+            { text: "Patrzę mu prosto w oczy — ogień.", element: "ogien" },
+            { text: "Słucham jego szeptów — woda.", element: "woda" },
+            { text: "Kłaniam się mu — ziemia.", element: "ziemia" },
+            { text: "Pozwalam mu przejść przez siebie — powietrze.", element: "powietrze" }
+        ]
+    }
+];
+
+let merchantStep = 0;
+let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+
+function updateMerchantTab() {
+    const box = document.getElementById("merchant-content");
+
+    if (secondDragonUnlocked) {
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Handlarz</div>
+                <div class="dialog-text">Masz już drugiego smoka.</div>
+            </div>
+        `;
+        return;
     }
 
-    /* --- ZAKŁADKI --- */
-    function openTab(tabName) {
-        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-        document.getElementById(tabName).style.display = "block";
+    box.innerHTML = `
+        <div class="dialog-window">
+            <div class="dialog-title">Handlarz</div>
+            <div class="dialog-text">
+                „Witaj, podróżniku. Widzę, że masz już jednego smoka.
+                Jeśli chcesz kolejnego, muszę poznać twój żywioł.”
+            </div>
+            <div class="dialog-button" onclick="merchantNext()">Dalej</div>
+        </div>
+    `;
+}
 
-        if (tabName === "home") updateHomeTab();
-        if (tabName === "dragons") updateDragonsTab();
-    }
+function merchantNext() {
+    const box = document.getElementById("merchant-content");
 
-    showQuestion();
-</script>
+    if (merchantStep < 3) {
+        const q = merchantQuestions[merchantStep];
 
-</body>
-</html>
