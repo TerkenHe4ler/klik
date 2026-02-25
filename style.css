@@ -6,7 +6,7 @@ body {
     display: flex;
 }
 
-/* POPRAWIONY SIDEBAR — TYLKO JEDEN BLOK */
+/* SIDEBAR */
 #sidebar {
     width: 200px;
     background: #111a2b;
@@ -17,9 +17,7 @@ body {
     right: 0;
     top: 0;
     border-left: 2px solid #cfd8ff;
-    display: none;
 
-    /* TO JEST KLUCZOWE */
     display: flex;
     flex-direction: column;
 }
@@ -29,6 +27,7 @@ body {
     color: #cfd8ff;
 }
 
+/* ZAKŁADKI */
 .tab {
     padding: 10px;
     margin: 10px 0;
@@ -44,6 +43,21 @@ body {
     background: #1f3357;
 }
 
+/* RESET JAKO ZAKŁADKA */
+.reset-tab {
+    background: #3a0d0d;
+    border: 1px solid #b30000;
+    color: #ffb3b3;
+    font-weight: bold;
+}
+
+.reset-tab:hover {
+    background: #4d0f0f;
+    color: white;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+}
+
+/* TREŚĆ */
 #content {
     flex: 1;
     padding: 20px;
@@ -54,6 +68,7 @@ body {
     display: none;
 }
 
+/* OKNA DIALOGOWE */
 .dialog-window {
     background: rgba(10, 20, 40, 0.85);
     border: 2px solid #cfd8ff;
@@ -98,6 +113,7 @@ body {
     box-shadow: 0 0 10px rgba(150, 170, 255, 0.4);
 }
 
+/* SMOKI */
 .dragon-slot {
     background: rgba(10, 20, 40, 0.7);
     border: 1px solid #cfd8ff;
@@ -114,39 +130,4 @@ body {
     border: 1px solid #cfd8ff;
     color: #dfe8ff;
     border-radius: 6px;
-}
-
-/* PRZYCISK RESETU — TERAZ DZIAŁA POPRAWNIE */
-#dev-reset {
-    margin-top: auto; /* PRZYCISK SCHODZI NA SAM DÓŁ SIDEBARU */
-    margin-bottom: 20px;
-
-    padding: 10px;
-    background: white;
-    color: #b30000;
-    border: 2px solid #b30000;
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    text-align: center;
-
-    transition: 0.2s;
-}
-
-#dev-reset:hover {
-    background: #ffe5e5;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
-}
-/* RUBINOWA ZAKŁADKA RESETU */
-.reset-tab {
-    background: #3a0d0d;
-    border: 1px solid #b30000;
-    color: #ffb3b3;
-    font-weight: bold;
-}
-
-.reset-tab:hover {
-    background: #4d0f0f;
-    box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
-    color: white;
 }

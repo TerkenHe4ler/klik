@@ -60,8 +60,9 @@ function showQuestion() {
     }
 
     const intro = document.getElementById("intro");
+
     intro.innerHTML = `
-        <div class="dialog-window" style="text-align:center; margin-top:80px;">
+        <div class="dialog-window" style="text-align:center; margin-top:150px;">
             <div class="dialog-title">Witaj w Smoczych Włościach</div>
             <div class="dialog-text">Twoja przygoda zaraz się rozpocznie...</div>
         </div>
@@ -71,7 +72,7 @@ function showQuestion() {
         currentQuestion = 0;
         elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
         showNextStartQuestion();
-    }, 2000);
+    }, 5000);
 }
 
 /* -----------------------------------------
@@ -79,7 +80,7 @@ function showQuestion() {
 ----------------------------------------- */
 function showNextStartQuestion() {
     const intro = document.getElementById("intro");
-    const q = questions[currentQuestion] || questions[0];
+    const q = questions[currentQuestion];
 
     intro.innerHTML = `
         <div class="dialog-window">
@@ -104,19 +105,20 @@ function chooseStartAnswer(element) {
 }
 
 /* -----------------------------------------
-   OPIS JAJKA PO WYBORZE ŻYWIOŁU
+   OPIS JAJKA
 ----------------------------------------- */
 function finalizeDragon() {
     const intro = document.getElementById("intro");
+
     const chosen = Object.entries(elementScores).sort((a,b)=>b[1]-a[1])[0][0];
     chosenDragon = chosen;
     localStorage.setItem("chosenDragon", chosen);
 
     const descriptions = {
-        ogien: "ciepło, które prawie parzy Cię w dłonie. Jesteś pewny, że wykluje się z niego wspaniały smok ognia.",
-        woda: "chłód przypominający dotyk głębin oceanu. Czujesz, że narodzi się smok wody.",
-        ziemia: "stabilne, kojące ciepło skał. Wiesz, że to jajo skrywa smoka ziemi.",
-        powietrze: "delikatne pulsowanie przypominające powiew wiatru. To z pewnością będzie smok powietrza."
+        ogien: "ciepło, które prawie parzy Cię w dłonie.",
+        woda: "chłód przypominający dotyk głębin oceanu.",
+        ziemia: "stabilne, kojące ciepło skał.",
+        powietrze: "delikatne pulsowanie przypominające powiew wiatru."
     };
 
     intro.innerHTML = `
@@ -131,13 +133,11 @@ function finalizeDragon() {
 }
 
 /* -----------------------------------------
-   START GRY — POKAZANIE ZAKŁADEK
+   START GRY
 ----------------------------------------- */
 function startGame() {
-    const sidebar = document.getElementById("sidebar");
-    if (sidebar) sidebar.style.display = "flex";
-    const intro = document.getElementById("intro");
-    if (intro) intro.style.display = "none";
+    document.getElementById("sidebar").style.display = "flex";
+    document.getElementById("intro").style.display = "none";
 
     updateDragonsTab();
     updateHomeTab();
@@ -149,7 +149,6 @@ function startGame() {
 ----------------------------------------- */
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
-    if (!list) return;
 
     let html = "";
 
@@ -190,37 +189,34 @@ function updateDragonsTab() {
 ----------------------------------------- */
 function updateHomeTab() {
     const home = document.getElementById("home-content");
-    if (!home) return;
 
     let html = "";
 
-    /* Smok 1 */
     html += `
         <div class="dragon-slot">
             <b>Smok 1</b><br>
             Ogrzania: ${eggHeats}/3<br>
             ${eggHeats < 3 ?
-                `<div class="button" onclick="heatEgg1()">Ogrzej jajko</div>`
+                `<div class="dialog-button" onclick="heatEgg1()">Ogrzej jajko</div>`
                 :
                 `<div>Smok wykluty</div>
                  <input class="name-input" id="name1" placeholder="Nowe imię">
-                 <div class="button" onclick="renameDragon1()">Zmień imię</div>`
+                 <div class="dialog-button" onclick="renameDragon1()">Zmień imię</div>`
             }
         </div>
     `;
 
-    /* Smok 2 */
     if (secondDragonUnlocked) {
         html += `
             <div class="dragon-slot">
                 <b>Smok 2</b><br>
                 Ogrzania: ${secondEggHeats}/3<br>
                 ${secondEggHeats < 3 ?
-                    `<div class="button" onclick="heatEgg2()">Ogrzej jajko</div>`
+                    `<div class="dialog-button" onclick="heatEgg2()">Ogrzej jajko</div>`
                     :
                     `<div>Smok wykluty</div>
                      <input class="name-input" id="name2" placeholder="Nowe imię">
-                     <div class="button" onclick="renameDragon2()">Zmień imię</div>`
+                     <div class="dialog-button" onclick="renameDragon2()">Zmień imię</div>`
                 }
             </div>
         `;
@@ -258,9 +254,7 @@ function heatEgg2() {
 }
 
 function renameDragon1() {
-    const el = document.getElementById("name1");
-    if (!el) return;
-    const newName = el.value.trim();
+    const newName = document.getElementById("name1").value.trim();
     if (!newName) return;
 
     dragonName = newName;
@@ -271,9 +265,7 @@ function renameDragon1() {
 }
 
 function renameDragon2() {
-    const el = document.getElementById("name2");
-    if (!el) return;
-    const newName = el.value.trim();
+    const newName = document.getElementById("name2").value.trim();
     if (!newName) return;
 
     secondDragonName = newName;
@@ -284,7 +276,7 @@ function renameDragon2() {
 }
 
 /* -----------------------------------------
-   HANDLARZ — PYTANIA
+   HANDLARZ
 ----------------------------------------- */
 const merchantQuestions = [
     {
@@ -321,7 +313,6 @@ let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
-    if (!box) return;
 
     if (secondDragonUnlocked) {
         box.innerHTML = `
@@ -347,9 +338,8 @@ function updateMerchantTab() {
 
 function merchantNext() {
     const box = document.getElementById("merchant-content");
-    if (!box) return;
 
-    if (merchantStep < merchantQuestions.length) {
+    if (merchantStep < 3) {
         const q = merchantQuestions[merchantStep];
 
         box.innerHTML = `
@@ -403,16 +393,14 @@ function merchantConfirm(element) {
     localStorage.setItem("secondLastHeat", "0");
 
     const box = document.getElementById("merchant-content");
-    if (box) {
-        box.innerHTML = `
-            <div class="dialog-window">
-                <div class="dialog-title">Handlarz</div>
-                <div class="dialog-text">
-                    „Dobrze. Oto twoje jajo. Dbaj o nie, a wykluje się potężny smok.”
-                </div>
+    box.innerHTML = `
+        <div class="dialog-window">
+            <div class="dialog-title">Handlarz</div>
+            <div class="dialog-text">
+                „Dobrze. Oto twoje jajo. Dbaj o nie, a wykluje się potężny smok.”
             </div>
-        `;
-    }
+        </div>
+    `;
 
     updateDragonsTab();
     updateHomeTab();
@@ -422,9 +410,8 @@ function merchantConfirm(element) {
    ZMIANA ZAKŁADEK
 ----------------------------------------- */
 function openTab(name) {
-    document.querySelectorAll("#sidebar .tab-content").forEach(t => t.style.display = "none");
-    const el = document.getElementById(name);
-    if (el) el.style.display = "block";
+    document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+    document.getElementById(name).style.display = "block";
 }
 
 /* -----------------------------------------
@@ -436,43 +423,6 @@ function resetGame() {
 }
 
 /* -----------------------------------------
-   START and RESET ANIMATION HANDLING
+   START
 ----------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
-    showQuestion();
-
-    const reset = document.querySelector('.reset-tab');
-    if (!reset) return;
-
-    // ensure focusable & accessible
-    if (!reset.hasAttribute('tabindex') && reset.tagName !== 'BUTTON' && reset.tagName !== 'A') {
-        reset.setAttribute('tabindex', '0');
-    }
-    if (!reset.hasAttribute('role')) reset.setAttribute('role', 'button');
-
-    const playAnimation = () => {
-        reset.classList.remove('playing');
-        void reset.offsetWidth;
-        reset.classList.add('playing');
-    };
-
-    const onAnimationEnd = (e) => {
-        if (e.animationName !== 'rubyPulse') return;
-        reset.classList.remove('playing');
-        resetGame();
-    };
-
-    reset.addEventListener('click', () => {
-        playAnimation();
-        reset.addEventListener('animationend', onAnimationEnd, { once: true });
-    });
-
-    reset.addEventListener('keydown', (e) => {
-        const key = e.key || e.keyCode;
-        if (key === 'Enter' || key === ' ' || key === 'Spacebar' || key === 13 || key === 32) {
-            e.preventDefault();
-            playAnimation();
-            reset.addEventListener('animationend', onAnimationEnd, { once: true });
-        }
-    });
-});
+showQuestion();
