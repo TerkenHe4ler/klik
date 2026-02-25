@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Smocze Włości</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: #eee;
+            display: flex;
+        }
+
+        #sidebar {
+            width: 200px;
+            background: #2b2b2b;
+            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            position: fixed;
+            right: 0;
+            top: 0;
+            display: none;
+        }
+
+        #sidebar h2 {
+            text-align: center;
+        }
+
+        .tab {
+            padding: 10px;
+            margin: 10px 0;
+            background: #3a3a3a;
+            cursor: pointer;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .tab:hover {
+            background: #505050;
+        }
+
+        #content {
+            flex: 1;
+            padding: 20px;
+            margin-right: 220px;
+        }
+
+        .question-box {
+            background: #2b2b2b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .answer {
+            background: #3a3a3a;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .answer:hover {
+            background: #505050;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .button {
+            background: #444;
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: inline-block;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background: #666;
+        }
+
+        img.dragon-img, img.egg-img {
+            width: 200px;
+            display: block;
+            margin: 10px 0;
+        }
+
+        input.name-input {
+            padding: 8px;
+            margin-top: 10px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="content">
+    <h1>Witaj w Smoczych Włościach</h1>
+    <div id="intro"></div>
+
+    <div id="world" class="tab-content">
+        <h2>Świat</h2>
+        <p>Tu pojawi się mapa świata.</p>
+    </div>
+
+    <div id="dragons" class="tab-content">
+        <h2>Smoki</h2>
+        <div id="dragons-list"></div>
+    </div>
+
+    <div id="home" class="tab-content">
+        <h2>Dom</h2>
+        <div id="home-content"></div>
+    </div>
+
+    <div id="work" class="tab-content">
+        <h2>Praca</h2>
+        <p>Tu będą misje.</p>
+    </div>
+</div>
+
+<div id="sidebar">
+    <h2>Zakładki</h2>
+    <div class="tab" onclick="openTab('world')">Świat</div>
+    <div class="tab" onclick="openTab('dragons')">Smoki</div>
+    <div class="tab" onclick="openTab('home')">Dom</div>
+    <div class="tab" onclick="openTab('work')">Praca</div>
+</div>
+
+<script>
+    /* --- PYTANIA --- */
+    const questions = [
+        {
+            text: "Wędrując przez góry Sarak, napotykasz porzucone obozowisko. Co robisz?",
+            answers: [
+                { text: "Szukam śladów walki. Ogień mnie prowadzi.", element: "ogien" },
+                { text: "Szukam mokrych śladów. Woda zna drogę.", element: "woda" },
+                { text: "Wsłuchuję się w ziemię.", element: "ziemia" },
+                { text: "Podążam za wiatrem.", element: "powietrze" }
+            ]
+        },
+        {
+            text: "W ruinach świątyni słyszysz dźwięk. Co robisz?",
+            answers: [
+                { text: "Wchodzę bez wahania.", element: "ogien" },
+                { text: "Szukam wilgoci.", element: "woda" },
+                { text: "Dotykam kamieni.", element: "ziemia" },
+                { text: "Słucham echa.", element: "powietrze" }
+            ]
+        },
+        {
+            text: "Na rozdrożu spotykasz wędrowca. Co robisz?",
+            answers: [
+                { text: "Pytam o drogę.", element: "ogien" },
+                { text: "Płynę z losem.", element: "woda" },
+                { text: "Słucham historii.", element: "ziemia" },
+                { text: "Idę za intuicją.", element: "powietrze" }
+            ]
+        }
+    ];
+
+    let currentQuestion = 0;
+    let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+
+    let chosenDragon = localStorage.getItem("chosenDragon");
+    let dragonName = localStorage.getItem("dragonName") || "Twój Smok";
+
+    let eggHeats = Number(localStorage.getItem("eggHeats")) || 0;
+    let lastHeat = Number(localStorage.getItem("lastHeat")) || 0;
+
+    const eggImages = {
+        ogien: "https://i.imgur.com/8d1Q2yM.png",
+        woda: "https://i.imgur.com/1qV8q8Q.png",
+        ziemia: "https://i.imgur.com/7Q5m1mH.png",
+        powietrze: "https://i.imgur.com/5v8q2lP.png"
+    };
+
+    const dragonImages = {
+        ogien: "https://i.imgur.com/6x5Vj6W.png",
+        woda: "https://i.imgur.com/9p1Y2dF.png",
+        ziemia: "https://i.imgur.com/4t3Q8cN.png",
+        powietrze: "https://i.imgur.com/2b7K1pM.png"
+    };
+
+    /* --- START GRY --- */
+    function showQuestion() {
+        if (chosenDragon) {
+            startGame();
+            return;
+        }
+
+        const intro = document.getElementById("intro");
+        const q = questions[currentQuestion];
+
+        let html = `<div class='question-box'><h2>${q.text}</h2>`;
+
+        q.answers.forEach(a => {
+            html += `<div class='answer' onclick='chooseAnswer("${a.element}")'>${a.text}</div>`;
+        });
+
+        html += "</div>";
+        intro.innerHTML = html;
+    }
+
+    function chooseAnswer(element) {
+        elementScores[element]++;
+        currentQuestion++;
+
+        if (currentQuestion < questions.length) showQuestion();
+        else finalizeDragon();
+    }
+
+    function finalizeDragon() {
+        const intro = document.getElementById("intro");
+
+        const chosen = Object.entries(elementScores).sort((a,b)=>b[1]-a[1])[0][0];
+        chosenDragon = chosen;
+        localStorage.setItem("chosenDragon", chosen);
+
+        intro.innerHTML = `<h2>Twój smok będzie żywiołu: ${chosen}</h2>`;
+        setTimeout(startGame, 1500);
+    }
+
+    /* --- GRA --- */
+    function startGame() {
+        document.getElementById("sidebar").style.display = "block";
+        document.getElementById("intro").style.display = "none";
+
+        updateDragonsTab();
+        updateHomeTab();
+    }
+
+    /* --- ZAKŁADKA SMOKI --- */
+    function updateDragonsTab() {
+        const list = document.getElementById("dragons-list");
+
+        if (eggHeats < 3) {
+            list.innerHTML = `
+                <p>Smok jeszcze się nie wykluł.</p>
+                <img class="egg-img" src="${eggImages[chosenDragon]}">
+            `;
+        } else {
+            list.innerHTML = `
+                <h3>${dragonName}</h3>
+                <img class="dragon-img" src="${dragonImages[chosenDragon]}">
+                <p>Żywioł: ${chosenDragon}</p>
+
+                <input class="name-input" id="newName" placeholder="Nowe imię">
+                <div class="button" onclick="renameDragon()">Zmień imię</div>
+            `;
+        }
+    }
+
+    function renameDragon() {
+        const newName = document.getElementById("newName").value.trim();
+        if (newName.length > 0) {
+            dragonName = newName;
+            localStorage.setItem("dragonName", newName);
+            updateDragonsTab();
+            updateHomeTab();
+        }
+    }
+
+    /* --- ZAKŁADKA DOM --- */
+    function updateHomeTab() {
+        const home = document.getElementById("home-content");
+
+        if (eggHeats < 3) {
+            const now = Date.now();
+            const canHeat = now - lastHeat >= 60 * 1000;
+
+            home.innerHTML = `
+                <h3>Twoje jajko</h3>
+                <img class="egg-img" src="${eggImages[chosenDragon]}">
+                <p>Ogrzania: ${eggHeats} / 3</p>
+
+                ${canHeat
+                    ? `<div class="button" onclick="heatEgg()">Ogrzej jajko</div>`
+                    : `<p>Możesz ogrzać jajko za chwilę...</p>`
+                }
+            `;
+        } else {
+            home.innerHTML = `
+                <h3>${dragonName}</h3>
+                <img class="dragon-img" src="${dragonImages[chosenDragon]}">
+                <p>Twój smok wykluł się z jajka.</p>
+            `;
+        }
+    }
+
+    function heatEgg() {
+        const now = Date.now();
+        if (now - lastHeat < 60 * 1000) return;
+
+        eggHeats++;
+        lastHeat = now;
+
+        localStorage.setItem("eggHeats", eggHeats);
+        localStorage.setItem("lastHeat", lastHeat);
+
+        updateHomeTab();
+        updateDragonsTab();
+    }
+
+    /* --- ZAKŁADKI --- */
+    function openTab(tabName) {
+        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+        document.getElementById(tabName).style.display = "block";
+
+        if (tabName === "home") updateHomeTab();
+        if (tabName === "dragons") updateDragonsTab();
+    }
+
+    showQuestion();
+</script>
+
+</body>
+</html>
