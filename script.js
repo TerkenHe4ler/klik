@@ -60,9 +60,8 @@ function showQuestion() {
     }
 
     const intro = document.getElementById("intro");
-
     intro.innerHTML = `
-        <div class="dialog-window" style="text-align:center; margin-top:150px;">
+        <div class="dialog-window" style="text-align:center; margin-top:80px;">
             <div class="dialog-title">Witaj w Smoczych Włościach</div>
             <div class="dialog-text">Twoja przygoda zaraz się rozpocznie...</div>
         </div>
@@ -72,7 +71,7 @@ function showQuestion() {
         currentQuestion = 0;
         elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
         showNextStartQuestion();
-    }, 5000);
+    }, 2000);
 }
 
 /* -----------------------------------------
@@ -80,7 +79,7 @@ function showQuestion() {
 ----------------------------------------- */
 function showNextStartQuestion() {
     const intro = document.getElementById("intro");
-    const q = questions[currentQuestion];
+    const q = questions[currentQuestion] || questions[0];
 
     intro.innerHTML = `
         <div class="dialog-window">
@@ -109,7 +108,6 @@ function chooseStartAnswer(element) {
 ----------------------------------------- */
 function finalizeDragon() {
     const intro = document.getElementById("intro");
-
     const chosen = Object.entries(elementScores).sort((a,b)=>b[1]-a[1])[0][0];
     chosenDragon = chosen;
     localStorage.setItem("chosenDragon", chosen);
@@ -125,7 +123,7 @@ function finalizeDragon() {
         <div class="dialog-window">
             <div class="dialog-title">Twoje pierwsze jajo</div>
             <div class="dialog-text">
-                Otrzymałeś swoje pierwsze jajo. Trzymasz je w dłoniach i czujesz ${descriptions[chosen]} 
+                Otrzymałeś swoje pierwsze jajo. Trzymasz je w dłoniach i czujesz ${descriptions[chosen]}
             </div>
             <div class="dialog-button" onclick="startGame()">Dalej</div>
         </div>
@@ -137,7 +135,7 @@ function finalizeDragon() {
 ----------------------------------------- */
 function startGame() {
     const sidebar = document.getElementById("sidebar");
-    if (sidebar) sidebar.style.display = "block";
+    if (sidebar) sidebar.style.display = "flex";
     const intro = document.getElementById("intro");
     if (intro) intro.style.display = "none";
 
@@ -424,7 +422,7 @@ function merchantConfirm(element) {
    ZMIANA ZAKŁADEK
 ----------------------------------------- */
 function openTab(name) {
-    document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+    document.querySelectorAll("#sidebar .tab-content").forEach(t => t.style.display = "none");
     const el = document.getElementById(name);
     if (el) el.style.display = "block";
 }
@@ -454,26 +452,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const playAnimation = () => {
         reset.classList.remove('playing');
-        // force reflow so same animation can restart
         void reset.offsetWidth;
         reset.classList.add('playing');
     };
 
     const onAnimationEnd = (e) => {
-        // only act for our animation
         if (e.animationName !== 'rubyPulse') return;
         reset.classList.remove('playing');
-        // perform reset after animation
         resetGame();
     };
 
-    // click handler: start animation and wait for a single animationend
     reset.addEventListener('click', () => {
         playAnimation();
         reset.addEventListener('animationend', onAnimationEnd, { once: true });
     });
 
-    // keyboard activation (Enter / Space)
     reset.addEventListener('keydown', (e) => {
         const key = e.key || e.keyCode;
         if (key === 'Enter' || key === ' ' || key === 'Spacebar' || key === 13 || key === 32) {

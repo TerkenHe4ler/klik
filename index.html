@@ -1,56 +1,49 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Smocze Włości</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="content">
+        <div id="intro"></div>
 
-<div id="content">
-    <div id="intro"></div>
+        <div id="main-area" class="tab-content" style="display:block;">
+            <!-- tutaj wstawiana zawartość przez JS -->
+        </div>
 
-    <div id="world" class="tab-content">
-        <h2>Świat</h2>
-        <p>Tu pojawi się mapa świata.</p>
+        <!-- przykładowy footer / info -->
+        <div style="max-width:900px;margin:20px auto;color:#9fb3ff;text-align:center;font-size:13px;">
+            Gra demonstracyjna – użyj panelu po prawej, aby przełączać zakładki.
+        </div>
     </div>
 
-    <div id="dragons" class="tab-content">
-        <h2>Smoki</h2>
-        <div id="dragons-list"></div>
-    </div>
+    <aside id="sidebar" aria-label="Panel">
+        <h2>Menu</h2>
 
-    <div id="home" class="tab-content">
-        <h2>Dom</h2>
-        <div id="home-content"></div>
-    </div>
+        <div class="tab" onclick="openTab('home')">Dom</div>
+        <div class="tab" onclick="openTab('dragons')">Smoki</div>
+        <div class="tab" onclick="openTab('merchant')">Handlarz</div>
 
-    <div id="work" class="tab-content">
-        <h2>Praca</h2>
-        <p>Tu będą misje.</p>
-    </div>
+        <div id="home" class="tab-content" style="display:block; margin-top:10px;">
+            <div id="home-content"></div>
+        </div>
 
-    <div id="merchant" class="tab-content">
-        <h2>Handlarz Smoczych Jaj</h2>
-        <div id="merchant-content"></div>
-    </div>
-</div>
+        <div id="dragons" class="tab-content" style="margin-top:10px;">
+            <div id="dragons-list"></div>
+        </div>
 
-<!-- JEDYNY sidebar -->
-<div id="sidebar">
-    <h2>Zakładki</h2>
+        <div id="merchant" class="tab-content" style="margin-top:10px;">
+            <div id="merchant-content"></div>
+        </div>
 
-    <div class="tab" onclick="openTab('world')">Świat</div>
-    <div class="tab" onclick="openTab('dragons')">Smoki</div>
-    <div class="tab" onclick="openTab('home')">Dom</div>
-    <div class="tab" onclick="openTab('work')">Praca</div>
-    <div class="tab" onclick="openTab('merchant')">Handlarz</div>
+        <div style="margin-top:auto;">
+            <button class="reset-tab" type="button" title="Reset gry">Reset</button>
+        </div>
+    </aside>
 
-    <!-- PRZYCISK RESETU JAKO OSTATNIA ZAKŁADKA -->
-    <div class="tab reset-tab" onclick="resetGame()">RESET DO POCZĄTKU</div>
-</div>
-
-<button class="reset-tab" type="button">Reset</button>
-<script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
