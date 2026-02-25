@@ -8,7 +8,7 @@ body {
 
 /* POPRAWIONY SIDEBAR — TYLKO JEDEN BLOK */
 #sidebar {
-    width: 220px;
+    width: 200px;
     background: #111a2b;
     height: 100vh;
     padding: 20px;
@@ -18,6 +18,8 @@ body {
     top: 0;
     border-left: 2px solid #cfd8ff;
     display: none;
+
+    /* TO JEST KLUCZOWE */
     display: flex;
     flex-direction: column;
 }
@@ -25,12 +27,11 @@ body {
 #sidebar h2 {
     text-align: center;
     color: #cfd8ff;
-    margin: 0 0 10px 0;
 }
 
 .tab {
     padding: 10px;
-    margin: 6px 0;
+    margin: 10px 0;
     background: #16233a;
     cursor: pointer;
     text-align: center;
@@ -46,7 +47,7 @@ body {
 #content {
     flex: 1;
     padding: 20px;
-    margin-right: 240px;
+    margin-right: 220px;
 }
 
 .tab-content {
@@ -97,22 +98,6 @@ body {
     box-shadow: 0 0 10px rgba(150, 170, 255, 0.4);
 }
 
-/* klasy .button tworzone przez JS */
-.button {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    background: linear-gradient(#1a2d4d, #0f1b33);
-    border: 1px solid #cfd8ff;
-    border-radius: 8px;
-    color: #dfe8ff;
-    cursor: pointer;
-    text-align: center;
-    transition: 0.2s;
-}
-.button:hover { background: #243b63; box-shadow: 0 0 10px rgba(150,170,255,0.4); }
-
 .dragon-slot {
     background: rgba(10, 20, 40, 0.7);
     border: 1px solid #cfd8ff;
@@ -131,51 +116,24 @@ body {
     border-radius: 6px;
 }
 
-/* RUBINOWA ANIMOWANA ZAKŁADKA RESETU */
-.reset-tab {
+/* PRZYCISK RESETU — TERAZ DZIAŁA POPRAWNIE */
+#dev-reset {
+    margin-top: auto; /* PRZYCISK SCHODZI NA SAM DÓŁ SIDEBARU */
+    margin-bottom: 20px;
+
     padding: 10px;
-    margin: 10px 0;
-    background: #3a0d0d;
-    border: 1px solid #b30000;
-    color: #ffb3b3;
-    font-weight: bold;
-    text-align: center;
+    background: white;
+    color: #b30000;
+    border: 2px solid #b30000;
     border-radius: 6px;
+    font-weight: bold;
     cursor: pointer;
+    text-align: center;
+
     transition: 0.2s;
-    outline: none;
 }
 
-/* klasa dodawana przez JS — uruchamia jeden cykl animacji */
-.reset-tab.playing {
-    animation: rubyPulse 2.2s 1 ease-in-out;
+#dev-reset:hover {
+    background: #ffe5e5;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
 }
-
-/* HOVER – jaśniejszy rubin */
-.reset-tab:hover {
-    background: #4d0f0f;
-    color: white;
-    box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
-}
-
-/* ANIMACJA RUBINOWEGO PULSU */
-@keyframes rubyPulse {
-    0% {
-        box-shadow: 0 0 0px rgba(255, 0, 0, 0.0);
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-3px);
-    }
-    50% {
-        box-shadow: 0 0 12px rgba(255, 0, 0, 0.45);
-    }
-    100% {
-        box-shadow: 0 0 0px rgba(255, 0, 0, 0.0);
-        transform: translateY(0);
-    }
-}
-
-/* convenience: pokaż dom jako domyślną zawartość w sidebar */
-#home { display: block; }
-#dragons, #merchant { display: none; }
