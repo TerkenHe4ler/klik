@@ -1,0 +1,157 @@
+/* ------------------------------
+   GLOBAL
+--------------------------------*/
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0a0f1a;
+    color: #dfe8ff;
+    display: flex;
+}
+
+/* ------------------------------
+   SIDEBAR
+--------------------------------*/
+#sidebar {
+    width: 200px;
+    background: #111a2b;
+    height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+    right: 0;
+    top: 0;
+    display: none;
+    border-left: 2px solid #cfd8ff;
+}
+
+#sidebar h2 {
+    text-align: center;
+    color: #cfd8ff;
+}
+
+.tab {
+    padding: 10px;
+    margin: 10px 0;
+    background: #16233a;
+    cursor: pointer;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid #cfd8ff;
+    transition: 0.2s;
+}
+
+.tab:hover {
+    background: #1f3357;
+}
+
+/* ------------------------------
+   CONTENT
+--------------------------------*/
+#content {
+    flex: 1;
+    padding: 20px;
+    margin-right: 220px;
+}
+
+.tab-content {
+    display: none;
+}
+
+/* ------------------------------
+   DIALOG WINDOWS (B2 STYLE)
+--------------------------------*/
+.dialog-window {
+    background: rgba(10, 20, 40, 0.85);
+    border: 2px solid #cfd8ff;
+    border-radius: 14px;
+    padding: 20px;
+    max-width: 600px;
+    margin: 40px auto;
+    box-shadow: 0 0 20px rgba(150, 170, 255, 0.4);
+    animation: fadeIn 0.4s ease;
+}
+
+.dialog-title {
+    font-size: 22px;
+    color: #cfd8ff;
+    border-bottom: 1px solid #cfd8ff;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.dialog-text {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* ------------------------------
+   BUTTONS
+--------------------------------*/
+.dialog-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background: linear-gradient(#1a2d4d, #0f1b33);
+    border: 1px solid #cfd8ff;
+    border-radius: 8px;
+    color: #dfe8ff;
+    cursor: pointer;
+    text-align: center;
+    transition: 0.2s;
+}
+
+.dialog-button:hover {
+    background: #243b63;
+    box-shadow: 0 0 10px rgba(150, 170, 255, 0.4);
+}
+
+.button {
+    background: #1a2d4d;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #cfd8ff;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 10px;
+    transition: 0.2s;
+}
+
+.button:hover {
+    background: #243b63;
+}
+
+/* ------------------------------
+   DRAGON SLOTS
+--------------------------------*/
+.dragon-slot {
+    background: rgba(10, 20, 40, 0.7);
+    border: 1px solid #cfd8ff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+/* ------------------------------
+   INPUTS
+--------------------------------*/
+.name-input {
+    padding: 8px;
+    margin-top: 10px;
+    width: 200px;
+    background: #0f1b33;
+    border: 1px solid #cfd8ff;
+    color: #dfe8ff;
+    border-radius: 6px;
+}
+
+/* ------------------------------
+   ANIMATIONS
+--------------------------------*/
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
