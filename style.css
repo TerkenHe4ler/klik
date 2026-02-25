@@ -126,9 +126,6 @@ body {
     z-index: 9999;
     opacity: 0.9;
     transition: 0.2s;
-}
-
-#dev-reset:hover {
     opacity: 1;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
