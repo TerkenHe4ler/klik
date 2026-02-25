@@ -137,3 +137,16 @@ body {
     background: #ffe5e5;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
 }
+/* RUBINOWA ZAKŁADKA RESETU */
+.reset-tab {
+    background: #3a0d0d;
+    border: 1px solid #b30000;
+    color: #ffb3b3;
+    font-weight: bold;
+}
+
+.reset-tab:hover {
+    background: #4d0f0f;
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+    color: white;
+}
