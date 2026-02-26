@@ -227,11 +227,11 @@ function updateWorkTab() {
                         <p style="font-size:0.95em; color:#aaa; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
-                        <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:transparent; border-bottom:1px solid #ffffff;">
-                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                            <tr style="border-bottom:1px solid #ffffff; background:transparent; color:#e0e0e0;">
+                                ${job.reward.copper ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
