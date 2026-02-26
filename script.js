@@ -169,7 +169,7 @@ function skipJob() {
 
 function updateWorkTab() {
     const work = document.getElementById("work-content");
-    let html = `<div style="margin-bottom:20px; padding:15px; background:#4a4845; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
+    let html = `<div style="margin-bottom:20px; padding:15px; background:transparent; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
         <p style="font-style: italic; color:#bbb; margin:0;">
             Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
         </p>
@@ -212,7 +212,7 @@ function updateWorkTab() {
                 durationText = `${seconds}s`;
             }
             
-            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#4a4845; border:1px solid #5a5855; color:#e0e0e0;">
+            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:transparent; border:1px solid #5a5855; color:#e0e0e0;">
                         <p style="margin:0 0 8px 0; font-size:1.1em;"><b>${job.name}</b></p>
                         <p style="font-size:0.95em; color:#aaa; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
@@ -246,7 +246,7 @@ function updateInventoryTab() {
     if (Object.keys(inventory).length > 0) {
         html += `<h3>Przedmioty</h3>
                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <tr style="border-bottom:1px solid #ffffff; background:#4a4845; color:#e0e0e0;">
+                    <tr style="border-bottom:1px solid #ffffff; background:transparent; color:#e0e0e0;">
                         <th style="padding:10px; text-align:left;">Przedmiot</th>
                         <th style="padding:10px; text-align:right;">Ilość</th>
                     </tr>`;
@@ -264,7 +264,7 @@ function updateInventoryTab() {
     // food items
     html += `<h3>Jedzenie na smoki</h3>
             <table style="width:100%; border-collapse:collapse;">
-                <tr style="border-bottom:1px solid #ffffff; background:#4a4845; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #ffffff; background:transparent; color:#e0e0e0;">
                     <th style="padding:10px; text-align:left;">Typ</th>
                     <th style="padding:10px; text-align:right;">Ilość</th>
                 </tr>
