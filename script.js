@@ -197,7 +197,7 @@ function updateWorkTab() {
             completeJob();
             return;
         }
-        html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#4a4845; border:1px solid #5a5855; color:#e0e0e0;">
+        html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; color:#e0e0e0;">
                     <p style="margin:0 0 12px 0; font-size:1.05em;"><b>📋 Wykonywana praca</b></p>
                     <p style="margin:8px 0; font-size:1.1em;"><b>${currentJob.name}</b></p>
                     <p style="margin:10px 0; color:#bbb;">Pozostały czas: <b style="color:#e0e0e0; font-size:1.05em;">${formatTime(remaining)}</b></p>
@@ -222,7 +222,7 @@ function updateWorkTab() {
                 durationText = `${seconds}s`;
             }
             
-            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:transparent; border:1px solid #5a5855; color:#e0e0e0;">
+            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; color:#e0e0e0;">
                         <p style="margin:0 0 8px 0; font-size:1.1em;"><b>${job.name}</b></p>
                         <p style="font-size:0.95em; color:#aaa; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
