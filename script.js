@@ -218,10 +218,10 @@ function updateWorkTab() {
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:#3d3c3a;">
-                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a5855;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a5855;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a5855;">Złoto: ${job.reward.gold}</td>` : ''}
+                            <tr style="background:#4a4845; border-bottom:2px solid #8b7355;">
+                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
