@@ -169,7 +169,7 @@ function skipJob() {
 
 function updateWorkTab() {
     const work = document.getElementById("work-content");
-    let html = `<div style="margin-bottom:20px; padding:15px; background:#4a4845; border-left:4px solid #8b7355; border-radius:4px; color:#e0e0e0;">
+    let html = `<div style="margin-bottom:20px; padding:15px; background:#4a4845; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
         <p style="font-style: italic; color:#bbb; margin:0;">
             Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
         </p>
@@ -187,7 +187,7 @@ function updateWorkTab() {
             completeJob();
             return;
         }
-        html += `<div style="margin:20px 0; padding:15px; background:#3d3c3a; border-radius:8px; border-left:4px solid #8b7355; color:#e0e0e0;">
+        html += `<div style="margin:20px 0; padding:15px; background:#3d3c3a; border-radius:8px; border-left:4px solid #5a6a7a; color:#e0e0e0;">
                     <p><b>📋 Wykonywana praca:</b></p>
                     <p style="font-size:1.1em; font-weight:bold;">${currentJob.name}</p>
                     <p style="color:#aaa; margin:10px 0;">Pozostały czas: <b style="color:#e0e0e0;">${formatTime(remaining)}</b></p>
@@ -218,10 +218,10 @@ function updateWorkTab() {
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:#4a4845; border-bottom:1px solid #5a5855;">
-                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
+                            <tr style="background:#3d4a57; border-bottom:1px solid #5a6a7a;">
+                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
@@ -246,12 +246,12 @@ function updateInventoryTab() {
     if (Object.keys(inventory).length > 0) {
         html += `<h3>Przedmioty</h3>
                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <tr style="border-bottom:1px solid #5a5855; background:#4a4845; color:#e0e0e0;">
+                    <tr style="border-bottom:1px solid #5a6a7a; background:#3d4a57; color:#e0e0e0;">
                         <th style="padding:10px; text-align:left;">Przedmiot</th>
                         <th style="padding:10px; text-align:right;">Ilość</th>
                     </tr>`;
         Object.entries(inventory).forEach(([item, count]) => {
-            html += `<tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
+            html += `<tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
                         <td style="padding:10px;">${item}</td>
                         <td style="padding:10px; text-align:right;"><b>${count}</b></td>
                     </tr>`;
@@ -264,15 +264,15 @@ function updateInventoryTab() {
     // food items
     html += `<h3>Jedzenie na smoki</h3>
             <table style="width:100%; border-collapse:collapse;">
-                <tr style="border-bottom:1px solid #5a5855; background:#4a4845; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #5a6a7a; background:#3d4a57; color:#e0e0e0;">
                     <th style="padding:10px; text-align:left;">Typ</th>
                     <th style="padding:10px; text-align:right;">Ilość</th>
                 </tr>
-                <tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
                     <td style="padding:10px;">Mięso</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.mięso || 0}</b></td>
                 </tr>
-                <tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
                     <td style="padding:10px;">Jagody</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.jagody || 0}</b></td>
                 </tr>
