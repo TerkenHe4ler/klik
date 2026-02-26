@@ -45,6 +45,10 @@ let dailyJobs = JSON.parse(localStorage.getItem("dailyJobs")) || null;
 let currentJob = JSON.parse(localStorage.getItem("currentJob")) || null;
 let jobTimerInterval = null;
 
+// inventory tracking
+let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
+let foodItems = JSON.parse(localStorage.getItem("foodItems")) || { mięso: 0, jagody: 0 };
+
 
 // helper to format milliseconds into hh:mm:ss
 function formatTime(ms) {
@@ -71,24 +75,24 @@ function hoursToMs(h) {
     return h * 3600 * 1000 / TIME_SCALE;
 }
 
-// job definitions (simplified pool)
+// job definitions with descriptions, bonus chances, and items
 const jobPool = [
     // 4-6h jobs (short)
-    { name: "Pomoc w magazynie kupca Lirena", duration: hoursToMs(5), reward: { copper: 50 } },
-    { name: "Dostarczanie listów", duration: hoursToMs(5), reward: { copper: 45 } },
-    { name: "Pomoc w kuchni gospody", duration: hoursToMs(5), reward: { copper: 60 } },
+    { name: "Pomoc w magazynie kupca Lireny", duration: hoursToMs(5), reward: { copper: 50 }, description: "Pomoc przy organizacji towaru w magazynie.", bonusChance: 0.15, bonusItems: ["Lina", "Worek płócienny"] },
+    { name: "Dostarczanie listów", duration: hoursToMs(5), reward: { copper: 45 }, description: "Dostarczenie listów po całym mieście.", bonusChance: 0.15, bonusItems: ["Stary list", "Pieczęć"] },
+    { name: "Pomoc w kuchni gospody", duration: hoursToMs(5), reward: { copper: 60 }, description: "Przygotowywanie posiłków dla gości gospody.", bonusChance: 0.50, bonusItems: ["Mięso surowe", "Jagody", "Chleb"] },
     // 8-12h jobs (medium)
-    { name: "Straż przy bramie miasta", duration: hoursToMs(10), reward: { silver: 2 } },
-    { name: "Zbieranie drewna w Lesie Mgieł", duration: hoursToMs(10), reward: { silver: 1, copper: 20 } },
-    { name: "Pomoc w lecznicy", duration: hoursToMs(10), reward: { copper: 80, silver: 1 } },
+    { name: "Straż przy bramie miasta", duration: hoursToMs(10), reward: { silver: 2 }, description: "Czuwanie nad bezpieczeństwem bram miasta.", bonusChance: 0.80, bonusItems: ["Zbroja skórzana", "Hełm żelazny"] },
+    { name: "Zbieranie drewna w Lesie Mgieł", duration: hoursToMs(10), reward: { silver: 1, copper: 20 }, description: "Zbieranie drewna w mrocznym lesie.", bonusChance: 0.15, bonusItems: ["Topór", "Ogniste pochodnie"] },
+    { name: "Pomoc w lecznicy", duration: hoursToMs(10), reward: { copper: 80, silver: 1 }, description: "Asystowanie przy uzdrawianiu pacjentów.", bonusChance: 0.15, bonusItems: ["Zioła uzdrawiające", "Mikstura"] },
     // 14-18h jobs (long)
-    { name: "Eskorta małej karawany", duration: hoursToMs(16), reward: { silver: 3 } },
-    { name: "Prace w tartaku", duration: hoursToMs(16), reward: { silver: 2, copper: 30 } },
-    { name: "Pomoc w archiwum miejskim", duration: hoursToMs(16), reward: { silver: 2 } },
+    { name: "Eskorta małej karawany", duration: hoursToMs(16), reward: { silver: 3 }, description: "Ochrona handlarzy w podróży przez niebezpieczne tereny.", bonusChance: 0.15, bonusItems: ["Mapa terenu", "Płaszcz podróżnika"] },
+    { name: "Prace w tartaku", duration: hoursToMs(16), reward: { silver: 2, copper: 30 }, description: "Praca przy piłowaniu drewna w tartaku.", bonusChance: 0.15, bonusItems: ["Piła", "Rękawice robocze"] },
+    { name: "Pomoc w archiwum miejskim", duration: hoursToMs(16), reward: { silver: 2 }, description: "Katalogowanie starych dokumentów i zwojów.", bonusChance: 0.15, bonusItems: ["Stara księga", "Tusz do pisania"] },
     // 20-24h jobs (very long)
-    { name: "Eskorta dużej karawany handlowej", duration: hoursToMs(22), reward: { silver: 5 } },
-    { name: "Praca w kopalni", duration: hoursToMs(22), reward: { silver: 4 } },
-    { name: "Nocna służba w garnizonie", duration: hoursToMs(22), reward: { silver: 4 } }
+    { name: "Eskorta dużej karawany handlowej", duration: hoursToMs(22), reward: { silver: 5 }, description: "Ochrona bogatej karawany handlarzy na dalekim szlaku.", bonusChance: 0.15, bonusItems: ["Zardzewiana zbroja", "Magia ochronna"] },
+    { name: "Praca w kopalni", duration: hoursToMs(22), reward: { silver: 4 }, description: "Wydobywanie rud z głębin kopalni.", bonusChance: 0.15, bonusItems: ["Rudna gałąź", "Hełm górnika"] },
+    { name: "Nocna służba w garnizonie", duration: hoursToMs(22), reward: { silver: 4 }, description: "Pełnienie nocnej straży w garnizonie żołnierzy.", bonusChance: 0.15, bonusItems: ["Insygnia wojskowa", "Mapa fortyfikacji"] }
 ];
 
 function pickJobs() {
@@ -103,9 +107,13 @@ function pickJobs() {
 }
 
 function startJob(job) {
+    // determine bonus
+    const bonusAward = Math.random() < job.bonusChance ? job.bonusItems : null;
+    
     currentJob = {
         ...job,
-        endTime: Date.now() + job.duration
+        endTime: Date.now() + job.duration,
+        bonusAward: bonusAward
     };
     localStorage.setItem("currentJob", JSON.stringify(currentJob));
     if (jobTimerInterval) clearInterval(jobTimerInterval);
@@ -115,13 +123,39 @@ function startJob(job) {
 
 function completeJob() {
     if (!currentJob) return;
+    
+    // award currency
     Object.entries(currentJob.reward).forEach(([type,amt])=>{
         adjustCurrency(type, amt);
     });
+    
+    // check for bonus
+    let bonusMsg = "";
+    if (currentJob.bonusAward) {
+        bonusMsg = "Jednak to nie wszystko...\n\nZnalazłeś dodatkowe przedmioty:\n" + currentJob.bonusAward.join(", ");
+        currentJob.bonusAward.forEach(item => {
+            if (item === "Mięso surowe") {
+                foodItems.mięso = (foodItems.mięso || 0) + 1;
+            } else if (item === "Jagody") {
+                foodItems.jagody = (foodItems.jagody || 0) + 1;
+            } else {
+                inventory[item] = (inventory[item] || 0) + 1;
+            }
+        });
+        localStorage.setItem("inventory", JSON.stringify(inventory));
+        localStorage.setItem("foodItems", JSON.stringify(foodItems));
+    }
+    
     currentJob = null;
     localStorage.removeItem("currentJob");
-    alert("Praca zakończona! Otrzymałeś nagrody.");
+    
+    if (bonusMsg) {
+        alert("Praca zakończona! Otrzymałeś nagrody.\n\n" + bonusMsg);
+    } else {
+        alert("Praca zakończona! Otrzymałeś nagrody.");
+    }
     updateWorkTab();
+    updateInventoryTab();
 }
 
 function skipJob() {
@@ -134,15 +168,18 @@ function skipJob() {
 
 
 function updateWorkTab() {
-    const work = document.getElementById("work");
-    let html = `<h2>Praca</h2>`;
+    const work = document.getElementById("work-content");
+    let html = `<div style="margin-bottom:20px; padding:15px; background:#f9f9f9; border-left:4px solid #d4a574; border-radius:4px;">
+        <p style="font-style: italic; color:#666; margin:0;">
+            Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
+        </p>
+    </div>`;
+    
     if (!workUnlocked) {
-        html += `<p>Zakładka zostanie odblokowana w fabule.</p>`;
+        html += `<p>Zakładka będzie dostępna później w grze.</p>`;
         work.innerHTML = html;
         return;
     }
-
-    html += `<p>Waluty: ${copper} miedzi, ${silver} srebra, ${gold} złota</p>`;
 
     if (currentJob) {
         const remaining = currentJob.endTime - Date.now();
@@ -150,20 +187,35 @@ function updateWorkTab() {
             completeJob();
             return;
         }
-        html += `<p>Obecna praca: <b>${currentJob.name}</b><br>
-                 Pozostały czas: ${formatTime(remaining)}</p>
-                 <div class="dialog-button" onclick="skipJob()">Pomiń czekanie</div>`;
+        html += `<div style="margin:20px 0; padding:15px; background:#f0f0f0; border-radius:8px; border-left:4px solid #8b7355;">
+                    <p><b>📋 Wykonywana praca:</b></p>
+                    <p style="font-size:1.1em; font-weight:bold;">${currentJob.name}</p>
+                    <p style="color:#666; margin:10px 0;">Pozostały czas: <b style="color:#000;">${formatTime(remaining)}</b></p>
+                    <div class="dialog-button" onclick="skipJob()" style="display:inline-block; margin-top:10px;">⏭️ Pomiń czekanie</div>
+                 </div>`;
     } else {
         if (!dailyJobs) pickJobs();
-        html += `<div id="work-list">`;
+        html += ``;
         dailyJobs.forEach((job, idx) => {
-            html += `<div class="dragon-slot">
-                        <b>${job.name}</b><br>
-                        Czas trwania: ${formatTime(job.duration)}<br>
-                        <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])">Wykonaj</div>
+            const durationMin = Math.round(job.duration / 60000);
+            const durationText = durationMin < 60 ? `${durationMin} min` : `${Math.round(durationMin/60)}h`;
+            
+            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#fafafa; border:1px solid #ddd;">
+                        <p style="margin:0 0 8px 0; font-size:1.1em;"><b>${job.name}</b></p>
+                        <p style="font-size:0.95em; color:#666; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
+                        <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
+                        <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
+                        <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
+                            <tr style="background:#f0f0f0;">
+                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #ddd;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #ddd;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #ddd;">Złoto: ${job.reward.gold}</td>` : ''}
+                            </tr>
+                        </table>
+                        <p style="font-size:0.85em; color:#999; margin-top:8px;">🎁 Dodatkowa nagroda: ${Math.round(job.bonusChance*100)}% szansy</p>
+                        <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
                      </div>`;
         });
-        html += `</div>`;
     }
     work.innerHTML = html;
 }
@@ -173,6 +225,49 @@ function unlockWork() {
     localStorage.setItem("workUnlocked","true");
     document.getElementById("tab-work").style.display = "block";
     updateWorkTab();
+}
+
+function updateInventoryTab() {
+    const inv = document.getElementById("inventory-content");
+    let html = `<h2>Ekwipunek</h2>`;
+    
+    // items from quests
+    if (Object.keys(inventory).length > 0) {
+        html += `<h3>Przedmioty</h3>
+                <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                    <tr style="border-bottom:2px solid #ccc; background:#f0f0f0;">
+                        <th style="padding:10px; text-align:left;">Przedmiot</th>
+                        <th style="padding:10px; text-align:right;">Ilość</th>
+                    </tr>`;
+        Object.entries(inventory).forEach(([item, count]) => {
+            html += `<tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:10px;">${item}</td>
+                        <td style="padding:10px; text-align:right;"><b>${count}</b></td>
+                    </tr>`;
+        });
+        html += `</table>`;
+    } else {
+        html += `<p style="color:#999;">Brak przedmiotów.</p>`;
+    }
+    
+    // food items
+    html += `<h3>Jedzenie na smoki</h3>
+            <table style="width:100%; border-collapse:collapse;">
+                <tr style="border-bottom:2px solid #ccc; background:#f0f0f0;">
+                    <th style="padding:10px; text-align:left;">Typ</th>
+                    <th style="padding:10px; text-align:right;">Ilość</th>
+                </tr>
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">Mięso</td>
+                    <td style="padding:10px; text-align:right;"><b>${foodItems.mięso || 0}</b></td>
+                </tr>
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">Jagody</td>
+                    <td style="padding:10px; text-align:right;"><b>${foodItems.jagody || 0}</b></td>
+                </tr>
+            </table>`;
+    
+    inv.innerHTML = html;
 }
 
 /* -----------------------------------------
@@ -906,6 +1001,12 @@ function openTab(name) {
     }
     if (name === "home") {
         updateHomeTab();
+    }
+    if (name === "work") {
+        updateWorkTab();
+    }
+    if (name === "inventory") {
+        updateInventoryTab();
     }
     if (name === "merchant") {
         updateMerchantTab();
