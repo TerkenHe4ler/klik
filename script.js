@@ -169,16 +169,26 @@ function skipJob() {
 
 function updateWorkTab() {
     const work = document.getElementById("work-content");
-    let html = `<div style="margin-bottom:20px; padding:15px; background:transparent; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
-        <p style="font-style: italic; color:#bbb; margin:0;">
-            Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
-        </p>
-    </div>`;
+    let html = "";
     
+    // show greeting only when work tab unlocked and no job currently running
     if (!workUnlocked) {
+        html += `<div style="margin-bottom:20px; padding:15px; background:transparent; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
+            <p style="font-style: italic; color:#bbb; margin:0;">
+                Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
+            </p>
+        </div>`;
         html += `<p>Zakładka będzie dostępna później w grze.</p>`;
         work.innerHTML = html;
         return;
+    }
+
+    if (!currentJob) {
+        html += `<div style="margin-bottom:20px; padding:15px; background:transparent; border-left:4px solid #5a6a7a; border-radius:4px; color:#e0e0e0;">
+            <p style="font-style: italic; color:#bbb; margin:0;">
+                Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
+            </p>
+        </div>`;
     }
 
     if (currentJob) {
