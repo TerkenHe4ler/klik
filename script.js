@@ -35,6 +35,152 @@ let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") 
 let merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
 let merchantGreetingShown = localStorage.getItem("merchantGreetingShown") === "true";
 
+// praca i waluty
+let workUnlocked = localStorage.getItem("workUnlocked") === "true";
+let copper = Number(localStorage.getItem("copper")) || 0;
+let silver = Number(localStorage.getItem("silver")) || 0;
+let gold = Number(localStorage.getItem("gold")) || 0;
+
+let dailyJobs = JSON.parse(localStorage.getItem("dailyJobs")) || null;
+let currentJob = JSON.parse(localStorage.getItem("currentJob")) || null;
+let jobTimerInterval = null;
+
+// if work tab was previously unlocked, make sure sidebar shows it
+if (workUnlocked) {
+    window.addEventListener('DOMContentLoaded', () => {
+        document.getElementById("tab-work").style.display = "block";
+    });
+}
+
+// helper to format milliseconds into hh:mm:ss
+function formatTime(ms) {
+    if (ms < 0) ms = 0;
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+// currency adjustment
+function adjustCurrency(type, amount) {
+    if (type === 'copper') copper += amount;
+    if (type === 'silver') silver += amount;
+    if (type === 'gold') gold += amount;
+    localStorage.setItem(type, eval(type));
+    updateCurrencyDisplay();
+}
+
+// convert in-game hours to milliseconds; scale makes 1h = 1s for testing
+const TIME_SCALE = 3600; // 3600 real seconds = 1 in-game hour
+function hoursToMs(h) {
+    return h * 3600 * 1000 / TIME_SCALE;
+}
+
+// job definitions (simplified pool)
+const jobPool = [
+    // 4-6h jobs (short)
+    { name: "Pomoc w magazynie kupca Lirena", duration: hoursToMs(5), reward: { copper: 50 } },
+    { name: "Dostarczanie listów", duration: hoursToMs(5), reward: { copper: 45 } },
+    { name: "Pomoc w kuchni gospody", duration: hoursToMs(5), reward: { copper: 60 } },
+    // 8-12h jobs (medium)
+    { name: "Straż przy bramie miasta", duration: hoursToMs(10), reward: { silver: 2 } },
+    { name: "Zbieranie drewna w Lesie Mgieł", duration: hoursToMs(10), reward: { silver: 1, copper: 20 } },
+    { name: "Pomoc w lecznicy", duration: hoursToMs(10), reward: { copper: 80, silver: 1 } },
+    // 14-18h jobs (long)
+    { name: "Eskorta małej karawany", duration: hoursToMs(16), reward: { silver: 3 } },
+    { name: "Prace w tartaku", duration: hoursToMs(16), reward: { silver: 2, copper: 30 } },
+    { name: "Pomoc w archiwum miejskim", duration: hoursToMs(16), reward: { silver: 2 } },
+    // 20-24h jobs (very long)
+    { name: "Eskorta dużej karawany handlowej", duration: hoursToMs(22), reward: { silver: 5 } },
+    { name: "Praca w kopalni", duration: hoursToMs(22), reward: { silver: 4 } },
+    { name: "Nocna służba w garnizonie", duration: hoursToMs(22), reward: { silver: 4 } }
+];
+
+function pickJobs() {
+    const categories = [
+        jobPool.slice(0,3),
+        jobPool.slice(3,6),
+        jobPool.slice(6,9),
+        jobPool.slice(9)
+    ];
+    dailyJobs = categories.map(cat => cat[Math.floor(Math.random()*cat.length)]);
+    localStorage.setItem("dailyJobs", JSON.stringify(dailyJobs));
+}
+
+function startJob(job) {
+    currentJob = {
+        ...job,
+        endTime: Date.now() + job.duration
+    };
+    localStorage.setItem("currentJob", JSON.stringify(currentJob));
+    if (jobTimerInterval) clearInterval(jobTimerInterval);
+    jobTimerInterval = setInterval(updateWorkTab,1000);
+    updateWorkTab();
+}
+
+function completeJob() {
+    if (!currentJob) return;
+    Object.entries(currentJob.reward).forEach(([type,amt])=>{
+        adjustCurrency(type, amt);
+    });
+    currentJob = null;
+    localStorage.removeItem("currentJob");
+    alert("Praca zakończona! Otrzymałeś nagrody.");
+    updateWorkTab();
+}
+
+function skipJob() {
+    if (!currentJob) return;
+    if (jobTimerInterval) clearInterval(jobTimerInterval);
+    // immediately finish
+    currentJob.endTime = Date.now();
+    completeJob();
+}
+
+
+function updateWorkTab() {
+    const work = document.getElementById("work");
+    let html = `<h2>Praca</h2>`;
+    if (!workUnlocked) {
+        html += `<p>Zakładka zostanie odblokowana w fabule.</p>`;
+        work.innerHTML = html;
+        return;
+    }
+
+    html += `<p>Waluty: ${copper} miedzi, ${silver} srebra, ${gold} złota</p>`;
+
+    if (currentJob) {
+        const remaining = currentJob.endTime - Date.now();
+        if (remaining <= 0) {
+            completeJob();
+            return;
+        }
+        html += `<p>Obecna praca: <b>${currentJob.name}</b><br>
+                 Pozostały czas: ${formatTime(remaining)}</p>
+                 <div class="dialog-button" onclick="skipJob()">Pomiń czekanie</div>`;
+    } else {
+        if (!dailyJobs) pickJobs();
+        html += `<div id="work-list">`;
+        dailyJobs.forEach((job, idx) => {
+            html += `<div class="dragon-slot">
+                        <b>${job.name}</b><br>
+                        Czas trwania: ${formatTime(job.duration)}<br>
+                        <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])">Wykonaj</div>
+                     </div>`;
+        });
+        html += `</div>`;
+    }
+    work.innerHTML = html;
+}
+
+function unlockWork() {
+    workUnlocked = true;
+    localStorage.setItem("workUnlocked","true");
+    document.getElementById("tab-work").style.display = "block";
+    updateWorkTab();
+}
+
 /* -----------------------------------------
    PYTANIA STARTOWE
 ----------------------------------------- */
@@ -160,9 +306,18 @@ function startGame() {
     document.getElementById("sidebar").style.display = "flex";
     document.getElementById("intro").style.display = "none";
 
+    updateCurrencyDisplay();
     updateDragonsTab();
     updateHomeTab();
     updateMerchantTab();
+    updateWorkTab();
+}
+
+function updateCurrencyDisplay() {
+    const elem = document.getElementById("currency-display");
+    if (elem) {
+        elem.innerHTML = `Waluty: ${copper} miedzi | ${silver} srebra | ${gold} złota`;
+    }
 }
 
 /* -----------------------------------------
@@ -227,7 +382,8 @@ function updateHomeTab() {
     secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
     thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
 
-    let html = "";
+    // pokaż waluty
+    let html = `<p>Waluty: ${copper} miedzi, ${silver} srebra, ${gold} złota</p>`;
 
     html += `
         <div class="dragon-slot">
