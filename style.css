@@ -97,14 +97,16 @@ body {
 .dialog-button {
     display: block;
     width: 100%;
-    padding: 12px;
-    margin: 8px 0;
+    padding: 9px 12px;
+    margin: 5px 0;
     background: linear-gradient(#1a2d4d, #0f1b33);
     border: 1px solid #cfd8ff;
     border-radius: 8px;
     color: #dfe8ff;
     cursor: pointer;
     text-align: center;
+    font-size: 14px;
+    box-sizing: border-box;
     transition: 0.2s;
 }
 
