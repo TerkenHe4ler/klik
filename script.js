@@ -515,15 +515,29 @@ function updateMerchantTab() {
 
         // nowa wiadomość, proponująca kolejne jajo
         let readyForThird = dragonLevel >= 15 && secondDragonLevel >= 15 && !thirdDragonUnlocked;
-        box.innerHTML = `
-            <div class="dialog-window">
-                <div class="dialog-title">Handlarz</div>
-                <div class="dialog-text">
-                    „Och witam, jak się sprawy mają? Przyszedłeś po kolejne jajo? Pokaż mi że jesteś odpowiedzialnym Hodowcą i przyjdź razem z dwoma swoimi smokami, które lekko podrosły. Wtedy pokażesz że jesteś gotów na trzeciego.”
+        
+        if (readyForThird) {
+            // Komunikat gdy gracz ma dwa smoki na poziomie 15
+            box.innerHTML = `
+                <div class="dialog-window">
+                    <div class="dialog-title">Handlarz</div>
+                    <div class="dialog-text">
+                        „Widzę, że przyszedłeś ze swoimi smokami, a są już dorosłe. Mądra decyzja! Możesz teraz otrzymać trzeciego.”
+                    </div>
+                    <div class="dialog-button" onclick="startThirdMerchant()">Chcę trzecie jajo</div>
                 </div>
-                ${readyForThird ? `<div class="dialog-button" onclick="startThirdMerchant()">Chcę trzecie jajo</div>` : ""}
-            </div>
-        `;
+            `;
+        } else {
+            // Komunikat gdy gracz ma drugiego smoka, ale nie na poziomie 15
+            box.innerHTML = `
+                <div class="dialog-window">
+                    <div class="dialog-title">Handlarz</div>
+                    <div class="dialog-text">
+                        „Och witam, jak się sprawy mają? Przyszedłeś po kolejne jajo? Pokaż mi że jesteś odpowiedzialnym Hodowcą i przyjdź razem z dwoma swoimi smokami, które lekko podrosły. Wtedy pokażesz że jesteś gotów na trzeciego.”
+                    </div>
+                </div>
+            `;
+        }
         return;
     }
 
