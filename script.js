@@ -23,6 +23,11 @@ let secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
 
 // odblokowanie trzeciego oraz stan handlarza
 let thirdDragonUnlocked = localStorage.getItem("thirdDragonUnlocked") === "true";
+let thirdDragonElement = localStorage.getItem("thirdDragonElement") || null;
+let thirdEggHeats = Number(localStorage.getItem("thirdEggHeats")) || 0;
+let thirdLastHeat = Number(localStorage.getItem("thirdLastHeat")) || 0;
+let thirdDragonName = localStorage.getItem("thirdDragonName") || "Trzeci Smok";
+
 let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") === "true";
 
 /* -----------------------------------------
@@ -192,7 +197,13 @@ function updateDragonsTab() {
     html += `
         <div class="dragon-slot">
             <b>Smok 3:</b><br>
-            ${thirdDragonUnlocked ? "🔓 Odblokowany — wkrótce więcej..." : "🔒 Zablokowany"}
+            ${thirdDragonUnlocked ?
+                `Imię: ${thirdDragonName}<br>
+                 Żywioł: ${thirdDragonElement}<br>
+                 Status: ${thirdEggHeats < 3 ? "Jajko" : "Wykluty smok"}`
+                :
+                "🔒 Zablokowany"
+            }
         </div>
     `;
 
@@ -244,16 +255,29 @@ function updateHomeTab() {
             </div>
         `;
     }
+    if (thirdDragonUnlocked) {
+        html += `
+            <div class="dragon-slot">
+                <b>Smok 3</b><br>
+                Ogrzania: ${thirdEggHeats}/3<br>
+                ${thirdEggHeats < 3 ?
+                    `<div class="dialog-button" onclick="heatEgg3()">Zadbaj o jajo</div>`
+                    :
+                    `<div>Smok wykluty</div>
+                     <input class="name-input" id="name3" placeholder="Nowe imię">
+                     <div class="dialog-button" onclick="renameDragon3()">Zmień imię</div>`
+                }
+            </div>
+        `;
+    }
 
     home.innerHTML = html;
 }
 
 function heatEgg1() {
-    const now = Date.now();
-    if (now - lastHeat < 60000) return;
-
+    // timing limit temporarily disabled
     eggHeats++;
-    lastHeat = now;
+    lastHeat = Date.now();
 
     localStorage.setItem("eggHeats", eggHeats);
     localStorage.setItem("lastHeat", lastHeat);
@@ -285,14 +309,24 @@ function feedDragon2() {
 }
 
 function heatEgg2() {
-    const now = Date.now();
-    if (now - secondLastHeat < 60000) return;
-
+    // timing limit temporarily disabled
     secondEggHeats++;
-    secondLastHeat = now;
+    secondLastHeat = Date.now();
 
     localStorage.setItem("secondEggHeats", secondEggHeats);
     localStorage.setItem("secondLastHeat", secondLastHeat);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function heatEgg3() {
+    // timing limit temporarily disabled
+    thirdEggHeats++;
+    thirdLastHeat = Date.now();
+
+    localStorage.setItem("thirdEggHeats", thirdEggHeats);
+    localStorage.setItem("thirdLastHeat", thirdLastHeat);
 
     updateHomeTab();
     updateDragonsTab();
@@ -315,6 +349,17 @@ function renameDragon2() {
 
     secondDragonName = newName;
     localStorage.setItem("secondDragonName", newName);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function renameDragon3() {
+    const newName = document.getElementById("name3").value.trim();
+    if (!newName) return;
+
+    thirdDragonName = newName;
+    localStorage.setItem("thirdDragonName", newName);
 
     updateHomeTab();
     updateDragonsTab();
@@ -353,8 +398,103 @@ const merchantQuestions = [
     }
 ];
 
+const merchantThirdQuestions = [
+    {
+        text: "W starym lesie odnajdujesz zrzucone łuski. Co robisz?",
+        answers: [
+            { text: "Zbieram ogniste resztki.", element: "ogien" },
+            { text: "Sprawdzam, czy są mokre.", element: "woda" },
+            { text: "Wącham ziemię.", element: "ziemia" },
+            { text: "Nasłuchuję liści.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Na brzegu jeziora widzisz odbicie nieba. Co czujesz?",
+        answers: [
+            { text: "Gorąco słońca.", element: "ogien" },
+            { text: "Chłód wody.", element: "woda" },
+            { text: "Twardość kamieni.", element: "ziemia" },
+            { text: "Lekkość wiatru.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Usłyszysz w oddali śpiew smoczych duchów. Jak reagujesz?",
+        answers: [
+            { text: "Odpowiadam ogniem.", element: "ogien" },
+            { text: "Odpływam w wodzie.", element: "woda" },
+            { text: "Przemawiam ziemią.", element: "ziemia" },
+            { text: "Lotem odpowiadam.", element: "powietrze" }
+        ]
+    }
+];
+
+function startThirdMerchant() {
+    merchantThirdStep = 0;
+    merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+    const box = document.getElementById("merchant-content");
+    box.innerHTML = `
+        <div class="dialog-window">
+            <div class="dialog-title">Handlarz</div>
+            <div class="dialog-text">
+                „Widzę, że nieźle się zaopiekowałeś tymi maluchami, więc nie widzę problemu byś zajął się i trzecim. Proszę dokonaj wyboru...”
+            </div>
+            <div class="dialog-button" onclick="merchantThirdNext()">Zacznij</div>
+        </div>
+    `;
+}
+
+function merchantThirdNext() {
+    const box = document.getElementById("merchant-content");
+    if (merchantThirdStep < 3) {
+        const q = merchantThirdQuestions[merchantThirdStep];
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Pytanie ${merchantThirdStep + 1}</div>
+                <div class="dialog-text">${q.text}</div>
+                ${q.answers.map(a => `
+                    <div class="dialog-button" onclick="merchantThirdChoose('${a.element}')">${a.text}</div>
+                `).join("")}
+            </div>
+        `;
+        return;
+    }
+    const chosen = Object.entries(merchantThirdScores).sort((a,b)=>b[1]-a[1])[0][0];
+    const elementName = {
+        ogien: "ognistego",
+        woda: "wodnego",
+        ziemia: "ziemnego",
+        powietrze: "powietrznego"
+    }[chosen];
+    box.innerHTML = `
+        <div class="dialog-window">
+            <div class="dialog-title">Potwierdzenie</div>
+            <div class="dialog-text">
+                „Widzę, że twój duch jest bliski żywiołowi <b>${chosen.toUpperCase()}</b>.<br>
+                Czy na pewno chcesz otrzymać <b>Jajo ${elementName} smoka</b>?”
+            </div>
+            <div class="dialog-button" onclick="merchantThirdConfirm('${chosen}')">TAK</div>
+            <div class="dialog-button" onclick="updateMerchantTab()">NIE</div>
+        </div>
+    `;
+}
+
+function merchantThirdChoose(element) {
+    merchantThirdScores[element]++;
+    merchantThirdStep++;
+    merchantThirdNext();
+}
+
+function merchantThirdConfirm(element) {
+    unlockThird(element);
+}
+
+
 let merchantStep = 0;
 let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+
+// trzecia seria pytań
+let merchantThirdStep = 0;
+let merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
@@ -381,7 +521,7 @@ function updateMerchantTab() {
                 <div class="dialog-text">
                     „Och witam, jak się sprawy mają? Przyszedłeś po kolejne jajo? Pokaż mi że jesteś odpowiedzialnym Hodowcą i przyjdź razem z dwoma swoimi smokami, które lekko podrosły. Wtedy pokażesz że jesteś gotów na trzeciego.”
                 </div>
-                ${readyForThird ? `<div class="dialog-button" onclick="unlockThird()">Chcę trzecie jajo</div>` : ""}
+                ${readyForThird ? `<div class="dialog-button" onclick="startThirdMerchant()">Chcę trzecie jajo</div>` : ""}
             </div>
         `;
         return;
@@ -477,21 +617,28 @@ function merchantConfirm(element) {
    ODPOWIEDNICY POZIOMÓW I ODMIENNE WIADOMOŚCI HANDLARZA
 ----------------------------------------- */
 
-function unlockThird() {
-    if (dragonLevel >= 15 && secondDragonLevel >= 15) {
-        thirdDragonUnlocked = true;
-        localStorage.setItem("thirdDragonUnlocked", "true");
-        const box = document.getElementById("merchant-content");
-        box.innerHTML = `
-            <div class="dialog-window">
-                <div class="dialog-title">Handlarz</div>
-                <div class="dialog-text">
-                    „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...”
-                </div>
+function unlockThird(element) {
+    thirdDragonUnlocked = true;
+    thirdDragonElement = element;
+    thirdEggHeats = 0;
+    thirdLastHeat = 0;
+
+    localStorage.setItem("thirdDragonUnlocked", "true");
+    localStorage.setItem("thirdDragonElement", element);
+    localStorage.setItem("thirdEggHeats", "0");
+    localStorage.setItem("thirdLastHeat", "0");
+
+    const box = document.getElementById("merchant-content");
+    box.innerHTML = `
+        <div class="dialog-window">
+            <div class="dialog-title">Handlarz</div>
+            <div class="dialog-text">
+                „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...”
             </div>
-        `;
-        updateDragonsTab();
-    }
+        </div>
+    `;
+    updateDragonsTab();
+    updateHomeTab();
 }
 
 /* -----------------------------------------
