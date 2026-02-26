@@ -218,7 +218,7 @@ function updateWorkTab() {
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:#4a4845; border-bottom:2px solid #8b7355;">
+                            <tr style="background:#4a4845; border-bottom:1px solid #5a5855;">
                                 ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
                                 ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
                                 ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a5855; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
@@ -246,7 +246,7 @@ function updateInventoryTab() {
     if (Object.keys(inventory).length > 0) {
         html += `<h3>Przedmioty</h3>
                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <tr style="border-bottom:2px solid #8b7355; background:#4a4845; color:#e0e0e0;">
+                    <tr style="border-bottom:1px solid #5a5855; background:#4a4845; color:#e0e0e0;">
                         <th style="padding:10px; text-align:left;">Przedmiot</th>
                         <th style="padding:10px; text-align:right;">Ilość</th>
                     </tr>`;
@@ -264,7 +264,7 @@ function updateInventoryTab() {
     // food items
     html += `<h3>Jedzenie na smoki</h3>
             <table style="width:100%; border-collapse:collapse;">
-                <tr style="border-bottom:2px solid #8b7355; background:#4a4845; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #5a5855; background:#4a4845; color:#e0e0e0;">
                     <th style="padding:10px; text-align:left;">Typ</th>
                     <th style="padding:10px; text-align:right;">Ilość</th>
                 </tr>
