@@ -500,6 +500,10 @@ let merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
 
+    // synchronise state in case storage was modified elsewhere
+    thirdDragonUnlocked = localStorage.getItem("thirdDragonUnlocked") === "true";
+    merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
+
     // ensure levels up-to-date
     dragonLevel = Math.min(15, dragonFeedings * 5);
     secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
@@ -674,7 +678,8 @@ function unlockThird(element) {
         <div class="dialog-window">
             <div class="dialog-title">Handlarz</div>
             <div class="dialog-text">
-                „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...”
+                „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...<br>
+                Gratulacje wyboru! Na pewno Astor jest przychylny Twojej decyzji. Bądźcie zdrowi!”
             </div>
         </div>
     `;
@@ -689,10 +694,16 @@ function openTab(name) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
     document.getElementById(name).style.display = "block";
     
-    // Odśwież zawartość zakładki
-    if (name === "dragons") updateDragonsTab();
-    else if (name === "home") updateHomeTab();
-    else if (name === "merchant") updateMerchantTab();
+    // zawsze odświeżamy widok właściwy dla zakładki
+    if (name === "dragons") {
+        updateDragonsTab();
+    }
+    if (name === "home") {
+        updateHomeTab();
+    }
+    if (name === "merchant") {
+        updateMerchantTab();
+    }
 }
 
 /* -----------------------------------------
