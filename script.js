@@ -41,6 +41,10 @@ let copper = Number(localStorage.getItem("copper")) || 0;
 let silver = Number(localStorage.getItem("silver")) || 0;
 let gold = Number(localStorage.getItem("gold")) || 0;
 
+// short job limits (duration < 12 seconds scaled)
+let shortJobsDoneDate = localStorage.getItem("shortJobsDoneDate") || null;
+let shortJobsDoneCount = Number(localStorage.getItem("shortJobsDoneCount")) || 0;
+
 let dailyJobs = JSON.parse(localStorage.getItem("dailyJobs")) || null;
 let currentJob = JSON.parse(localStorage.getItem("currentJob")) || null;
 let jobTimerInterval = null;
@@ -60,12 +64,30 @@ function formatTime(ms) {
     return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
 }
 
-// currency adjustment
+// currency adjustment with overflow conversion
+function normalizeCurrency() {
+    // convert copper to silver
+    if (copper >= 100) {
+        const extras = Math.floor(copper / 100);
+        copper -= extras * 100;
+        silver += extras;
+    }
+    // convert silver to gold
+    if (silver >= 50) {
+        const extras = Math.floor(silver / 50);
+        silver -= extras * 50;
+        gold += extras;
+    }
+    localStorage.setItem('copper', copper);
+    localStorage.setItem('silver', silver);
+    localStorage.setItem('gold', gold);
+}
+
 function adjustCurrency(type, amount) {
     if (type === 'copper') copper += amount;
     if (type === 'silver') silver += amount;
     if (type === 'gold') gold += amount;
-    localStorage.setItem(type, eval(type));
+    normalizeCurrency();
     updateCurrencyDisplay();
 }
 
@@ -95,14 +117,37 @@ const jobPool = [
     { name: "Nocna służba w garnizonie", duration: hoursToMs(22), reward: { silver: 4 }, description: "Pełnienie nocnej straży w garnizonie żołnierzy.", bonusChance: 0.15, bonusItems: ["Insygnia wojskowa", "Mapa fortyfikacji"] }
 ];
 
+// determine whether a job is considered "short" for the daily limit
+function isShortJob(job) {
+    return job.duration < 12000; // less than 12 seconds scaled
+}
+
+function resetShortJobsIfNewDay() {
+    const today = new Date().toISOString().slice(0,10);
+    if (shortJobsDoneDate !== today) {
+        shortJobsDoneDate = today;
+        shortJobsDoneCount = 0;
+        localStorage.setItem("shortJobsDoneDate", shortJobsDoneDate);
+        localStorage.setItem("shortJobsDoneCount", shortJobsDoneCount);
+    }
+}
+
 function pickJobs() {
+    resetShortJobsIfNewDay();
     const categories = [
         jobPool.slice(0,3),
         jobPool.slice(3,6),
         jobPool.slice(6,9),
         jobPool.slice(9)
     ];
-    dailyJobs = categories.map(cat => cat[Math.floor(Math.random()*cat.length)]);
+    // if short jobs limit reached, remove first category entirely
+    if (shortJobsDoneCount >= 2) {
+        categories[0] = [];
+    }
+    dailyJobs = categories.map(cat => {
+        if (cat.length === 0) return null;
+        return cat[Math.floor(Math.random() * cat.length)];
+    });
     localStorage.setItem("dailyJobs", JSON.stringify(dailyJobs));
 }
 
@@ -146,6 +191,13 @@ function completeJob() {
         localStorage.setItem("foodItems", JSON.stringify(foodItems));
     }
     
+    // if this was a short job, count it and possibly remove future offerings
+    if (isShortJob(currentJob)) {
+        resetShortJobsIfNewDay();
+        shortJobsDoneCount++;
+        localStorage.setItem("shortJobsDoneCount", shortJobsDoneCount);
+    }
+    
     currentJob = null;
     localStorage.removeItem("currentJob");
     
@@ -168,6 +220,14 @@ function skipJob() {
 
 
 function updateWorkTab() {
+    // reset short-job count and wipe daily jobs if it's a new day
+    const today = new Date().toISOString().slice(0,10);
+    if (shortJobsDoneDate !== today) {
+        resetShortJobsIfNewDay();
+        dailyJobs = null;
+        localStorage.removeItem("dailyJobs");
+    }
+
     const work = document.getElementById("work-content");
     let html = "";
     
@@ -190,6 +250,11 @@ function updateWorkTab() {
             </p>
         </div>`;
     }
+    // if limit reached remove short jobs from current listings
+    if (shortJobsDoneCount >= 2 && dailyJobs) {
+        dailyJobs = dailyJobs.map(job => job && isShortJob(job) ? null : job);
+        localStorage.setItem("dailyJobs", JSON.stringify(dailyJobs));
+    }
 
     if (currentJob) {
         const remaining = currentJob.endTime - Date.now();
@@ -207,6 +272,7 @@ function updateWorkTab() {
         if (!dailyJobs) pickJobs();
         html += ``;
         dailyJobs.forEach((job, idx) => {
+            if (!job) return; // skip slots where we've removed short jobs
             const durationMs = job.duration;
             const totalSeconds = Math.floor(durationMs / 1000);
             const hours = Math.floor(totalSeconds / 3600);
@@ -227,11 +293,11 @@ function updateWorkTab() {
                         <p style="font-size:0.95em; color:#aaa; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
-                        <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                            <tr style="border-bottom:1px solid #ffffff; background:transparent; color:#e0e0e0;">
-                                ${job.reward.copper ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:10px; border:1px solid #ffffff; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
+                        <table style="width:100%; border-collapse:collapse; margin-bottom:20px; background:rgba(255,255,255,0.05);">
+                            <tr style="border-bottom:1px solid #cccccc; background:transparent; color:#e0e0e0;">
+                                ${job.reward.copper ? `<td style="padding:10px; border:1px solid #cccccc; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:10px; border:1px solid #cccccc; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:10px; border:1px solid #cccccc; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
