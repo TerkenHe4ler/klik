@@ -647,6 +647,11 @@ function unlockThird(element) {
 function openTab(name) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
     document.getElementById(name).style.display = "block";
+    
+    // Odśwież zawartość zakładki
+    if (name === "dragons") updateDragonsTab();
+    else if (name === "home") updateHomeTab();
+    else if (name === "merchant") updateMerchantTab();
 }
 
 /* -----------------------------------------
