@@ -527,12 +527,15 @@ function updateMerchantTab() {
         return;
     }
 
+    // jezeli wracamy z NIE - resetuj zmienne
+    merchantStep = 0;
+    merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+
     box.innerHTML = `
         <div class="dialog-window">
             <div class="dialog-title">Handlarz</div>
             <div class="dialog-text">
-                „Witaj, podróżniku. Widzę, że masz już jednego smoka.
-                Jeśli chcesz kolejnego, muszę poznać twój żywioł.”
+                „Otocz dłonią tę kulę. Powiedz mi, co w niej widzisz?”
             </div>
             <div class="dialog-button" onclick="merchantNext()">Dalej</div>
         </div>
