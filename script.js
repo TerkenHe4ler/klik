@@ -300,6 +300,11 @@ function startGame() {
     document.getElementById("sidebar").style.display = "flex";
     document.getElementById("intro").style.display = "none";
 
+    // odblokuj zakładkę praca od razu
+    if (!workUnlocked) {
+        unlockWork();
+    }
+
     updateCurrencyDisplay();
     updateDragonsTab();
     updateHomeTab();
@@ -308,10 +313,13 @@ function startGame() {
 }
 
 function updateCurrencyDisplay() {
-    const elem = document.getElementById("currency-display");
-    if (elem) {
-        elem.innerHTML = `Waluty: ${copper} miedzi | ${silver} srebra | ${gold} złota`;
-    }
+    // vertical order: gold, silver, copper
+    const goldElem = document.getElementById("curr-gold");
+    const silverElem = document.getElementById("curr-silver");
+    const copperElem = document.getElementById("curr-copper");
+    if (goldElem) goldElem.textContent = `Złoto: ${gold}`;
+    if (silverElem) silverElem.textContent = `Srebro: ${silver}`;
+    if (copperElem) copperElem.textContent = `Miedź: ${copper}`;
 }
 
 /* -----------------------------------------
