@@ -187,11 +187,11 @@ function updateWorkTab() {
             completeJob();
             return;
         }
-        html += `<div style="margin:20px 0; padding:15px; background:#3d3c3a; border-radius:8px; border-left:4px solid #5a6a7a; color:#e0e0e0;">
-                    <p><b>📋 Wykonywana praca:</b></p>
-                    <p style="font-size:1.1em; font-weight:bold;">${currentJob.name}</p>
-                    <p style="color:#aaa; margin:10px 0;">Pozostały czas: <b style="color:#e0e0e0;">${formatTime(remaining)}</b></p>
-                    <div class="dialog-button" onclick="skipJob()" style="display:inline-block; margin-top:10px;">⏭️ Pomiń czekanie</div>
+        html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#4a4845; border:1px solid #5a5855; color:#e0e0e0;">
+                    <p style="margin:0 0 12px 0; font-size:1.05em;"><b>📋 Wykonywana praca</b></p>
+                    <p style="margin:8px 0; font-size:1.1em;"><b>${currentJob.name}</b></p>
+                    <p style="margin:10px 0; color:#bbb;">Pozostały czas: <b style="color:#e0e0e0; font-size:1.05em;">${formatTime(remaining)}</b></p>
+                    <div class="dialog-button" onclick="skipJob()" style="margin-top:12px;">⏭️ Pomiń czekanie</div>
                  </div>`;
     } else {
         if (!dailyJobs) pickJobs();
