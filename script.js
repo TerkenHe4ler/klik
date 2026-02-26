@@ -29,6 +29,7 @@ let thirdLastHeat = Number(localStorage.getItem("thirdLastHeat")) || 0;
 let thirdDragonName = localStorage.getItem("thirdDragonName") || "Trzeci Smok";
 
 let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") === "true";
+let merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
 
 /* -----------------------------------------
    PYTANIA STARTOWE
@@ -498,6 +499,29 @@ let merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
+
+    // ensure levels up-to-date
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+
+    if (thirdDragonUnlocked) {
+        // specjalny tekst po zdobyciu trzeciego
+        // jeśli chcesz wyświetlać go tylko raz, możesz użyć merchantAfterThirdVisit
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Handlarz</div>
+                <div class="dialog-text">
+                    „Rozumiem twoją chęć zaopiekowania się wszystkimi smokami, jednak dekret obowiązuje."
+                    Handlarz pokazuje Ci na kartę pergaminu, która została wbita pod jego biurkiem.
+                    Widzisz na niej cztery smocze jaja a w nich człowieka. Pokrywający je czerwony X wszystko tłumaczy.
+                    Prawo jest prawem, jeżeli ktoś by zobaczył Cię z większą ilością smoków czy jaj, to szybko witalibyśmy się ze śmiercią.
+                </div>
+            </div>
+        `;
+        merchantAfterThirdVisit = true;
+        localStorage.setItem("merchantAfterThirdVisit","true");
+        return;
+    }
 
     if (secondDragonUnlocked) {
         // po kupnie drugiego jaja mówimy już inaczej przy kolejnych odwiedzinach
