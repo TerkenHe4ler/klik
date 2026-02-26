@@ -218,10 +218,10 @@ function updateWorkTab() {
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:transparent; border-bottom:1px solid #5a6a7a;">
-                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a6a7a; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
+                            <tr style="background:#4a4845; border-bottom:1px solid #ffffff;">
+                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
@@ -246,12 +246,12 @@ function updateInventoryTab() {
     if (Object.keys(inventory).length > 0) {
         html += `<h3>Przedmioty</h3>
                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <tr style="border-bottom:1px solid #5a6a7a; background:transparent; color:#e0e0e0;">
+                    <tr style="border-bottom:1px solid #ffffff; background:#4a4845; color:#e0e0e0;">
                         <th style="padding:10px; text-align:left;">Przedmiot</th>
                         <th style="padding:10px; text-align:right;">Ilość</th>
                     </tr>`;
         Object.entries(inventory).forEach(([item, count]) => {
-            html += `<tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
+            html += `<tr style="border-bottom:1px solid #ffffff; color:#e0e0e0;">
                         <td style="padding:10px;">${item}</td>
                         <td style="padding:10px; text-align:right;"><b>${count}</b></td>
                     </tr>`;
@@ -264,15 +264,15 @@ function updateInventoryTab() {
     // food items
     html += `<h3>Jedzenie na smoki</h3>
             <table style="width:100%; border-collapse:collapse;">
-                <tr style="border-bottom:1px solid #5a6a7a; background:transparent; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #ffffff; background:#4a4845; color:#e0e0e0;">
                     <th style="padding:10px; text-align:left;">Typ</th>
                     <th style="padding:10px; text-align:right;">Ilość</th>
                 </tr>
-                <tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #ffffff; color:#e0e0e0;">
                     <td style="padding:10px;">Mięso</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.mięso || 0}</b></td>
                 </tr>
-                <tr style="border-bottom:1px solid #5a6a7a; color:#e0e0e0;">
+                <tr style="border-bottom:1px solid #ffffff; color:#e0e0e0;">
                     <td style="padding:10px;">Jagody</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.jagody || 0}</b></td>
                 </tr>
