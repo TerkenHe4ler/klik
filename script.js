@@ -14,6 +14,17 @@ let secondEggHeats = Number(localStorage.getItem("secondEggHeats")) || 0;
 let secondLastHeat = Number(localStorage.getItem("secondLastHeat")) || 0;
 let secondDragonName = localStorage.getItem("secondDragonName") || "Drugi Smok";
 
+// poziomy i karmienie
+let dragonFeedings = Number(localStorage.getItem("dragonFeedings")) || 0;
+let dragonLevel = Math.min(15, dragonFeedings * 5);
+
+let secondDragonFeedings = Number(localStorage.getItem("secondDragonFeedings")) || 0;
+let secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+
+// odblokowanie trzeciego oraz stan handlarza
+let thirdDragonUnlocked = localStorage.getItem("thirdDragonUnlocked") === "true";
+let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") === "true";
+
 /* -----------------------------------------
    PYTANIA STARTOWE
 ----------------------------------------- */
@@ -150,6 +161,10 @@ function startGame() {
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
 
+    // poziomy muszą być obliczane za każdym razem, bo mogły się zmienić
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+
     let html = "";
 
     html += `
@@ -157,7 +172,7 @@ function updateDragonsTab() {
             <b>Smok 1:</b><br>
             Imię: ${dragonName}<br>
             Żywioł: ${chosenDragon}<br>
-            Status: ${eggHeats < 3 ? "Jajko" : "Wykluty smok"}
+            Status: ${eggHeats < 3 ? "Jajko" : "Wykluty smok"}${eggHeats >= 3 ? `<br>Poziom: ${dragonLevel}` : ""}
         </div>
     `;
 
@@ -167,7 +182,7 @@ function updateDragonsTab() {
             ${secondDragonUnlocked ?
                 `Imię: ${secondDragonName}<br>
                  Żywioł: ${secondDragonElement}<br>
-                 Status: ${secondEggHeats < 3 ? "Jajko" : "Wykluty smok"}`
+                 Status: ${secondEggHeats < 3 ? "Jajko" : "Wykluty smok"}${secondEggHeats >= 3 ? `<br>Poziom: ${secondDragonLevel}` : ""}`
                 :
                 "🔒 Zablokowany — odwiedź Handlarza"
             }
@@ -177,7 +192,7 @@ function updateDragonsTab() {
     html += `
         <div class="dragon-slot">
             <b>Smok 3:</b><br>
-            🔒 Zablokowany
+            ${thirdDragonUnlocked ? "🔓 Odblokowany — wkrótce więcej..." : "🔒 Zablokowany"}
         </div>
     `;
 
@@ -190,6 +205,10 @@ function updateDragonsTab() {
 function updateHomeTab() {
     const home = document.getElementById("home-content");
 
+    // aktualizuj poziomy na wypadek, gdyby się coś zmieniło
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+
     let html = "";
 
     html += `
@@ -197,9 +216,11 @@ function updateHomeTab() {
             <b>Smok 1</b><br>
             Ogrzania: ${eggHeats}/3<br>
             ${eggHeats < 3 ?
-                `<div class="dialog-button" onclick="heatEgg1()">Ogrzej jajko</div>`
+                `<div class="dialog-button" onclick="heatEgg1()">Zadbaj o jajo</div>`
                 :
                 `<div>Smok wykluty</div>
+                 Poziom: ${dragonLevel}<br>
+                 ${dragonLevel < 15 ? `<div class="dialog-button" onclick="feedDragon1()">Nakarm smoka</div>` : ""}
                  <input class="name-input" id="name1" placeholder="Nowe imię">
                  <div class="dialog-button" onclick="renameDragon1()">Zmień imię</div>`
             }
@@ -212,9 +233,11 @@ function updateHomeTab() {
                 <b>Smok 2</b><br>
                 Ogrzania: ${secondEggHeats}/3<br>
                 ${secondEggHeats < 3 ?
-                    `<div class="dialog-button" onclick="heatEgg2()">Ogrzej jajko</div>`
+                    `<div class="dialog-button" onclick="heatEgg2()">Zadbaj o jajo</div>`
                     :
                     `<div>Smok wykluty</div>
+                     Poziom: ${secondDragonLevel}<br>
+                     ${secondDragonLevel < 15 ? `<div class="dialog-button" onclick="feedDragon2()">Nakarm smoka</div>` : ""}
                      <input class="name-input" id="name2" placeholder="Nowe imię">
                      <div class="dialog-button" onclick="renameDragon2()">Zmień imię</div>`
                 }
@@ -234,6 +257,28 @@ function heatEgg1() {
 
     localStorage.setItem("eggHeats", eggHeats);
     localStorage.setItem("lastHeat", lastHeat);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function feedDragon1() {
+    if (dragonLevel >= 15) return;
+    dragonFeedings++;
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    localStorage.setItem("dragonFeedings", dragonFeedings);
+    localStorage.setItem("dragonLevel", dragonLevel);
+
+    updateHomeTab();
+    updateDragonsTab();
+}
+
+function feedDragon2() {
+    if (secondDragonLevel >= 15) return;
+    secondDragonFeedings++;
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+    localStorage.setItem("secondDragonFeedings", secondDragonFeedings);
+    localStorage.setItem("secondDragonLevel", secondDragonLevel);
 
     updateHomeTab();
     updateDragonsTab();
@@ -315,10 +360,28 @@ function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
 
     if (secondDragonUnlocked) {
+        // po kupnie drugiego jaja mówimy już inaczej przy kolejnych odwiedzinach
+        if (!merchantAfterSecondVisit) {
+            box.innerHTML = `
+                <div class="dialog-window">
+                    <div class="dialog-title">Handlarz</div>
+                    <div class="dialog-text">Masz już drugiego smoka.</div>
+                </div>
+            `;
+            merchantAfterSecondVisit = true;
+            localStorage.setItem("merchantAfterSecondVisit", "true");
+            return;
+        }
+
+        // nowa wiadomość, proponująca kolejne jajo
+        let readyForThird = dragonLevel >= 15 && secondDragonLevel >= 15 && !thirdDragonUnlocked;
         box.innerHTML = `
             <div class="dialog-window">
                 <div class="dialog-title">Handlarz</div>
-                <div class="dialog-text">Masz już drugiego smoka.</div>
+                <div class="dialog-text">
+                    „Och witam, jak się sprawy mają? Przyszedłeś po kolejne jajo? Pokaż mi że jesteś odpowiedzialnym Hodowcą i przyjdź razem z dwoma swoimi smokami, które lekko podrosły. Wtedy pokażesz że jesteś gotów na trzeciego.”
+                </div>
+                ${readyForThird ? `<div class="dialog-button" onclick="unlockThird()">Chcę trzecie jajo</div>` : ""}
             </div>
         `;
         return;
@@ -392,6 +455,10 @@ function merchantConfirm(element) {
     localStorage.setItem("secondEggHeats", "0");
     localStorage.setItem("secondLastHeat", "0");
 
+    // po pierwszym pożegnaniu ustawiamy flagę, by przy następnej wizycie pokazać nową wiadomość
+    merchantAfterSecondVisit = true;
+    localStorage.setItem("merchantAfterSecondVisit", "true");
+
     const box = document.getElementById("merchant-content");
     box.innerHTML = `
         <div class="dialog-window">
@@ -404,6 +471,27 @@ function merchantConfirm(element) {
 
     updateDragonsTab();
     updateHomeTab();
+}
+
+/* -----------------------------------------
+   ODPOWIEDNICY POZIOMÓW I ODMIENNE WIADOMOŚCI HANDLARZA
+----------------------------------------- */
+
+function unlockThird() {
+    if (dragonLevel >= 15 && secondDragonLevel >= 15) {
+        thirdDragonUnlocked = true;
+        localStorage.setItem("thirdDragonUnlocked", "true");
+        const box = document.getElementById("merchant-content");
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Handlarz</div>
+                <div class="dialog-text">
+                    „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...”
+                </div>
+            </div>
+        `;
+        updateDragonsTab();
+    }
 }
 
 /* -----------------------------------------
