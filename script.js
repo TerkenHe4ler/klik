@@ -45,12 +45,6 @@ let dailyJobs = JSON.parse(localStorage.getItem("dailyJobs")) || null;
 let currentJob = JSON.parse(localStorage.getItem("currentJob")) || null;
 let jobTimerInterval = null;
 
-// if work tab was previously unlocked, make sure sidebar shows it
-if (workUnlocked) {
-    window.addEventListener('DOMContentLoaded', () => {
-        document.getElementById("tab-work").style.display = "block";
-    });
-}
 
 // helper to format milliseconds into hh:mm:ss
 function formatTime(ms) {
