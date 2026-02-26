@@ -30,6 +30,7 @@ let thirdDragonName = localStorage.getItem("thirdDragonName") || "Trzeci Smok";
 
 let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") === "true";
 let merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
+let merchantGreetingShown = localStorage.getItem("merchantGreetingShown") === "true";
 
 /* -----------------------------------------
    PYTANIA STARTOWE
@@ -489,6 +490,12 @@ function merchantThirdConfirm(element) {
     unlockThird(element);
 }
 
+function merchantContinueGreeting() {
+    merchantGreetingShown = true;
+    localStorage.setItem("merchantGreetingShown", "true");
+    updateMerchantTab();
+}
+
 
 let merchantStep = 0;
 let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
@@ -503,10 +510,33 @@ function updateMerchantTab() {
     // synchronise state in case storage was modified elsewhere
     thirdDragonUnlocked = localStorage.getItem("thirdDragonUnlocked") === "true";
     merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
+    merchantGreetingShown = localStorage.getItem("merchantGreetingShown") === "true";
 
     // ensure levels up-to-date
     dragonLevel = Math.min(15, dragonFeedings * 5);
     secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+
+    // Show atmospheric greeting on first visit
+    if (secondDragonUnlocked === false && !merchantGreetingShown) {
+        box.innerHTML = `
+            <div class="dialog-window">
+                <div class="dialog-title">Handlarz</div>
+                <div class="dialog-text">
+                    Docierasz do dzielnicy kupieckiej. Gwar targu powoli cichnie, gdy skręcasz w stronę wyżej położonego placu — tam, gdzie zwykli handlarze nie podnoszą głosu bez powodu.<br><br>
+                    Pierwsze, co rzuca Ci się w oczy, to budynek ciemny, niemal grafitowy. Jego kamienne ściany nie są gładkie — żyłkowania przecinające fasadę przypominają smocze łuski, jakby sama góra została obciosana i ustawiona pośród miasta.<br><br>
+                    Nad wejściem widnieje płaskorzeźba przedstawiająca Astor — Smoczą Matkę — z rozpostartymi skrzydłami, pod którymi spoczywają trzy jaja. Poniżej wyryto słowa:<br><br>
+                    <b>„Troje — dar. Czwarte — przekleństwo."</b><br><br>
+                    Gdy popychasz drzwi, wnętrze wita Cię ciepłem i ciszą. Powietrze pachnie żywicą i popiołem. Światło jest przytłumione, bursztynowe.<br><br>
+                    Z głębi pomieszczenia wychodzi mężczyzna w długiej szacie. Na jego kołnierzu połyskują trzy złote łuski.<br><br>
+                    — Smok nie jest przedmiotem — mówi spokojnie. — On wybiera. My tylko pośredniczymy.<br><br>
+                    Czujesz pod stopami subtelne drżenie. Gdzieś pod budynkiem tli się ogień inkubatorów.<br><br>
+                    Masz wrażenie, że to miejsce nie sprzedaje jaj. Ono sprzedaje przeznaczenie.
+                </div>
+                <div class="dialog-button" onclick="merchantContinueGreeting()">Dalej</div>
+            </div>
+        `;
+        return;
+    }
 
     if (thirdDragonUnlocked) {
         // specjalny tekst po zdobyciu trzeciego
