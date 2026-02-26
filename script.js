@@ -228,7 +228,7 @@ function updateWorkTab() {
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:#000000; border-bottom:1px solid #ffffff;">
+                            <tr style="background:transparent; border-bottom:1px solid #ffffff;">
                                 ${job.reward.copper ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Miedź: ${job.reward.copper}</td>` : ''}
                                 ${job.reward.silver ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Srebro: ${job.reward.silver}</td>` : ''}
                                 ${job.reward.gold ? `<td style="padding:8px; border:1px solid #ffffff; color:#e0e0e0;">Złoto: ${job.reward.gold}</td>` : ''}
