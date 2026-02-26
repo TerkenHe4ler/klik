@@ -169,8 +169,8 @@ function skipJob() {
 
 function updateWorkTab() {
     const work = document.getElementById("work-content");
-    let html = `<div style="margin-bottom:20px; padding:15px; background:#f9f9f9; border-left:4px solid #d4a574; border-radius:4px;">
-        <p style="font-style: italic; color:#666; margin:0;">
+    let html = `<div style="margin-bottom:20px; padding:15px; background:#4a4845; border-left:4px solid #8b7355; border-radius:4px; color:#e0e0e0;">
+        <p style="font-style: italic; color:#bbb; margin:0;">
             Docierasz do tablicy ogłoszeń gdzie ludzie oferują zapłatę za wykonaną pracę.
         </p>
     </div>`;
@@ -187,32 +187,43 @@ function updateWorkTab() {
             completeJob();
             return;
         }
-        html += `<div style="margin:20px 0; padding:15px; background:#f0f0f0; border-radius:8px; border-left:4px solid #8b7355;">
+        html += `<div style="margin:20px 0; padding:15px; background:#3d3c3a; border-radius:8px; border-left:4px solid #8b7355; color:#e0e0e0;">
                     <p><b>📋 Wykonywana praca:</b></p>
                     <p style="font-size:1.1em; font-weight:bold;">${currentJob.name}</p>
-                    <p style="color:#666; margin:10px 0;">Pozostały czas: <b style="color:#000;">${formatTime(remaining)}</b></p>
+                    <p style="color:#aaa; margin:10px 0;">Pozostały czas: <b style="color:#e0e0e0;">${formatTime(remaining)}</b></p>
                     <div class="dialog-button" onclick="skipJob()" style="display:inline-block; margin-top:10px;">⏭️ Pomiń czekanie</div>
                  </div>`;
     } else {
         if (!dailyJobs) pickJobs();
         html += ``;
         dailyJobs.forEach((job, idx) => {
-            const durationMin = Math.round(job.duration / 60000);
-            const durationText = durationMin < 60 ? `${durationMin} min` : `${Math.round(durationMin/60)}h`;
+            const durationMs = job.duration;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
             
-            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#fafafa; border:1px solid #ddd;">
+            let durationText = '';
+            if (hours > 0) {
+                durationText = `${hours}h ${minutes}m ${seconds}s`;
+            } else if (minutes > 0) {
+                durationText = `${minutes}m ${seconds}s`;
+            } else {
+                durationText = `${seconds}s`;
+            }
+            
+            html += `<div class="dragon-slot" style="margin-bottom:25px; padding:15px; background:#4a4845; border:1px solid #5a5855; color:#e0e0e0;">
                         <p style="margin:0 0 8px 0; font-size:1.1em;"><b>${job.name}</b></p>
-                        <p style="font-size:0.95em; color:#666; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
+                        <p style="font-size:0.95em; color:#aaa; margin:5px 0 10px 0; font-style:italic;">${job.description}</p>
                         <p style="margin:8px 0;"><b>⏱️ Czas:</b> ${durationText}</p>
                         <p style="margin:8px 0;"><b>💰 Nagrody:</b></p>
                         <table style="width:100%; margin:8px 0; font-size:0.95em; border-collapse:collapse;">
-                            <tr style="background:#f0f0f0;">
-                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #ddd;">Miedź: ${job.reward.copper}</td>` : ''}
-                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #ddd;">Srebro: ${job.reward.silver}</td>` : ''}
-                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #ddd;">Złoto: ${job.reward.gold}</td>` : ''}
+                            <tr style="background:#3d3c3a;">
+                                ${job.reward.copper ? `<td style="padding:8px; border:1px solid #5a5855;">Miedź: ${job.reward.copper}</td>` : ''}
+                                ${job.reward.silver ? `<td style="padding:8px; border:1px solid #5a5855;">Srebro: ${job.reward.silver}</td>` : ''}
+                                ${job.reward.gold ? `<td style="padding:8px; border:1px solid #5a5855;">Złoto: ${job.reward.gold}</td>` : ''}
                             </tr>
                         </table>
-                        <p style="font-size:0.85em; color:#999; margin-top:8px;">🎁 Dodatkowa nagroda: ${Math.round(job.bonusChance*100)}% szansy</p>
                         <div class="dialog-button" onclick="startJob(dailyJobs[${idx}])" style="margin-top:10px;">✓ Wykonaj</div>
                      </div>`;
         });
@@ -235,12 +246,12 @@ function updateInventoryTab() {
     if (Object.keys(inventory).length > 0) {
         html += `<h3>Przedmioty</h3>
                 <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-                    <tr style="border-bottom:2px solid #ccc; background:#f0f0f0;">
+                    <tr style="border-bottom:2px solid #8b7355; background:#4a4845; color:#e0e0e0;">
                         <th style="padding:10px; text-align:left;">Przedmiot</th>
                         <th style="padding:10px; text-align:right;">Ilość</th>
                     </tr>`;
         Object.entries(inventory).forEach(([item, count]) => {
-            html += `<tr style="border-bottom:1px solid #eee;">
+            html += `<tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
                         <td style="padding:10px;">${item}</td>
                         <td style="padding:10px; text-align:right;"><b>${count}</b></td>
                     </tr>`;
@@ -253,15 +264,15 @@ function updateInventoryTab() {
     // food items
     html += `<h3>Jedzenie na smoki</h3>
             <table style="width:100%; border-collapse:collapse;">
-                <tr style="border-bottom:2px solid #ccc; background:#f0f0f0;">
+                <tr style="border-bottom:2px solid #8b7355; background:#4a4845; color:#e0e0e0;">
                     <th style="padding:10px; text-align:left;">Typ</th>
                     <th style="padding:10px; text-align:right;">Ilość</th>
                 </tr>
-                <tr style="border-bottom:1px solid #eee;">
+                <tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
                     <td style="padding:10px;">Mięso</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.mięso || 0}</b></td>
                 </tr>
-                <tr style="border-bottom:1px solid #eee;">
+                <tr style="border-bottom:1px solid #5a5855; color:#e0e0e0;">
                     <td style="padding:10px;">Jagody</td>
                     <td style="padding:10px; text-align:right;"><b>${foodItems.jagody || 0}</b></td>
                 </tr>
