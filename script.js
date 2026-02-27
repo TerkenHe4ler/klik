@@ -549,6 +549,16 @@ function handleLearnSpell(num, spellId, element) {
     if (result.ok) updateHomeTab();
 }
 
+
+function skipDragonMission(dragonNum) {
+    const mission = loadDragonMission(dragonNum);
+    if (!mission) return;
+    // Force endTime to now so completeDragonMission triggers
+    mission.endTime = Date.now() - 1;
+    saveDragonMission(dragonNum, mission);
+    completeDragonMission(dragonNum);
+}
+
 function checkMissionStatus(num) {
     const mission = loadDragonMission(num);
     if (!mission) {
@@ -817,17 +827,82 @@ function handleBuySmithItem(itemId) {
    BIBLIOTEKA — OPCJE PO RUNACH
 ========================================= */
 
+
+function sketchMoonGateRunes() {
+    inventory['Kartka z runami'] = 1;
+    delete inventory['Szkicownik'];
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateInventoryTabFull();
+    // Refresh location to update UI
+    openLocation('gory', 'ksiezycowa_brama');
+    // Show notification
+    const area = document.getElementById("world-content-area");
+    if (area) {
+        // prepend notification
+        const note = document.createElement('div');
+        note.style.cssText = 'padding:10px; margin:10px 0 0 0; background:rgba(20,50,30,0.8); border-left:3px solid #44cc88; border-radius:6px; color:#99ffcc; font-style:italic;';
+        note.textContent = 'Starannie odrysowujesz każdy symbol. Kartka z runami Księżycowej Bramy trafia do twojego ekwipunku. Szkicownik rozpadł się przy ostatnim symbolu — był już mocno zniszczony.';
+        const win = area.querySelector('.dialog-window');
+        if (win) win.insertBefore(note, win.firstChild);
+    }
+}
+
 function renderLibrarianRuneOptions() {
     const box = document.getElementById("location-action-area");
     if (!box) return;
 
+    // Check if library is closed
+    const libClosedUntil = Number(localStorage.getItem('libClosedUntil') || '0');
+    if (libClosedUntil > Date.now()) {
+        const remaining = libClosedUntil - Date.now();
+        box.innerHTML = `
+            <div style="margin:10px 0; padding:15px; background:rgba(10,15,30,0.8); border-left:3px solid #556; border-radius:6px; color:#7080a0; font-style:italic;">
+                Drzwi biblioteki są zamknięte. Na drzwiach wisi karteczka:<br><br>
+                <em>„Zamknięte z powodu ważnych badań. Proszę wracać za:"</em><br><br>
+                <span style="font-size:1.2em; color:#9ab; font-style:normal;" id="lib-timer">...</span>
+            </div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do miasta</div>
+        `;
+        // Live countdown
+        const updateLibTimer = () => {
+            const el = document.getElementById('lib-timer');
+            if (!el) return;
+            const rem = Number(localStorage.getItem('libClosedUntil') || '0') - Date.now();
+            if (rem <= 0) { renderLibrarianRuneOptions(); return; }
+            el.textContent = formatTime(rem);
+        };
+        updateLibTimer();
+        const timerInt = setInterval(() => {
+            if (!document.getElementById('lib-timer')) { clearInterval(timerInt); return; }
+            updateLibTimer();
+        }, 1000);
+        return;
+    }
+
     const runeProgress = localStorage.getItem('runeQuestProgress') || 'none';
+    const hasKartka = (inventory['Kartka z runami'] || 0) > 0;
 
     let html = `
         <div style="margin:10px 0; padding:12px; background:rgba(10,20,40,0.6); border-left:3px solid #9966cc; border-radius:6px; color:#c0c0e0; font-style:italic; line-height:1.7;">
             Bibliotekarz unosi głowę znad notatek. Jego oczy błyszczą pod grubymi szkłami lunetki.
         </div>
     `;
+
+    // Priority: if player has the rune sketch, handle that first
+    if (hasKartka) {
+        box.innerHTML = html + `
+            <div style="color:#99ffcc; margin:8px 0; padding:12px; background:rgba(10,40,25,0.6); border-left:3px solid #44cc88; border-radius:6px; line-height:1.7;">
+                Bibliotekarz dostrzega kartkę w twojej dłoni. Przez chwilę milczy, po czym jego oczy rozszerzają się.<br><br>
+                — Niech... niech to będzie... — szepcze, biorąc kartkę ostrożnie jak relikwię. — To jest autentyczne. Precyzja rytów, proporcje symboli... to nie jest ludzka robota.<br><br>
+                Przez chwilę chodzi między regałami, rozmawiając sam ze sobą.<br><br>
+                — Muszę to porównać z trzema zbiorami, które mam w piwnicy. Archiwami sprzed Epoki Odbudowy... To może zająć kilka godzin. Przepraszam, ale muszę prosić...<br><br>
+                Wskazuje ci uprzejmie drzwi.
+            </div>
+            <div class="dialog-button" onclick="handleDeliverRunes()">Oddaj kartkę i pozwól mu pracować</div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć później</div>
+        `;
+        return;
+    }
 
     if (runeProgress === 'none') {
         html += `
@@ -837,18 +912,11 @@ function renderLibrarianRuneOptions() {
             <div class="dialog-button" onclick="handleRuneChoice('knowAlready')">„Byłem już przy bramie. Runy są bardzo precyzyjne."</div>
         `;
     } else if (runeProgress === 'sketch') {
-        const hasSketch = inventory['Szkic run'] > 0;
-        html += hasSketch ? `
-            <div style="color:#66cc88; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,40,20,0.5); border-radius:6px;">
-                Wyjmujesz szkicownik i podajesz bibliotekarzowi. Przegląda strony przez długi czas w milczeniu.<br><br>
-                — Niesamowite... — szepcze. — Te dwa symbole przypominają runiczne pismo Starszej Epoki. Ale ten trzeci... tego nie znam. Zostawię kopię i dam znać, jeśli coś odkryję.
-            </div>
-            <div class="dialog-button" onclick="handleRuneChoice('done')">„Dziękuję. Czekam na wieści."</div>
-        ` : `
+        html += `
             <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                — Czekam na ten szkic — mówi bibliotekarz z nutą niecierpliwości. — Jeśli znajdziesz czas, by odwiedzić bramę i naszkicować runy, bardzo chętnie je przejrzę.
+                — Czekam na ten szkic — mówi bibliotekarz z nutą niecierpliwości. — Odwiedź Księżycową Bramę, naszkicuj runy i wróć do mnie.
             </div>
-            <div class="dialog-button" onclick="openLocation('gory', 'ksiezycowa_brama')">Idź do Księżycowej Bramy</div>
+            <div class="dialog-button" onclick="openTab('world'); setTimeout(()=>{ openRegion('gory'); },80)">Idź do Gór Sarak</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
         `;
     } else if (runeProgress === 'readFirst') {
@@ -870,17 +938,37 @@ function renderLibrarianRuneOptions() {
             <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Pójdę naszkicować runy. Może razem coś odkryjemy."</div>
             <div class="dialog-button" onclick="handleRuneChoice('done')">„Dziękuję. To dużo do przemyślenia."</div>
         `;
-    } else if (runeProgress === 'notInterested') {
+    } else if (runeProgress === 'notInterested' || runeProgress === 'done') {
         html += `
             <div style="color:#8090aa; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
                 — Rozumiem — mówi bibliotekarz, wracając do pracy. — Jeśli kiedyś zmienisz zdanie, będę tutaj.
             </div>
-            <div class="dialog-button" onclick="handleRuneChoice('changed_mind')">„Właściwie... zmieniam zdanie. Chcę dowiedzieć się więcej."</div>
+            <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Właściwie... pójdę naszkicować te runy."</div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
+        `;
+    } else if (runeProgress === 'knowAlready') {
+        html += `
+            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                — Precyzyjne, mówisz? — bibliotekarz podnosi głowę. — Jeśli masz możliwość wrócenia tam z czymś do rysowania... Szkic tych symboli byłby bezcenny dla moich badań.
+            </div>
+            <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Postaram się je naszkicować."</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
         `;
     }
 
     box.innerHTML = html;
+}
+
+function handleDeliverRunes() {
+    // Remove kartka from inventory
+    delete inventory['Kartka z runami'];
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    localStorage.setItem('runeQuestProgress', 'delivered');
+    // Close library for 4 hours (real time)
+    const closeUntil = Date.now() + 4 * 60 * 60 * 1000;
+    localStorage.setItem('libClosedUntil', String(closeUntil));
+    updateInventoryTabFull();
+    renderLibrarianRuneOptions();
 }
 
 function handleRuneChoice(choice) {
@@ -1334,17 +1422,17 @@ const CITY_DISTRICTS = [
     },
     {
         name: 'Dzielnica Rzemieślnicza',
-        desc: 'Kuźnie, szkoły i miejsca nauki. Tu wykuwa się zarówno metal jak i wiedzę.',
+        desc: 'Kuźnie, warsztaty i port. Tu wytwarza się i sprowadza wszystko czego miasto potrzebuje.',
         color: '#1a3a2a',
         borderColor: '#44aa66',
-        locations: ['kowal', 'szkola_magii', 'biblioteka', 'posterunek']
+        locations: ['kowal', 'szkola_magii', 'port', 'posterunek']
     },
     {
         name: 'Dzielnica Honorowa',
-        desc: 'Prestiżowe miejsca dla odważnych. Arena, Port i Pałac — symbol władzy Astorveil.',
+        desc: 'Świątynia, arena, biblioteka i pałac — miejsca ducha, wiedzy i władzy Astorveil.',
         color: '#1a2a4a',
         borderColor: '#4466aa',
-        locations: ['swiatynia', 'arena', 'port', 'palac']
+        locations: ['swiatynia', 'arena', 'biblioteka', 'palac']
     }
 ];
 
@@ -1859,6 +1947,18 @@ function openLocation(regionKey, locationId) {
             extraContent = `<div style="margin: 10px 0; padding: 10px; background: rgba(40,30,60,0.6); border-left: 3px solid #9966cc; border-radius: 6px; color: #cc99ff; font-style: italic;">${moonStatus.msg}</div>`;
         } else {
             extraContent = `<div style="margin: 10px 0; padding: 10px; background: rgba(30,50,30,0.6); border-left: 3px solid #66cc99; border-radius: 6px; color: #99ffcc; font-style: italic;">Runy pulsują zimnym, srebrnym światłem. Brama drży jakby oddychała.</div>`;
+        }
+        // Extra option: sketch runes if player has Szkicownik and doesn't yet have the sketch
+        const hasSzkicownik = (inventory['Szkicownik'] || 0) > 0;
+        const hasKartka = (inventory['Kartka z runami'] || 0) > 0;
+        if (hasSzkicownik && !hasKartka) {
+            extraContent += `<div style="margin: 10px 0; padding: 10px; background: rgba(20,40,30,0.6); border-left: 3px solid #44cc88; border-radius: 6px; color: #99ffcc;">
+                Masz przy sobie szkicownik. Runy są przed tobą — precyzyjne, tajemnicze.
+                <div class="dialog-button" style="margin-top:8px;" onclick="sketchMoonGateRunes()">📝 Przeszkicuj runy</div>
+            </div>`;
+        }
+        if (hasKartka) {
+            extraContent += `<div style="margin: 8px 0; padding: 8px; background: rgba(20,30,20,0.5); border-left: 3px solid #44cc88; border-radius: 6px; color: #88cc88; font-size:13px; font-style:italic;">Masz już szkic run w ekwipunku. Bibliotekarz na pewno chętnie go przejrzy.</div>`;
         }
     }
 
