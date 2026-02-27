@@ -2354,6 +2354,7 @@ function startGame() {
     updateHomeTab();
     updateMerchantTab();
     updateWorkTab();
+    updateWorldTab();
 }
 
 function updateCurrencyDisplay() {
@@ -2836,6 +2837,9 @@ function openTab(name) {
     document.getElementById(name).style.display = "block";
     
     // zawsze odświeżamy widok właściwy dla zakładki
+    if (name === "world") { 
+        updateWorldTab();
+    }
     if (name === "dragons") {
         updateDragonsTab();
     }
