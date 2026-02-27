@@ -993,7 +993,7 @@ function hasHighLevelDragon(minLevel) {
 const worldData = {
     miasto: {
         label: "Miasto Astorveil",
-        firstVisitDesc: `Twoje stopy dotykają brukowanych ulic Astorveil — miasta zbudowanego w cieniu Smoczej Góry, której sylwetka dominuje nad każdym dachem i każdą wieżą. Powietrze pachnie dymem z kuźni, korzennymi przyprawami z kramów i czymś nieuchwytnym — może to woń łusek, może starożytnej magii przesiąkniętej w kamienie fundamentów.\n\nMiasto żyje. Dzieci biegają między straganami, kuźnie grają rytmicznym stukaniem młotów, a gdzieś w oddali słyszysz ryk — nie wiadomo, czy to człowiek czy stworzenie. Astorveil nie jest miejscem dla słabych. Jest miejscem dla tych, którzy mają powód tu być.\n\nWitaj. Dokąd się udasz?`,
+        firstVisitDesc: `Twoje stopy dotykają brukowanych ulic Astorveil — miasta zbudowanego w cieniu Smoczej Góry, której sylwetka dominuje nad każdym dachem i każdą wieżą. Powietrze pachnie dymem z kuźni, korzennymi przyprawami z kramów i czymś nieuchwytnym — może to woń łusek, może starożytnej magii przesiąkniętej w kamienie fundamentów.\n\nMiasto żyje. Dzieci biegają między straganami, kuźnie grają rytmicznym stukaniem młotów, a gdzieś w oddali słyszysz ryk — nie wiadomo, czy to człowiek czy stworzenie. Astorveil nie jest miejscem dla słabych. Jest miejscem dla tych, którzy mają powód tu być.\n\n Dokąd się udasz?`,
         desc: `Gwar Astorveil wita Cię jak zawsze — hałaśliwie i bez ceremonii. Brukowane ulice, dym z kuźni, krzyki handlarzy. Miasto nie śpi i nie zwalnia. Dokąd się udasz?`,
         icon: "🏙️",
         locations: [
@@ -1004,7 +1004,7 @@ const worldData = {
                 desc: `Dębowa tablica przy głównej bramie jest oblepiona kawałkami pergaminu. Niektóre świeże, niektóre pożółkłe i prawie nieczytelne. Miejski gończy właśnie przybija nowe ogłoszenie. Zapach tuszu miesza się z wonią siana z pobliskiej stajni.`,
                 actions: [
                     { label: "Sprawdź zlecenia", action: "openWorkTab", desc: "Przejrzyj dostępne prace i zlecenia." },
-                    { label: "Przeczytaj plotki", action: "readRumors", desc: "Może coś ciekawego krąży wśród mieszkańców." },
+                    { label: "Podsłuchaj ludzi przy tablicy", action: "readRumors", desc: "Może coś ciekawego krąży wśród mieszkańców." },
                     { label: "Zawróć", action: "back" }
                 ]
             },
