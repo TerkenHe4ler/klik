@@ -1,3 +1,931 @@
+/* =========================================
+   SMOCZE WŁOŚCI — SCRIPT.JS
+   Wersja z systemem świata, cech, zaklęć, misji i areny
+========================================= */
+
+/* ======= sec1_systems.js ======= */
+/* =========================================
+   SYSTEM WALUT (NAPRAWIONY)
+   100 miedzi = 1 srebro, 50 srebra = 1 złoto
+   1 złoto = 50 srebra = 5000 miedzi
+========================================= */
+
+function totalInCopper() {
+    return copper + silver * 100 + gold * 5000;
+}
+
+function canAfford(copperCost) {
+    return totalInCopper() >= copperCost;
+}
+
+function costToCopper(c, s, g) {
+    return (c || 0) + (s || 0) * 100 + (g || 0) * 5000;
+}
+
+function spendCurrency(copperCost) {
+    if (!canAfford(copperCost)) return false;
+    let total = totalInCopper() - copperCost;
+    gold = Math.floor(total / 5000);
+    total %= 5000;
+    silver = Math.floor(total / 100);
+    copper = total % 100;
+    localStorage.setItem('copper', copper);
+    localStorage.setItem('silver', silver);
+    localStorage.setItem('gold', gold);
+    updateCurrencyDisplay();
+    return true;
+}
+
+function formatCostLabel(c, s, g) {
+    const parts = [];
+    if (g) parts.push(`${g} złoto`);
+    if (s) parts.push(`${s} srebro`);
+    if (c) parts.push(`${c} miedź`);
+    return parts.join(', ');
+}
+
+/* =========================================
+   SYSTEM CECH SMOKÓW
+========================================= */
+
+function getDefaultDragonStats() {
+    return { sila: 5, wytrzymalosc: 5, zrecznosc: 5, inteligencja: 5, sila_woli: 5, szczescie: 5 };
+}
+
+function loadDragonStats(num) {
+    const stored = localStorage.getItem(`dragon${num}Stats`);
+    return stored ? JSON.parse(stored) : getDefaultDragonStats();
+}
+
+function saveDragonStats(num, stats) {
+    localStorage.setItem(`dragon${num}Stats`, JSON.stringify(stats));
+}
+
+function getDragonMaxHP(stats) { return 50 + (stats.wytrzymalosc * 10); }
+function getDragonMaxMana(stats) { return 20 + (stats.inteligencja * 5); }
+function getDragonMaxFatigue() { return 100; }
+
+function loadDragonVitals(num) {
+    return {
+        hp: Number(localStorage.getItem(`dragon${num}HP`)) || null,
+        mana: Number(localStorage.getItem(`dragon${num}Mana`)) || null,
+        fatigue: Number(localStorage.getItem(`dragon${num}Fatigue`)) || 0
+    };
+}
+
+function saveDragonVitals(num, vitals) {
+    if (vitals.hp !== null) localStorage.setItem(`dragon${num}HP`, vitals.hp);
+    if (vitals.mana !== null) localStorage.setItem(`dragon${num}Mana`, vitals.mana);
+    localStorage.setItem(`dragon${num}Fatigue`, vitals.fatigue);
+}
+
+function initDragonVitalsIfNeeded(num, stats) {
+    const v = loadDragonVitals(num);
+    if (v.hp === null || v.hp === 0) {
+        v.hp = getDragonMaxHP(stats);
+        v.mana = getDragonMaxMana(stats);
+        saveDragonVitals(num, v);
+    }
+    return v;
+}
+
+const STAT_LABELS = {
+    sila: 'Siła',
+    wytrzymalosc: 'Wytrzymałość',
+    zrecznosc: 'Zręczność',
+    inteligencja: 'Inteligencja',
+    sila_woli: 'Siła Woli',
+    szczescie: 'Szczęście'
+};
+const RAISABLE_STATS = ['sila', 'wytrzymalosc', 'zrecznosc', 'inteligencja', 'sila_woli'];
+
+/* =========================================
+   SYSTEM ZAKLĘĆ SMOKÓW
+========================================= */
+
+const DRAGON_SPELLS = {
+    ogien: [
+        { id: 'ogniste_uderzenie', name: 'Ogniste Uderzenie', desc: 'Potężny atak ogniem, zadający obrażenia jednemu celowi.', manaCost: 5 },
+        { id: 'sciana_ognia', name: 'Ściana Ognia', desc: 'Smok tworzy barierę z płomieni, blokującą wrogów.', manaCost: 8 },
+        { id: 'oddech_smoka', name: 'Smocze Żar', desc: 'Klasyczny oddech smoka — szeroki i niszczycielski.', manaCost: 10 }
+    ],
+    woda: [
+        { id: 'wodne_uderzenie', name: 'Wodne Uderzenie', desc: 'Strumień wody o zabójczej sile trafia w cel.', manaCost: 5 },
+        { id: 'lodowy_podmuch', name: 'Lodowy Podmuch', desc: 'Zamarza teren wokół wroga, spowalniając go.', manaCost: 8 },
+        { id: 'uzdrawiajacy_strumien', name: 'Uzdrawiający Strumień', desc: 'Smok leczy siebie lub sojusznika strumieniem magicznej wody.', manaCost: 10 }
+    ],
+    ziemia: [
+        { id: 'kamienne_uderzenie', name: 'Kamienne Uderzenie', desc: 'Głaz wali z ogromną siłą w przeciwnika.', manaCost: 5 },
+        { id: 'trzesienie_ziemi', name: 'Trzęsienie Ziemi', desc: 'Smok uderza w ziemię, destabilizując wrogów.', manaCost: 8 },
+        { id: 'kamienna_skora', name: 'Kamienna Skóra', desc: 'Ciało smoka pokrywa się skałą, zwiększając obronę.', manaCost: 10 }
+    ],
+    powietrze: [
+        { id: 'powietrzne_uderzenie', name: 'Powietrzne Uderzenie', desc: 'Ostra podmuch powietrza tnie jak ostrze.', manaCost: 5 },
+        { id: 'cyklon', name: 'Cyklon', desc: 'Smok wznosi spiralę wichru, odrzucając wrogów.', manaCost: 8 },
+        { id: 'taniec_wiatru', name: 'Taniec Wiatru', desc: 'Smok staje się nieuchwytny jak wiatr, unikając ataków.', manaCost: 10 }
+    ]
+};
+
+function loadDragonSpells(num) {
+    const stored = localStorage.getItem(`dragon${num}Spells`);
+    return stored ? JSON.parse(stored) : [];
+}
+
+function saveDragonSpells(num, spells) {
+    localStorage.setItem(`dragon${num}Spells`, JSON.stringify(spells));
+}
+
+function isDragonEnrolled(num) {
+    return localStorage.getItem(`dragon${num}Enrolled`) === 'true';
+}
+
+function enrollDragon(num) {
+    // costs 2 gold total
+    if (!canAfford(10000)) return false; // 2 gold = 10000 copper
+    spendCurrency(10000);
+    localStorage.setItem(`dragon${num}Enrolled`, 'true');
+    return true;
+}
+
+function learnSpell(dragonNum, spellId, element) {
+    // costs 1 silver = 100 copper per spell
+    if (!canAfford(100)) return { ok: false, msg: 'Brakuje ci 1 srebrnej monety za naukę zaklęcia.' };
+    const knownSpells = loadDragonSpells(dragonNum);
+    if (knownSpells.includes(spellId)) return { ok: false, msg: 'Twój smok już zna to zaklęcie.' };
+    const elementSpells = DRAGON_SPELLS[element] || [];
+    const spell = elementSpells.find(s => s.id === spellId);
+    if (!spell) return { ok: false, msg: 'Nieznane zaklęcie.' };
+    if (!spendCurrency(100)) return { ok: false, msg: 'Nie masz wystarczająco pieniędzy.' };
+    knownSpells.push(spellId);
+    saveDragonSpells(dragonNum, knownSpells);
+    return { ok: true, msg: `${dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName} nauczył się zaklęcia: ${spell.name}!` };
+}
+
+/* =========================================
+   SYSTEM MISJI SMOKA (ZMĘCZENIE)
+========================================= */
+
+const DRAGON_MISSIONS = [
+    { id: 'patrol', name: 'Patrol okolic wioski', duration: 5000, fatigue: 15, reward: { copper: 30 }, desc: 'Krótki lot patrolowy. Smok sprawdza czy okolice są bezpieczne.' },
+    { id: 'eskort_karawany', name: 'Eskorta karawany z powietrza', duration: 10000, fatigue: 25, reward: { silver: 1 }, desc: 'Smok leci nad karawaną kupców, odpędzając zagrożenia.' },
+    { id: 'polow_ryb', name: 'Połów ryb na jeziorze', duration: 7000, fatigue: 10, reward: { copper: 50 }, desc: 'Smok nurkuje w Jeziorze Snu w poszukiwaniu ryb.' },
+    { id: 'wyprawa_las', name: 'Zwiad nad Lasem Mgieł', duration: 12000, fatigue: 30, reward: { silver: 1, copper: 50 }, desc: 'Smok penetruje Las Mgieł z powietrza, szukając informacji.' },
+    { id: 'wyprawa_gory', name: 'Lot przez Góry Sarak', duration: 18000, fatigue: 45, reward: { silver: 3 }, desc: 'Długa wyprawa przez niebezpieczne górskie szczyty.' },
+    { id: 'misja_tajna', name: 'Tajna misja dla Posterunku', duration: 22000, fatigue: 60, reward: { silver: 5 }, desc: 'Kapitan Posterunku prosi o dyskretną pomoc. Szczegóły niedostępne.' }
+];
+
+function loadDragonMission(num) {
+    const stored = localStorage.getItem(`dragon${num}Mission`);
+    return stored ? JSON.parse(stored) : null;
+}
+
+function saveDragonMission(num, mission) {
+    if (mission === null) {
+        localStorage.removeItem(`dragon${num}Mission`);
+    } else {
+        localStorage.setItem(`dragon${num}Mission`, JSON.stringify(mission));
+    }
+}
+
+function startDragonMission(dragonNum, missionId) {
+    const mission = DRAGON_MISSIONS.find(m => m.id === missionId);
+    if (!mission) return { ok: false, msg: 'Nieznana misja.' };
+    const vitals = loadDragonVitals(dragonNum);
+    if (vitals.fatigue + mission.fatigue > 100) {
+        return { ok: false, msg: `Smok jest zbyt zmęczony na tę misję (zmęczenie: ${vitals.fatigue}/100). Pozwól mu odpocząć.` };
+    }
+    const existing = loadDragonMission(dragonNum);
+    if (existing) return { ok: false, msg: 'Smok jest już na misji.' };
+
+    const missionData = {
+        ...mission,
+        endTime: Date.now() + mission.duration,
+        dragonNum
+    };
+    saveDragonMission(dragonNum, missionData);
+    return { ok: true, msg: `Smok wyrusza na misję: ${mission.name}. Wróci za ${formatTime(mission.duration)}.` };
+}
+
+function completeDragonMission(dragonNum) {
+    const mission = loadDragonMission(dragonNum);
+    if (!mission) return;
+    Object.entries(mission.reward).forEach(([type, amt]) => adjustCurrency(type, amt));
+    const vitals = loadDragonVitals(dragonNum);
+    vitals.fatigue = Math.min(100, vitals.fatigue + mission.fatigue);
+    saveDragonVitals(dragonNum, vitals);
+    saveDragonMission(dragonNum, null);
+    let rewardText = Object.entries(mission.reward).map(([t,a]) => `${a} ${t}`).join(', ');
+    alert(`Misja zakończona! ${mission.name}\nNagroda: ${rewardText}\nZmęczenie smoka wzrosło o ${mission.fatigue}.`);
+    updateHomeTab();
+}
+
+function restDragon(dragonNum) {
+    const vitals = loadDragonVitals(dragonNum);
+    const before = vitals.fatigue;
+    vitals.fatigue = Math.max(0, vitals.fatigue - 20);
+    saveDragonVitals(dragonNum, vitals);
+    return `Smok odpoczął. Zmęczenie: ${before} → ${vitals.fatigue}.`;
+}
+
+/* =========================================
+   SYSTEM ARENY
+========================================= */
+
+// Walki smoka — 3 dziennie
+function loadArenaFights(dragonNum) {
+    const today = new Date().toISOString().slice(0,10);
+    const key = `dragon${dragonNum}ArenaDate`;
+    const countKey = `dragon${dragonNum}ArenaCount`;
+    if (localStorage.getItem(key) !== today) {
+        localStorage.setItem(key, today);
+        localStorage.setItem(countKey, '0');
+    }
+    return Number(localStorage.getItem(countKey)) || 0;
+}
+
+function incrementArenaFights(dragonNum) {
+    const countKey = `dragon${dragonNum}ArenaCount`;
+    const count = loadArenaFights(dragonNum) + 1;
+    localStorage.setItem(countKey, count);
+    return count;
+}
+
+const ARENA_OPPONENTS = [
+    { name: 'Dziki Szczur Podziemi', sila: 4, wytrzymalosc: 3, zrecznosc: 6 },
+    { name: 'Leśny Padalec', sila: 5, wytrzymalosc: 5, zrecznosc: 5 },
+    { name: 'Smoczek z Gór', sila: 7, wytrzymalosc: 6, zrecznosc: 4 },
+    { name: 'Starszy Gryf', sila: 8, wytrzymalosc: 7, zrecznosc: 7 },
+    { name: 'Chimera Miejska', sila: 10, wytrzymalosc: 9, zrecznosc: 8 },
+];
+
+function simulateDragonFight(dragonNum) {
+    const fightsDone = loadArenaFights(dragonNum);
+    if (fightsDone >= 3) return { ok: false, msg: 'Ten smok walczył już 3 razy dzisiaj. Wróć jutro.' };
+
+    const vitals = loadDragonVitals(dragonNum);
+    if (vitals.fatigue >= 80) return { ok: false, msg: 'Smok jest zbyt zmęczony na walkę (zmęczenie ≥80). Pozwól mu odpocząć.' };
+
+    const mission = loadDragonMission(dragonNum);
+    if (mission) return { ok: false, msg: 'Smok jest na misji. Nie może teraz walczyć.' };
+
+    const stats = loadDragonStats(dragonNum);
+    const opponent = ARENA_OPPONENTS[Math.min(fightsDone, ARENA_OPPONENTS.length - 1)];
+
+    // Simple combat formula with some randomness
+    const dragonPower = stats.sila * 1.5 + stats.wytrzymalosc + stats.zrecznosc * 0.8 + stats.sila_woli * 0.5;
+    const oppPower = opponent.sila * 1.5 + opponent.wytrzymalosc + opponent.zrecznosc * 0.8;
+    const roll = (Math.random() * 0.4 + 0.8); // 0.8 - 1.2
+    const luck = stats.szczescie / 10; // 0.5 - 1.5 bonus
+
+    const win = (dragonPower * roll + luck * 2) > oppPower;
+
+    incrementArenaFights(dragonNum);
+    vitals.fatigue = Math.min(100, vitals.fatigue + 10);
+    saveDragonVitals(dragonNum, vitals);
+
+    let result = '';
+    if (win) {
+        // raise a random raisable stat
+        const stat = RAISABLE_STATS[Math.floor(Math.random() * RAISABLE_STATS.length)];
+        stats[stat]++;
+        saveDragonStats(dragonNum, stats);
+        adjustCurrency('silver', 1);
+        result = `🏆 ZWYCIĘSTWO!\n\nTwój smok pokonał ${opponent.name}!\nNagroda: 1 srebro.\n${STAT_LABELS[stat]} wzrósł o 1!`;
+    } else {
+        result = `💀 PORAŻKA\n\nTwój smok przegrał z ${opponent.name}.\nBrak nagrody. Nie martw się — następnym razem pójdzie lepiej.`;
+    }
+
+    return { ok: true, win, msg: result, fightsDone: fightsDone + 1 };
+}
+
+// Turniej gracza — 1 walka dziennie
+function loadPlayerTournament() {
+    const today = new Date().toISOString().slice(0,10);
+    if (localStorage.getItem('playerTournDate') !== today) {
+        localStorage.setItem('playerTournDate', today);
+        localStorage.setItem('playerTournDone', 'false');
+    }
+    return localStorage.getItem('playerTournDone') === 'true';
+}
+
+function playerTournamentFight() {
+    if (loadPlayerTournament()) return { ok: false, msg: 'Walczyłeś już dziś w turnieju. Wróć jutro.' };
+
+    const opponents = [
+        { name: 'Karczmarz Broda', desc: 'Tężyzna fizyczna, zero techniki.' },
+        { name: 'Strażniczka Mira', desc: 'Szybka, doświadczona.' },
+        { name: 'Wędrowny Rycerz', desc: 'Veteran wielu bitew.' }
+    ];
+    const opp = opponents[Math.floor(Math.random() * opponents.length)];
+    const win = Math.random() > 0.4;
+
+    localStorage.setItem('playerTournDone', 'true');
+
+    if (win) {
+        adjustCurrency('silver', 2);
+        return { ok: true, msg: `⚔️ TURNIEJ — Twój rywal to ${opp.name}.\n${opp.desc}\n\n🏆 ZWYCIĘSTWO! Nagroda: 2 srebro.` };
+    } else {
+        return { ok: true, msg: `⚔️ TURNIEJ — Twój rywal to ${opp.name}.\n${opp.desc}\n\n💀 Przegrałeś. Trening czyni mistrza.` };
+    }
+}
+
+/* =========================================
+   DYNAMICZNY OPIS DOMU
+========================================= */
+
+function getDragonHomeDesc() {
+    const dragons = [];
+    if (eggHeats >= 3) dragons.push({ name: dragonName, element: chosenDragon, num: 1 });
+    if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ name: secondDragonName, element: secondDragonElement, num: 2 });
+    if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ name: thirdDragonName, element: thirdDragonElement, num: 3 });
+
+    if (dragons.length === 0) {
+        return 'Dom jest cichy. Na stoliku leży jajko — ciepłe, pulsujące życiem. Czekasz.';
+    }
+
+    if (dragons.length === 1) {
+        const d = dragons[0];
+        const descs = {
+            ogien: `${d.name} leży zwinięty przy kominku i śpi. Od czasu do czasu z nozdrzy wydobywa się mały język ognia — pewnie śni o walce.`,
+            woda: `${d.name} siedzi przy misce z wodą i wpatruje się w nią jak zahipnotyzowany. Woda w misce kręci się sama, powoli.`,
+            ziemia: `${d.name} leży dokładnie tam, gdzie go zostawiłeś. Nie ruszył się ani o centymetr. Jak posąg — tylko ciepły.`,
+            powietrze: `${d.name} siedzi na najwyższej półce i stamtąd patrzy na pokój. Jak tam wlazł — nie masz pojęcia.`
+        };
+        return descs[d.element] || `${d.name} czeka spokojnie.`;
+    }
+
+    if (dragons.length === 2) {
+        const [d1, d2] = dragons;
+        const pair = [d1.element, d2.element].sort().join('_');
+        if (pair === 'ogien_woda') {
+            const f = dragons.find(d => d.element === 'ogien');
+            const w = dragons.find(d => d.element === 'woda');
+            return `Wchodząc do domu widzisz, że ${f.name} i ${w.name} patrzą na siebie z bezpiecznej odległości. Na dywanie widać mokrą plamę i spalony skraj materiału. Krzesło między nimi zostało wyraźnie przesunięte kilka razy. Walka o terytorium trwa od twojego wyjścia.`;
+        }
+        if (pair === 'ogien_ziemia') {
+            return `${d1.name} siedzi przy kominku, ${d2.name} w kącie — każdy w swoim miejscu. Atmosfera jest spokojna. Może nawet zbyt spokojna.`;
+        }
+        if (pair === 'ogien_powietrze') {
+            return `${d1.name} śledzi każdy ruch ${d2.name}, który kręci się po całym pokoju jak wicher. Wyraźnie go to drażni. Kilka rzeczy zostało strąconych z półek.`;
+        }
+        if (pair === 'woda_ziemia') {
+            return `${d1.name} i ${d2.name} leżą w swoich miejscach w milczeniu. Raz na jakiś czas jedno zerknie na drugie. Cisza jest niemal namacalna.`;
+        }
+        return `${d1.name} i ${d2.name} są w domu. Wygląda na to, że dzień minął spokojnie.`;
+    }
+
+    // 3 smoki
+    const elements = dragons.map(d => d.element);
+    if (elements.includes('ogien') && elements.includes('woda')) {
+        const fireD = dragons.find(d => d.element === 'ogien');
+        const waterD = dragons.find(d => d.element === 'woda');
+        const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
+        const thirdDesc = {
+            ziemia: `${thirdD.name} czeka dokładnie w tym miejscu, co był gdy wychodziłeś. Pewnie siedział tutaj cały czas jak kamień, ignorując całe zamieszanie.`,
+            powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`,
+        }[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
+        return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
+    }
+    return `Wszystkie trzy smoki są w domu. Panuje względny spokój — jak na trójkę smoków przystało.`;
+}
+
+
+/* ======= sec2_modified_functions.js ======= */
+/* =========================================
+   ZAKŁADKA DOM (NOWA WERSJA)
+========================================= */
+
+function updateHomeTab() {
+    const home = document.getElementById("home-content");
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+
+    // Dynamiczny opis domu
+    const homeDesc = getDragonHomeDesc();
+    let html = `
+        <div style="padding:15px; margin-bottom:20px; background:rgba(10,20,40,0.5); border-left:3px solid #5a6a8a; border-radius:6px;">
+            <p style="color:#c0cce0; font-style:italic; line-height:1.7; margin:0;">${homeDesc}</p>
+        </div>
+    `;
+
+    html += renderDragonHomeSlot(1, dragonName, chosenDragon, eggHeats, dragonLevel, dragonFeedings);
+
+    if (secondDragonUnlocked) {
+        html += renderDragonHomeSlot(2, secondDragonName, secondDragonElement, secondEggHeats, secondDragonLevel, secondDragonFeedings);
+    }
+    if (thirdDragonUnlocked) {
+        html += renderDragonHomeSlot(3, thirdDragonName, thirdDragonElement, thirdEggHeats, thirdDragonLevel, thirdDragonFeedings);
+    }
+
+    home.innerHTML = html;
+}
+
+function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
+    const stats = loadDragonStats(num);
+    const vitals = initDragonVitalsIfNeeded(num, stats);
+    const maxHP = getDragonMaxHP(stats);
+    const maxMana = getDragonMaxMana(stats);
+    const mission = loadDragonMission(num);
+    const fightsDone = loadArenaFights(num);
+
+    // Check if mission completed
+    if (mission && Date.now() >= mission.endTime) {
+        completeDragonMission(num);
+        return renderDragonHomeSlot(num, name, element, heats, level, feedings);
+    }
+
+    const isOnMission = !!mission;
+    let missionHtml = '';
+    if (isOnMission) {
+        const remaining = Math.max(0, mission.endTime - Date.now());
+        missionHtml = `
+            <div style="margin:8px 0; padding:8px; background:rgba(40,30,10,0.6); border-left:3px solid #cc9900; border-radius:4px;">
+                🦅 Na misji: <b>${mission.name}</b><br>
+                Pozostały czas: <b>${formatTime(remaining)}</b>
+                <div class="dialog-button" style="margin-top:6px;" onclick="checkMissionStatus(${num})">Sprawdź status</div>
+            </div>
+        `;
+    }
+
+    if (heats < 3) {
+        return `
+            <div class="dragon-slot">
+                <b>Smok ${num}</b> — ${element ? element.toUpperCase() : '?'}<br>
+                Ogrzania: ${heats}/3<br>
+                <div class="dialog-button" onclick="heatEgg${num}()">🔥 Zadbaj o jajo</div>
+            </div>
+        `;
+    }
+
+    const spells = loadDragonSpells(num);
+    const enrolled = isDragonEnrolled(num);
+    const elementSpells = DRAGON_SPELLS[element] || [];
+
+    return `
+        <div class="dragon-slot">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                <div>
+                    <b>${name}</b> — ${element ? element.toUpperCase() : '?'} | Poziom ${level}
+                </div>
+            </div>
+
+            <!-- Statystyki życiowe -->
+            <div style="margin:8px 0; font-size:13px; color:#aab;">
+                ❤️ HP: ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 Mana: ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 Zmęczenie: ${vitals.fatigue}/100
+            </div>
+            <div style="margin:4px 0 10px 0; font-size:12px; color:#8090aa;">
+                ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b>${v}</b>`).join(' | ')}
+            </div>
+
+            ${missionHtml}
+
+            ${!isOnMission ? `
+                ${level < 15 ? `<div class="dialog-button" onclick="feedDragon${num}()">🍖 Nakarm smoka</div>` : ''}
+                ${vitals.fatigue > 0 ? `<div class="dialog-button" onclick="handleRestDragon(${num})">💤 Pozwól odpocząć</div>` : ''}
+            ` : ''}
+
+            <!-- Misje smoka -->
+            ${!isOnMission ? `
+                <details style="margin:8px 0;">
+                    <summary style="cursor:pointer; color:#9ab; padding:6px 0;">🗺️ Wyślij na misję</summary>
+                    <div style="margin-top:8px;">
+                        ${DRAGON_MISSIONS.map(m => `
+                            <div style="margin:6px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;">
+                                <b>${m.name}</b><br>
+                                <span style="color:#8090aa; font-size:12px;">${m.desc}</span><br>
+                                ⏱ ${formatTime(m.duration)} | 😴 Zmęczenie: +${m.fatigue} | 💰 ${Object.entries(m.reward).map(([t,a])=>`${a} ${t}`).join(', ')}
+                                <div class="dialog-button" style="margin-top:4px;" onclick="handleStartMission(${num}, '${m.id}')">Wyślij</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </details>
+            ` : ''}
+
+            <!-- Zaklęcia -->
+            ${enrolled ? `
+                <details style="margin:8px 0;">
+                    <summary style="cursor:pointer; color:#9ab; padding:6px 0;">✨ Zaklęcia smoka</summary>
+                    <div style="margin-top:6px; font-size:13px;">
+                        ${elementSpells.map(spell => {
+                            const known = spells.includes(spell.id);
+                            return `<div style="margin:5px 0; padding:7px; background:rgba(20,10,40,0.5); border-radius:5px;">
+                                ${known ? '✅' : '📖'} <b>${spell.name}</b> — mana: ${spell.manaCost}<br>
+                                <span style="color:#8090aa; font-size:12px;">${spell.desc}</span>
+                                ${!known ? `<div class="dialog-button" style="margin-top:4px;" onclick="handleLearnSpell(${num}, '${spell.id}', '${element}')">Naucz (1 srebro)</div>` : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </details>
+            ` : `<div style="font-size:12px; color:#6070a0; margin:6px 0;">Zapisz smoka do Szkoły Magii, by mógł uczyć się zaklęć.</div>`}
+
+            <!-- Zmień imię -->
+            <input class="name-input" id="name${num}" placeholder="Nowe imię">
+            <div class="dialog-button" onclick="renameDragon${num}()">Zmień imię</div>
+        </div>
+    `;
+}
+
+function handleRestDragon(num) {
+    const result = restDragon(num);
+    alert(result);
+    updateHomeTab();
+}
+
+function handleStartMission(num, missionId) {
+    const result = startDragonMission(num, missionId);
+    alert(result.msg);
+    if (result.ok) updateHomeTab();
+}
+
+function handleLearnSpell(num, spellId, element) {
+    const result = learnSpell(num, spellId, element);
+    alert(result.msg);
+    if (result.ok) updateHomeTab();
+}
+
+function checkMissionStatus(num) {
+    const mission = loadDragonMission(num);
+    if (!mission) {
+        alert('Smok nie jest na misji.');
+        updateHomeTab();
+        return;
+    }
+    const remaining = mission.endTime - Date.now();
+    if (remaining <= 0) {
+        completeDragonMission(num);
+    } else {
+        alert(`Misja: ${mission.name}\nPowrót za: ${formatTime(remaining)}`);
+    }
+}
+
+/* =========================================
+   ZAKŁADKA SMOKI (ZAKTUALIZOWANA Z CECHAMI)
+========================================= */
+
+function updateDragonsTab() {
+    const list = document.getElementById("dragons-list");
+    dragonLevel = Math.min(15, dragonFeedings * 5);
+    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+
+    let html = renderDragonOverviewSlot(1, dragonName, chosenDragon, eggHeats, dragonLevel);
+
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 2:</b><br>
+            ${secondDragonUnlocked ?
+                renderDragonOverviewSlot(2, secondDragonName, secondDragonElement, secondEggHeats, secondDragonLevel, true)
+                :
+                "🔒 Zablokowany — odwiedź Handlarza"
+            }
+        </div>
+    `;
+
+    html += `
+        <div class="dragon-slot">
+            <b>Smok 3:</b><br>
+            ${thirdDragonUnlocked ?
+                renderDragonOverviewSlot(3, thirdDragonName, thirdDragonElement, thirdEggHeats, thirdDragonLevel, true)
+                :
+                "🔒 Zablokowany"
+            }
+        </div>
+    `;
+
+    list.innerHTML = html;
+}
+
+function renderDragonOverviewSlot(num, name, element, heats, level, inline) {
+    const stats = loadDragonStats(num);
+    const vitals = initDragonVitalsIfNeeded(num, stats);
+    const maxHP = getDragonMaxHP(stats);
+    const maxMana = getDragonMaxMana(stats);
+    const mission = loadDragonMission(num);
+
+    const content = `
+        <b>${inline ? '' : 'Smok 1:'}</b> ${name} | ${element ? element.toUpperCase() : '?'}<br>
+        Status: ${heats < 3 ? 'Jajko' : `Wykluty — Poziom ${level}`}${mission ? ' 🦅 <em>(na misji)</em>' : ''}<br>
+        ${heats >= 3 ? `
+            <div style="font-size:12px; color:#aab; margin:4px 0;">
+                ❤️ ${vitals.hp}/${maxHP} | 💧 ${vitals.mana}/${maxMana} | 😴 ${vitals.fatigue}/100
+            </div>
+            <div style="font-size:12px; color:#7080aa; margin:2px 0;">
+                ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: ${v}`).join(' · ')}
+            </div>
+        ` : ''}
+    `;
+
+    return inline ? content : `<div class="dragon-slot">${content}</div>`;
+}
+
+/* =========================================
+   SZKOŁA MAGII — ZAKTUALIZOWANE AKCJE
+========================================= */
+
+function renderMagicSchoolContent() {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    const dragons = [];
+    if (eggHeats >= 3) dragons.push({ num: 1, name: dragonName, element: chosenDragon });
+    if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ num: 2, name: secondDragonName, element: secondDragonElement });
+    if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ num: 3, name: thirdDragonName, element: thirdDragonElement });
+
+    let html = '';
+
+    if (dragons.length === 0) {
+        html = `<div style="color:#8090aa; font-style:italic; margin:10px 0;">Nie masz jeszcze wyklutego smoka, którego można zapisać.</div>`;
+    } else {
+        dragons.forEach(d => {
+            const enrolled = isDragonEnrolled(d.num);
+            const spells = loadDragonSpells(d.num);
+            const elementSpells = DRAGON_SPELLS[d.element] || [];
+            html += `
+                <div style="margin:10px 0; padding:12px; background:rgba(20,30,50,0.6); border:1px solid #3a4a6a; border-radius:8px;">
+                    <b>${d.name}</b> — ${d.element ? d.element.toUpperCase() : '?'}
+                    ${enrolled ? `<span style="color:#66cc88; font-size:12px;"> ✅ Zapisany</span>` : `
+                        <div class="dialog-button" style="margin:6px 0;" onclick="handleEnrollDragon(${d.num})">Zapisz za 2 złote</div>
+                    `}
+                    ${enrolled ? `
+                        <div style="margin-top:8px;">
+                            <b style="font-size:13px;">Dostępne zaklęcia:</b>
+                            ${elementSpells.map(spell => {
+                                const known = spells.includes(spell.id);
+                                return `<div style="margin:5px 0; padding:6px; background:rgba(10,15,30,0.5); border-radius:5px; font-size:13px;">
+                                    ${known ? '✅' : '📖'} <b>${spell.name}</b> — mana: ${spell.manaCost}<br>
+                                    <span style="color:#8090aa;">${spell.desc}</span>
+                                    ${!known ? `<div class="dialog-button" style="margin-top:4px;" onclick="handleLearnSpell(${d.num}, '${spell.id}', '${d.element}')">Naucz — 1 srebro</div>` : '<span style="color:#66cc88; font-size:12px;"> Znane</span>'}
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        });
+    }
+
+    box.innerHTML = html + `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>`;
+}
+
+function handleEnrollDragon(num) {
+    if (!canAfford(10000)) {
+        alert('Nie masz wystarczająco pieniędzy. Potrzebujesz 2 złote.');
+        return;
+    }
+    enrollDragon(num);
+    alert(`Smok został zapisany do Szkoły Smoczej Magii! Możesz teraz uczyć go zaklęć za 1 srebro każde.`);
+    renderMagicSchoolContent();
+    updateHomeTab();
+}
+
+/* =========================================
+   ARENA — ZAKTUALIZOWANE AKCJE
+========================================= */
+
+function renderArenaContent(arenaType) {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    if (arenaType === 'smocza') {
+        // Smocza arena
+        const dragons = [];
+        if (eggHeats >= 3) dragons.push({ num: 1, name: dragonName, element: chosenDragon });
+        if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ num: 2, name: secondDragonName, element: secondDragonElement });
+        if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ num: 3, name: thirdDragonName, element: thirdDragonElement });
+
+        let html = `<p style="color:#aab; font-size:13px; font-style:italic;">Smoki mogą walczyć do 3 razy dziennie. Zwycięstwo podnosi losową cechę i przynosi 1 srebro.</p>`;
+
+        if (dragons.length === 0) {
+            html += `<p style="color:#7080aa;">Nie masz wyklutego smoka do walki.</p>`;
+        } else {
+            dragons.forEach(d => {
+                const fights = loadArenaFights(d.num);
+                const mission = loadDragonMission(d.num);
+                const vitals = loadDragonVitals(d.num);
+                html += `
+                    <div style="margin:8px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
+                        <b>${d.name}</b> | Walki dziś: ${fights}/3 | 😴 ${vitals.fatigue}/100
+                        ${mission ? `<div style="color:#cc9900; font-size:12px;">Na misji — walka niedostępna.</div>` : ''}
+                        ${!mission && fights < 3 ? `<div class="dialog-button" style="margin-top:6px;" onclick="handleDragonFight(${d.num})">⚔️ Wyślij do walki</div>` : ''}
+                        ${fights >= 3 ? `<div style="color:#7080aa; font-size:12px; margin-top:4px;">Wyczerpany. Wróć jutro.</div>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        box.innerHTML = html + `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>`;
+    } else {
+        // Ludzka arena / turniej
+        const tournamentDone = loadPlayerTournament();
+        let html = `
+            <p style="color:#aab; font-size:13px; font-style:italic;">Arena dla smoczych wojowników. Turniej odbywa się codziennie — jedna szansa dziennie.</p>
+            <div style="margin:10px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
+                <b>Turniej Wojowników</b><br>
+                Status: ${tournamentDone ? '✅ Walczyłeś dziś' : '⚔️ Gotowy do walki'}<br>
+                Nagroda za zwycięstwo: 2 srebro
+                ${!tournamentDone ? `<div class="dialog-button" style="margin-top:8px;" onclick="handlePlayerFight()">⚔️ Wejdź do areny</div>` : ''}
+            </div>
+            <div style="margin:10px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
+                <b>Obserwuj walkę smoków</b><br>
+                <span style="color:#8090aa; font-size:12px;">Rozsiądziesz się na trybunie i obserwujesz trening.</span>
+                <div class="dialog-button" style="margin-top:6px;" onclick="handleWatchFight()">👁️ Obserwuj</div>
+            </div>
+        `;
+        box.innerHTML = html + `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>`;
+    }
+}
+
+function handleDragonFight(num) {
+    const result = simulateDragonFight(num);
+    alert(result.msg);
+    renderArenaContent('smocza');
+    updateHomeTab();
+}
+
+function handlePlayerFight() {
+    const result = playerTournamentFight();
+    alert(result.msg);
+    renderArenaContent('ludzka');
+}
+
+function handleWatchFight() {
+    const fights = [
+        "Dwa smoki latają nad areną w ciaśniejszych i ciaśniejszych kręgach. Jeden trąca drugiego skrzydłem — tłum ryczy.",
+        "Młody smok ognisty staje naprzeciwko starszego smoka ziemi. Ogień nie robi mu wrażenia. Starszy wygrywa bez wysiłku.",
+        "Walka jest krótka — dwa uderzenia i zwycięzca siada. Przegrany odchodzi z opuszczoną głową, zostawiając ślad ognia na piasku."
+    ];
+    alert(fights[Math.floor(Math.random() * fights.length)]);
+}
+
+/* =========================================
+   KOWAL — MOŻLIWOŚĆ ZAKUPU
+========================================= */
+
+const SMITH_ITEMS = [
+    { id: 'obroza_smocza', name: 'Obroża Smocza', desc: 'Pomaga smokowi skupić energię żywiołu.', cost: { silver: 3 }, inventoryKey: 'Obroża smocza' },
+    { id: 'zbroja_lusk', name: 'Zbroja z Łusek', desc: 'Lekka, wytrzymała. Rozmiar: ludzki.', cost: { gold: 50 }, inventoryKey: 'Zbroja z łusek' },
+    { id: 'helm_ognisty', name: 'Hełm Ognisty', desc: 'Odporna na ogień. Wykuta z rudy Gór Sarak.', cost: { silver: 8 }, inventoryKey: 'Hełm ognisty' },
+    { id: 'amulet_smoka', name: 'Amulet Smoczego Pazura', desc: 'Podobno przynosi szczęście hodowcom.', cost: { silver: 3 }, inventoryKey: 'Amulet smoczego pazura' }
+];
+
+function renderSmithShop() {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    let html = `<p style="color:#aab; font-size:13px; font-style:italic;">Wystawa kowala Braga Żelaznorękiego:</p>`;
+    SMITH_ITEMS.forEach(item => {
+        const totalCopper = costToCopper(item.cost.copper, item.cost.silver, item.cost.gold);
+        const affordable = canAfford(totalCopper);
+        const owned = inventory[item.inventoryKey] || 0;
+        html += `
+            <div style="margin:8px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
+                <b>${item.name}</b> ${owned > 0 ? `<span style="color:#66cc88; font-size:12px;">(masz: ${owned})</span>` : ''}
+                <br><span style="color:#8090aa; font-size:13px;">${item.desc}</span>
+                <br>💰 ${formatCostLabel(item.cost.copper, item.cost.silver, item.cost.gold)}
+                ${affordable
+                    ? `<div class="dialog-button" style="margin-top:6px;" onclick="handleBuySmithItem('${item.id}')">Kup</div>`
+                    : `<div style="color:#7080aa; font-size:12px; margin-top:4px;">Za mało pieniędzy.</div>`
+                }
+            </div>
+        `;
+    });
+    box.innerHTML = html + `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>`;
+}
+
+function handleBuySmithItem(itemId) {
+    const item = SMITH_ITEMS.find(i => i.id === itemId);
+    if (!item) return;
+    const totalCopper = costToCopper(item.cost.copper, item.cost.silver, item.cost.gold);
+    if (!spendCurrency(totalCopper)) {
+        alert('Nie masz wystarczająco pieniędzy.');
+        return;
+    }
+    inventory[item.inventoryKey] = (inventory[item.inventoryKey] || 0) + 1;
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateInventoryTab();
+    alert(`Kupiłeś: ${item.name}!`);
+    renderSmithShop();
+}
+
+/* =========================================
+   BIBLIOTEKA — OPCJE PO RUNACH
+========================================= */
+
+function renderLibrarianRuneOptions() {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    const runeProgress = localStorage.getItem('runeQuestProgress') || 'none';
+
+    let html = `
+        <div style="margin:10px 0; padding:12px; background:rgba(10,20,40,0.6); border-left:3px solid #9966cc; border-radius:6px; color:#c0c0e0; font-style:italic; line-height:1.7;">
+            Bibliotekarz unosi głowę znad notatek. Jego oczy błyszczą pod grubymi szkłami lunetki.
+        </div>
+    `;
+
+    if (runeProgress === 'none') {
+        html += `
+            <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Dobrze, postaram się je naszkicować gdy następnym razem tam będę."</div>
+            <div class="dialog-button" onclick="handleRuneChoice('readFirst')">„Najpierw przeczytam księgi tutaj, może coś znajdę."</div>
+            <div class="dialog-button" onclick="handleRuneChoice('notInterested')">„W sumie to tylko ciekawość — specjalnie po to nie chcę tam iść."</div>
+            <div class="dialog-button" onclick="handleRuneChoice('knowAlready')">„Byłem już przy bramie. Runy są bardzo precyzyjne."</div>
+        `;
+    } else if (runeProgress === 'sketch') {
+        const hasSketch = inventory['Szkic run'] > 0;
+        html += hasSketch ? `
+            <div style="color:#66cc88; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,40,20,0.5); border-radius:6px;">
+                Wyjmujesz szkicownik i podajesz bibliotekarzowi. Przegląda strony przez długi czas w milczeniu.<br><br>
+                — Niesamowite... — szepcze. — Te dwa symbole przypominają runiczne pismo Starszej Epoki. Ale ten trzeci... tego nie znam. Zostawię kopię i dam znać, jeśli coś odkryję.
+            </div>
+            <div class="dialog-button" onclick="handleRuneChoice('done')">„Dziękuję. Czekam na wieści."</div>
+        ` : `
+            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                — Czekam na ten szkic — mówi bibliotekarz z nutą niecierpliwości. — Jeśli znajdziesz czas, by odwiedzić bramę i naszkicować runy, bardzo chętnie je przejrzę.
+            </div>
+            <div class="dialog-button" onclick="openLocation('gory', 'ksiezycowa_brama')">Idź do Księżycowej Bramy</div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
+        `;
+    } else if (runeProgress === 'readFirst') {
+        html += `
+            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                Bibliotekarz prowadzi cię do regału w głębi sali. Wyciąga trzy cienkie tomy.<br><br>
+                — Tu są wzmianki. Żadna pełna. Autorzy pisali jakby sami nie rozumieli, co widzieli.
+            </div>
+            <div class="dialog-button" onclick="handleRuneChoice('readBooks')">Zacznij czytać</div>
+        `;
+    } else if (runeProgress === 'readBooks') {
+        html += `
+            <div style="color:#c0cce0; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                Czytasz przez godzinę. Wzmianka pierwsza: <em>„brama, gdy księżyc jest pełen, oddycha."</em><br>
+                Wzmianka druga: <em>„nie można jej otworzyć — ona sama decyduje."</em><br>
+                Wzmianka trzecia: urwana w połowie zdania.<br><br>
+                Bibliotekarz patrzy pytająco.
+            </div>
+            <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Pójdę naszkicować runy. Może razem coś odkryjemy."</div>
+            <div class="dialog-button" onclick="handleRuneChoice('done')">„Dziękuję. To dużo do przemyślenia."</div>
+        `;
+    } else if (runeProgress === 'notInterested') {
+        html += `
+            <div style="color:#8090aa; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                — Rozumiem — mówi bibliotekarz, wracając do pracy. — Jeśli kiedyś zmienisz zdanie, będę tutaj.
+            </div>
+            <div class="dialog-button" onclick="handleRuneChoice('changed_mind')">„Właściwie... zmieniam zdanie. Chcę dowiedzieć się więcej."</div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
+        `;
+    }
+
+    box.innerHTML = html;
+}
+
+function handleRuneChoice(choice) {
+    localStorage.setItem('runeQuestProgress', choice);
+    if (choice === 'sketch' && !inventory['Szkicownik']) {
+        inventory['Szkicownik'] = 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        alert('Wziąłeś szkicownik z biblioteki. Odwiedź Księżycową Bramę by naszkicować runy.');
+    }
+    renderLibrarianRuneOptions();
+}
+
+/* =========================================
+   MODYFIKACJA HANDLARZA — POWRÓT DO MIASTA
+========================================= */
+let merchantCalledFromCity = false;
+
+function openMerchantFromCity() {
+    merchantCalledFromCity = true;
+    openTab('merchant');
+}
+
+function updateMerchantTabWithBack() {
+    updateMerchantTab();
+    if (merchantCalledFromCity) {
+        const box = document.getElementById("merchant-content");
+        // Append back button after content loads
+        setTimeout(() => {
+            const existing = document.getElementById("merchant-back-btn");
+            if (!existing) {
+                const btn = document.createElement('div');
+                btn.id = 'merchant-back-btn';
+                btn.className = 'dialog-button';
+                btn.style.marginTop = '15px';
+                btn.style.borderColor = '#778';
+                btn.style.color = '#aab';
+                btn.textContent = '← Wróć do Astorveil';
+                btn.onclick = () => {
+                    merchantCalledFromCity = false;
+                    openTab('world');
+                    setTimeout(() => openRegion('miasto'), 50);
+                };
+                box.appendChild(btn);
+            }
+        }, 50);
+    }
+}
+
+
+/* ======= world_v2.js ======= */
 /* -----------------------------------------
    SYSTEM ŚWIATA - ZMIENNE
 ----------------------------------------- */
@@ -487,7 +1415,7 @@ function closeRegion() {
 const locationResponses = {
     // TABLICE / PRACA
     openWorkTab: () => { openTab('work'); },
-    openMerchantTab: () => { openTab('merchant'); },
+    openMerchantTab: () => { openMerchantFromCity(); return null; },
 
     readRumors: () => {
         const rumors = [
@@ -502,16 +1430,16 @@ const locationResponses = {
 
     // HANDLARZ ŻYWNOŚCI
     buyMeat: () => {
-        if (copper < 10) return "Nie masz wystarczająco miedzi. Brakuje ci 10 sztuk.";
-        adjustCurrency('copper', -10);
+        if (!canAfford(10)) return "Nie masz wystarczająco miedzi (10 miedzi).";
+        spendCurrency(10);
         foodItems.mięso = (foodItems.mięso || 0) + 1;
         localStorage.setItem('foodItems', JSON.stringify(foodItems));
         updateInventoryTab();
         return "Handlarka zawija kawałek mięsa w pergamin i podaje ci go z uśmiechem. +1 Mięso.";
     },
     buyBerries: () => {
-        if (copper < 5) return "Nie masz wystarczająco miedzi. Brakuje ci 5 sztuk.";
-        adjustCurrency('copper', -5);
+        if (!canAfford(5)) return "Nie masz wystarczająco miedzi (5 miedzi).";
+        spendCurrency(5);
         foodItems.jagody = (foodItems.jagody || 0) + 1;
         localStorage.setItem('foodItems', JSON.stringify(foodItems));
         updateInventoryTab();
@@ -530,11 +1458,11 @@ const locationResponses = {
     // KUŹNIA
     orderCollar: () => "— Obroża dla smoka? Dam radę — mówi Brag. — Wróć za trzy dni, będzie gotowa. I przynieś ze sobą łuskę smoka, żebym mógł dostroić metal.",
     sharpenWeapon: () => {
-        if (copper < 5) return "— Pięć miedzi za ostrzenie — mówi kowal. — I ani grosza mniej.";
-        adjustCurrency('copper', -5);
+        if (!canAfford(5)) return "— Pięć miedzi za ostrzenie — mówi kowal. — I ani grosza mniej.";
+        spendCurrency(5);
         return "Kowal bierze twoje narzędzie i w kilkanaście sekund naostrza je do ideału. Teraz świeci jak nowe.";
     },
-    browseSmith: () => {
+    browseSmith_OLD: () => {
         const items = [
             "Widzisz zbroję z łusek smoczych — lekką, ale niesamowicie wytrzymałą. Cena: 50 złotych. Na razie tylko popatrzysz.",
             "Na wystawie leży hełm wykuty z rudy znalezionej w Górach Sarak. Kowal mówi, że odporna na ogień.",
@@ -542,6 +1470,7 @@ const locationResponses = {
         ];
         return items[Math.floor(Math.random() * items.length)];
     },
+    browseSmith: () => { renderSmithShop(); return null; },
 
     // ŚWIĄTYNIA
     pray: () => {
@@ -563,7 +1492,7 @@ const locationResponses = {
     },
 
     // SZKOŁA MAGII
-    magicLesson: () => "Stary mistrz otwiera jedno oko. — Zapisać się? Można. Ale nauka trwa miesiące, a opłata wynosi dwie złote monety za kwartał. Wróć, jak się zdecydujesz.",
+    magicLesson: () => { renderMagicSchoolContent(); return null; },
     spellBook: () => {
         const spells = [
             "Zaklęcie Spokoju — uspokoić wzburzonego smoka. Wymaga szczypty piasku z Gór Sarak.",
@@ -582,8 +1511,8 @@ const locationResponses = {
     },
 
     // ARENA
-    watchFight: () => "Dwóch wojowników kończy walkę. Jeden z nich, mężczyzna z tatuażem smoka na szyi, kłania się publiczności. Trener obok ciebie szepcze: — Niezły, ale ma słabą lewą stronę.",
-    joinTournament: () => "— Turniej startuje pierwszego każdego miesiąca — mówi organizator. — Trzy rundy, walka na czas. Nagroda: 10 złotych i tytuł Mistrza Areny. Rejestracja kosztuje 1 srebrną.",
+    watchFight: () => { renderArenaContent('smocza'); return null; },
+    joinTournament: () => { renderArenaContent('ludzka'); return null; },
     talkOrganizer: () => "— Widziałem już wszystko na tej arenie — mówi mężczyzna z blizną. — Ale smoczego wojownika? Nigdy. To by dopiero było widowisko.",
 
     // POSTERUNEK
@@ -609,8 +1538,8 @@ const locationResponses = {
     },
     checkShips: () => "Przy pomoście cumują dwie łódki rybackie i jeden większy statek z flagą, której nie rozpoznajesz. Marynarze rozładowują skrzynie — ciężkie, ostrożnie traktowane.",
     buyFish: () => {
-        if (copper < 3) return "Rybak kręci głową. — Trzy miedzi za rybę. Tyle.";
-        adjustCurrency('copper', -3);
+        if (!canAfford(3)) return "Rybak kręci głową. — Trzy miedzi za rybę. Tyle.";
+        spendCurrency(3);
         inventory['Świeża ryba'] = (inventory['Świeża ryba'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateInventoryTab();
@@ -631,7 +1560,7 @@ const locationResponses = {
         return books[Math.floor(Math.random() * books.length)];
     },
     readMaps: () => "Stare mapy pokazują Astorveil znacznie mniejsze niż dziś. Las Mgieł był wtedy dwa razy większy. I jest na nich zaznaczone coś na północy — bez nazwy, przekreślone.",
-    talkLibrarian: () => "— Runy z Księżycowej Bramy? — bibliotekarz ożywia się nagle. — Mamy o nich trzy wzmianki w zbiorach. Żadna pełna. Ale jeśli znajdziesz kopię symboli... może razem coś odkryjemy.",
+    talkLibrarian: () => { renderLibrarianRuneOptions(); return null; },
 
     // PLAC
     listenPlaza: () => {
@@ -649,8 +1578,8 @@ const locationResponses = {
 
     // KARCZMA
     buyDrink: () => {
-        if (copper < 3) return "— Trzy miedzi za kufel — mówi karczmarz. — Tyle.";
-        adjustCurrency('copper', -3);
+        if (!canAfford(3)) return "— Trzy miedzi za kufel — mówi karczmarz. — Tyle.";
+        spendCurrency(3);
         return "Karczmarz stawia przed tobą kufel piwa. Zimne, lekko gorzkie, dokładnie takie jak powinno być. Miły odpoczynek.";
     },
     listenTavern: () => {
@@ -670,8 +1599,8 @@ const locationResponses = {
         return travelers[Math.floor(Math.random() * travelers.length)];
     },
     rentRoom: () => {
-        if (copper < 5) return "— Pięć miedzi za izbę na noc — mówi karczmarz. — Wróć jak będziesz miał.";
-        adjustCurrency('copper', -5);
+        if (!canAfford(5)) return "— Pięć miedzi za izbę na noc — mówi karczmarz. — Wróć jak będziesz miał.";
+        spendCurrency(5);
         return "Karczmarz podaje ci klucz z drewnianą zawieszką. Izba jest mała, ale czysta. Śpisz spokojnie. Rano czujesz się lepiej.";
     },
 
@@ -686,8 +1615,8 @@ const locationResponses = {
     },
     askPaths: () => "Kobieta odkłada cerowanie i rysuje palcem w powietrzu. — Jezioro Snu jest na wschód. Polana na północ. Ruiny... nie polecam na razie. Wodospad jest bezpieczny. Gniazdo — zostaw w spokoju.",
     buyHerbs: () => {
-        if (copper < 8) return "— Osiem miedzi. Ani grosza mniej — mówi leśniczka.";
-        adjustCurrency('copper', -8);
+        if (!canAfford(8)) return "— Osiem miedzi. Ani grosza mniej — mówi leśniczka.";
+        spendCurrency(8);
         inventory['Zioła leśne'] = (inventory['Zioła leśne'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateInventoryTab();
@@ -848,8 +1777,8 @@ const locationResponses = {
     examineFirstStep: () => "Pierwszy Próg to ogromny, płaski głaz pokryty inskrypcjami w języku, którego nikt z żyjących nie czyta. Pasterz mówi, że stoi tu od zawsze. Kamień jest ciepły w dotyku nawet w chłodne dni.",
     restFoot: () => "Siadasz przy chacie na drewnianej ławie. Pasterz przynosi ci kubek gorącego napoju z ziół. Siedzisz i patrzysz na górę. Wydaje się bliska i nieskończenie daleka jednocześnie.",
     buyCheese: () => {
-        if (copper < 4) return "— Cztery miedzi — mówi pasterz. — Na więcej nie mogę zejść.";
-        adjustCurrency('copper', -4);
+        if (!canAfford(4)) return "— Cztery miedzi — mówi pasterz. — Na więcej nie mogę zejść.";
+        spendCurrency(4);
         inventory['Górski ser'] = (inventory['Górski ser'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateInventoryTab();
@@ -912,7 +1841,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (actionName === 'openWorkTab' || actionName === 'openMerchantTab') return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -929,9 +1858,8 @@ function handleLocationAction(regionKey, locationId, actionName) {
     `;
 }
 
-/* =========================================
-   ORYGINALNE ZMIENNE I LOGIKA GRY
-=========================================*/
+
+/* ======= ORYGINALNA LOGIKA GRY (script_orig.js) ======= */
 /* -----------------------------------------
    ZMIENNE STARTOWE
 ----------------------------------------- */
@@ -1441,121 +2369,12 @@ function updateCurrencyDisplay() {
 /* -----------------------------------------
    ZAKŁADKA SMOKI
 ----------------------------------------- */
-function updateDragonsTab() {
-    const list = document.getElementById("dragons-list");
-
-    // poziomy muszą być obliczane za każdym razem, bo mogły się zmienić
-    dragonLevel = Math.min(15, dragonFeedings * 5);
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
-    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
-
-    let html = "";
-
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 1:</b><br>
-            Imię: ${dragonName}<br>
-            Żywioł: ${chosenDragon}<br>
-            Status: ${eggHeats < 3 ? "Jajko" : "Wykluty smok"}${eggHeats >= 3 ? `<br>Poziom: ${dragonLevel}` : ""}
-        </div>
-    `;
-
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 2:</b><br>
-            ${secondDragonUnlocked ?
-                `Imię: ${secondDragonName}<br>
-                 Żywioł: ${secondDragonElement}<br>
-                 Status: ${secondEggHeats < 3 ? "Jajko" : "Wykluty smok"}${secondEggHeats >= 3 ? `<br>Poziom: ${secondDragonLevel}` : ""}`
-                :
-                "🔒 Zablokowany — odwiedź Handlarza"
-            }
-        </div>
-    `;
-
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 3:</b><br>
-            ${thirdDragonUnlocked ?
-                `Imię: ${thirdDragonName}<br>
-                 Żywioł: ${thirdDragonElement}<br>
-                 Status: ${thirdEggHeats < 3 ? "Jajko" : "Wykluty smok"}${thirdEggHeats >= 3 ? `<br>Poziom: ${thirdDragonLevel}` : ""}`
-                :
-                "🔒 Zablokowany"
-            }
-        </div>
-    `;
-
-    list.innerHTML = html;
-}
+/* updateDragonsTab replaced by new version */
 
 /* -----------------------------------------
    ZAKŁADKA DOM
 ----------------------------------------- */
-function updateHomeTab() {
-    const home = document.getElementById("home-content");
-
-    // aktualizuj poziomy na wypadek, gdyby się coś zmieniło
-    dragonLevel = Math.min(15, dragonFeedings * 5);
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
-    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
-
-    // pokaż waluty
-    let html = `<p>Waluty: ${copper} miedzi, ${silver} srebra, ${gold} złota</p>`;
-
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 1</b><br>
-            Ogrzania: ${eggHeats}/3<br>
-            ${eggHeats < 3 ?
-                `<div class="dialog-button" onclick="heatEgg1()">Zadbaj o jajo</div>`
-                :
-                `<div>Smok wykluty</div>
-                 Poziom: ${dragonLevel}<br>
-                 ${dragonLevel < 15 ? `<div class="dialog-button" onclick="feedDragon1()">Nakarm smoka</div>` : ""}
-                 <input class="name-input" id="name1" placeholder="Nowe imię">
-                 <div class="dialog-button" onclick="renameDragon1()">Zmień imię</div>`
-            }
-        </div>
-    `;
-
-    if (secondDragonUnlocked) {
-        html += `
-            <div class="dragon-slot">
-                <b>Smok 2</b><br>
-                Ogrzania: ${secondEggHeats}/3<br>
-                ${secondEggHeats < 3 ?
-                    `<div class="dialog-button" onclick="heatEgg2()">Zadbaj o jajo</div>`
-                    :
-                    `<div>Smok wykluty</div>
-                     Poziom: ${secondDragonLevel}<br>
-                     ${secondDragonLevel < 15 ? `<div class="dialog-button" onclick="feedDragon2()">Nakarm smoka</div>` : ""}
-                     <input class="name-input" id="name2" placeholder="Nowe imię">
-                     <div class="dialog-button" onclick="renameDragon2()">Zmień imię</div>`
-                }
-            </div>
-        `;
-    }
-    if (thirdDragonUnlocked) {
-        html += `
-            <div class="dragon-slot">
-                <b>Smok 3</b><br>
-                Ogrzania: ${thirdEggHeats}/3<br>
-                ${thirdEggHeats < 3 ?
-                    `<div class="dialog-button" onclick="heatEgg3()">Zadbaj o jajo</div>`
-                    :
-                    `<div>Smok wykluty</div>
-                     Poziom: ${thirdDragonLevel}<br>
-                     ${thirdDragonLevel < 15 ? `<div class="dialog-button" onclick="feedDragon3()">Nakarm smoka</div>` : ""}
-                     <input class="name-input" id="name3" placeholder="Nowe imię">
-                     <div class="dialog-button" onclick="renameDragon3()">Zmień imię</div>`
-                }
-            </div>
-        `;
-    }
-
-    home.innerHTML = html;
-}
+/* updateHomeTab replaced by new version */
 
 function heatEgg1() {
     // timing limit temporarily disabled
@@ -2017,9 +2836,6 @@ function openTab(name) {
     document.getElementById(name).style.display = "block";
     
     // zawsze odświeżamy widok właściwy dla zakładki
-    if (name === "world") {
-        updateWorldTab();
-    }
     if (name === "dragons") {
         updateDragonsTab();
     }
