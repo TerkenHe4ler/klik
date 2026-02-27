@@ -249,3 +249,34 @@ body {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =========================================
+   MIASTO - 3 DZIELNICE LAYOUT
+========================================= */
+#world-content-area .dialog-window {
+    max-width: 960px;
+}
+
+#world-content-area [style*="display:flex"] {
+    display: flex;
+}
+
+/* Gear inventory rarity badges */
+.gear-rare { color: #88eeaa; }
+.gear-epic { color: #cc88ff; }
+
+/* Details/Summary smocze panele */
+details > summary {
+    list-style: none;
+    user-select: none;
+}
+details > summary::-webkit-details-marker {
+    display: none;
+}
+details > summary::before {
+    content: '▸ ';
+    transition: 0.2s;
+}
+details[open] > summary::before {
+    content: '▾ ';
+}

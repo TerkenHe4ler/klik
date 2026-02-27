@@ -197,9 +197,11 @@ function startDragonMission(dragonNum, missionId) {
     const existing = loadDragonMission(dragonNum);
     if (existing) return { ok: false, msg: 'Smok jest już na misji.' };
 
+    const speedBonus = getSpeedBonus(dragonNum);
+    const adjustedDuration = Math.max(1000, Math.round(mission.duration * (1 - speedBonus)));
     const missionData = {
         ...mission,
-        endTime: Date.now() + mission.duration,
+        endTime: Date.now() + adjustedDuration,
         dragonNum
     };
     saveDragonMission(dragonNum, missionData);
@@ -519,6 +521,9 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
                 </details>
             ` : `<div style="font-size:12px; color:#6070a0; margin:6px 0;">Zapisz smoka do Szkoły Magii, by mógł uczyć się zaklęć.</div>`}
 
+            <!-- Ekwipunek smoka -->
+            ${renderDragonGearPanel(num, level)}
+
             <!-- Zmień imię -->
             <input class="name-input" id="name${num}" placeholder="Nowe imię">
             <div class="dialog-button" onclick="renameDragon${num}()">Zmień imię</div>
@@ -803,7 +808,7 @@ function handleBuySmithItem(itemId) {
     }
     inventory[item.inventoryKey] = (inventory[item.inventoryKey] || 0) + 1;
     localStorage.setItem('inventory', JSON.stringify(inventory));
-    updateInventoryTab();
+    updateInventoryTabFull();
     alert(`Kupiłeś: ${item.name}!`);
     renderSmithShop();
 }
@@ -925,6 +930,484 @@ function updateMerchantTabWithBack() {
 }
 
 
+/* ======= sec3_gear_combat_districts.js ======= */
+/* =========================================
+   SYSTEM EKWIPUNKU SMOKÓW
+========================================= */
+
+const DRAGON_EQUIPMENT_SLOTS = [
+    { id: 'helm', label: 'Hełm', icon: '⛑️', desc: 'Chroni głowę smoka.', statBonus: { wytrzymalosc: 2 } },
+    { id: 'chest', label: 'Pancerz na Tors', icon: '🛡️', desc: 'Główna ochrona tułowia.', statBonus: { wytrzymalosc: 4 } },
+    { id: 'wings', label: 'Pancerz na Skrzydła', icon: '🦋', desc: 'Wzmacnia i chroni skrzydła.', statBonus: { zrecznosc: 2, wytrzymalosc: 2 } },
+    { id: 'tail', label: 'Pancerz na Ogon', icon: '🐉', desc: 'Ogon boli mocniej. I jest bezpieczniejszy.', statBonus: { sila: 3, wytrzymalosc: 1 } },
+    { id: 'harness', label: 'Uprząż', icon: '⚙️', desc: 'Ułatwia kontrolę smoka. Wymaga poz. 50.', statBonus: { sila_woli: 3 }, minLevel: 50 },
+    { id: 'saddle', label: 'Siodło', icon: '🏇', desc: 'Zwiększa szybkość podróży o 20%. Wymaga poz. 50.', statBonus: { zrecznosc: 3 }, speedBonus: 0.2, minLevel: 50 },
+];
+
+// Przedmioty do kupienia u kowala
+const SMITH_DRAGON_GEAR = [
+    { id: 'zelazny_helm', slot: 'helm', name: 'Żelazny Hełm', desc: 'Podstawowa ochrona głowy.', cost: { silver: 5 }, stats: { wytrzymalosc: 2 } },
+    { id: 'rudy_hem', slot: 'helm', name: 'Hełm z Górskiej Rudy', desc: 'Odporny na ogień i mróz.', cost: { silver: 12 }, stats: { wytrzymalosc: 4 } },
+    { id: 'skorzany_pancerz', slot: 'chest', name: 'Skórzany Pancerz', desc: 'Lekki, podstawowy.', cost: { silver: 6 }, stats: { wytrzymalosc: 3 } },
+    { id: 'zelazny_pancerz', slot: 'chest', name: 'Żelazny Pancerz', desc: 'Solidna ochrona tułowia.', cost: { silver: 15 }, stats: { wytrzymalosc: 6 } },
+    { id: 'skrzydla_skorzane', slot: 'wings', name: 'Skórzana Osłona Skrzydeł', desc: 'Chroni membranę skrzydeł.', cost: { silver: 8 }, stats: { wytrzymalosc: 2, zrecznosc: 1 } },
+    { id: 'ogon_zelazny', slot: 'tail', name: 'Żelazna Osłona Ogona', desc: 'Wzmacnia cios ogonem.', cost: { silver: 7 }, stats: { sila: 2, wytrzymalosc: 1 } },
+    { id: 'uprzaz_prosta', slot: 'harness', name: 'Prosta Uprząż', desc: 'Pozwala na wygodną jazdę.', cost: { silver: 20 }, stats: { sila_woli: 2 }, minLevel: 50 },
+    { id: 'siodlo_podroznicz', slot: 'saddle', name: 'Siodło Podróżnicze', desc: '+20% szybkości podróży.', cost: { silver: 25 }, stats: { zrecznosc: 2 }, speedBonus: 0.2, minLevel: 50 },
+];
+
+// Sprzęt do zdobycia na wyprawach (drop)
+const EXPEDITION_GEAR_DROPS = [
+    { id: 'luskowy_helm', slot: 'helm', name: 'Hełm z Łusek', desc: 'Znaleziony w ruinach. Wyjątkowo lekki.', stats: { wytrzymalosc: 5, zrecznosc: 1 }, rarity: 'rare' },
+    { id: 'skrzydla_magiczne', slot: 'wings', name: 'Magiczne Osłony Skrzydeł', desc: 'Zdobiły smoka dawno zapomnianego rodu.', stats: { wytrzymalosc: 4, zrecznosc: 3 }, rarity: 'rare' },
+    { id: 'ogon_smocz', slot: 'tail', name: 'Smoczy Pancerz Ogona', desc: 'Wykuta przez starego kowala z Gór Sarak.', stats: { sila: 5, wytrzymalosc: 3 }, rarity: 'rare' },
+    { id: 'siodlo_magiczne', slot: 'saddle', name: 'Magiczne Siodło', desc: '+35% szybkości. Podwójny efekt siodła.', stats: { zrecznosc: 5 }, speedBonus: 0.35, rarity: 'epic', minLevel: 50 },
+    { id: 'uprzaz_zlota', slot: 'harness', name: 'Złota Uprząż', desc: 'Wykonana przez rzemieślnika z dalekiego południa.', stats: { sila_woli: 5, inteligencja: 2 }, rarity: 'epic', minLevel: 50 },
+];
+
+function loadDragonEquipment(dragonNum) {
+    const stored = localStorage.getItem(`dragon${dragonNum}Equipment`);
+    return stored ? JSON.parse(stored) : {};
+}
+
+function saveDragonEquipment(dragonNum, equipment) {
+    localStorage.setItem(`dragon${dragonNum}Equipment`, JSON.stringify(equipment));
+}
+
+function loadGearInventory() {
+    const stored = localStorage.getItem('gearInventory');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function saveGearInventory(gearList) {
+    localStorage.setItem('gearInventory', JSON.stringify(gearList));
+}
+
+function addGearToInventory(gearId, source) {
+    const gearList = loadGearInventory();
+    const allGear = [...SMITH_DRAGON_GEAR, ...EXPEDITION_GEAR_DROPS];
+    const gearDef = allGear.find(g => g.id === gearId);
+    if (!gearDef) return;
+    gearList.push({ ...gearDef, instanceId: Date.now() + Math.random(), source });
+    saveGearInventory(gearList);
+}
+
+function equipGear(dragonNum, instanceId) {
+    const gearList = loadGearInventory();
+    const item = gearList.find(g => g.instanceId === instanceId);
+    if (!item) return false;
+    const equipment = loadDragonEquipment(dragonNum);
+    // Check level requirement
+    const dragonLvl = getDragonCurrentLevel(dragonNum);
+    if (item.minLevel && dragonLvl < item.minLevel) {
+        alert(`Ten ekwipunek wymaga smoka na poziomie ${item.minLevel}. Twój smok jest na poziomie ${dragonLvl}.`);
+        return false;
+    }
+    // Unequip old item in same slot
+    if (equipment[item.slot]) {
+        gearList.push(equipment[item.slot]);
+    }
+    equipment[item.slot] = item;
+    // Remove from inventory
+    const idx = gearList.findIndex(g => g.instanceId === instanceId);
+    if (idx > -1) gearList.splice(idx, 1);
+    saveDragonEquipment(dragonNum, equipment);
+    saveGearInventory(gearList);
+    return true;
+}
+
+function unequipGear(dragonNum, slot) {
+    const equipment = loadDragonEquipment(dragonNum);
+    if (!equipment[slot]) return;
+    const item = equipment[slot];
+    const gearList = loadGearInventory();
+    gearList.push(item);
+    delete equipment[slot];
+    saveDragonEquipment(dragonNum, equipment);
+    saveGearInventory(gearList);
+}
+
+function getDragonCurrentLevel(dragonNum) {
+    if (dragonNum === 1) return Math.min(100, dragonFeedings * 5);
+    if (dragonNum === 2) return Math.min(100, secondDragonFeedings * 5);
+    if (dragonNum === 3) return Math.min(100, thirdDragonFeedings * 5);
+    return 0;
+}
+
+function getEquipmentStatBonus(dragonNum) {
+    const equipment = loadDragonEquipment(dragonNum);
+    const bonus = {};
+    Object.values(equipment).forEach(item => {
+        if (!item || !item.stats) return;
+        Object.entries(item.stats).forEach(([stat, val]) => {
+            bonus[stat] = (bonus[stat] || 0) + val;
+        });
+    });
+    return bonus;
+}
+
+function getSpeedBonus(dragonNum) {
+    const equipment = loadDragonEquipment(dragonNum);
+    let bonus = 0;
+    Object.values(equipment).forEach(item => {
+        if (item && item.speedBonus) bonus += item.speedBonus;
+    });
+    return bonus;
+}
+
+/* =========================================
+   SYSTEM WALKI NA MISJACH
+========================================= */
+
+const MISSION_ENEMIES = [
+    { name: 'Bandyci', sila: 4, wytrzymalosc: 3, reward: ['Stary miecz', 'Torba złota'], copper: 20 },
+    { name: 'Leśny Troll', sila: 7, wytrzymalosc: 8, reward: ['Trollia kość', 'Ziemiste zioła'], copper: 40 },
+    { name: 'Wampir Górski', sila: 9, wytrzymalosc: 6, reward: ['Kryształ krwi', 'Nocny płaszcz'], copper: 0, silver: 1 },
+    { name: 'Skalne Golemy', sila: 12, wytrzymalosc: 15, reward: ['Fragment golemowego kamienia', 'Ruda żelaza'], silver: 2 },
+    { name: 'Piracka Załoga', sila: 6, wytrzymalosc: 5, reward: ['Piracka mapa', 'Złota moneta'], gold: 0, silver: 1, copper: 50 },
+];
+
+function missionCombat(dragonNum, missionId) {
+    // 40% chance of encounter
+    if (Math.random() > 0.4) return null;
+    
+    const stats = loadDragonStats(dragonNum);
+    const equipBonus = getEquipmentStatBonus(dragonNum);
+    const effectiveSila = stats.sila + (equipBonus.sila || 0);
+    const effectiveWytr = stats.wytrzymalosc + (equipBonus.wytrzymalosc || 0);
+    const effectiveZrec = stats.zrecznosc + (equipBonus.zrecznosc || 0);
+
+    const enemy = MISSION_ENEMIES[Math.floor(Math.random() * MISSION_ENEMIES.length)];
+    const dragonPower = effectiveSila * 1.5 + effectiveWytr + effectiveZrec * 0.5 + (Math.random() * 4 - 2);
+    const enemyPower = enemy.sila * 1.5 + enemy.wytrzymalosc + (Math.random() * 3 - 1.5);
+    const win = dragonPower > enemyPower;
+
+    let combatResult = { enemy: enemy.name, win };
+
+    if (win) {
+        // Award combat rewards
+        if (enemy.copper) adjustCurrency('copper', enemy.copper);
+        if (enemy.silver) adjustCurrency('silver', enemy.silver);
+        if (enemy.gold) adjustCurrency('gold', enemy.gold);
+        
+        // Chance for gear drop
+        if (Math.random() < 0.2 && EXPEDITION_GEAR_DROPS.length > 0) {
+            const dragonLvl = getDragonCurrentLevel(dragonNum);
+            const eligible = EXPEDITION_GEAR_DROPS.filter(g => !g.minLevel || dragonLvl >= g.minLevel);
+            if (eligible.length > 0) {
+                const drop = eligible[Math.floor(Math.random() * eligible.length)];
+                addGearToInventory(drop.id, 'wyprawa');
+                combatResult.gearDrop = drop.name;
+            }
+        }
+
+        // Bonus item from enemy loot
+        if (enemy.reward && Math.random() < 0.5) {
+            const loot = enemy.reward[Math.floor(Math.random() * enemy.reward.length)];
+            inventory[loot] = (inventory[loot] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            combatResult.loot = loot;
+        }
+    } else {
+        // Defeat: small extra fatigue penalty
+        const vitals = loadDragonVitals(dragonNum);
+        vitals.fatigue = Math.min(100, vitals.fatigue + 10);
+        saveDragonVitals(dragonNum, vitals);
+        combatResult.penalty = 10;
+    }
+
+    return combatResult;
+}
+
+// Override completeDragonMission to include combat
+const _originalCompleteMission = window.completeDragonMission;
+
+function completeDragonMission(dragonNum) {
+    const mission = loadDragonMission(dragonNum);
+    if (!mission) return;
+    
+    // Check for combat encounter during mission
+    const combat = missionCombat(dragonNum, mission.id);
+    
+    Object.entries(mission.reward).forEach(([type, amt]) => adjustCurrency(type, amt));
+    const vitals = loadDragonVitals(dragonNum);
+    const speedBonus = getSpeedBonus(dragonNum);
+    // speed bonus already applied to duration when starting mission
+    vitals.fatigue = Math.min(100, vitals.fatigue + mission.fatigue);
+    saveDragonVitals(dragonNum, vitals);
+    saveDragonMission(dragonNum, null);
+    
+    let rewardText = Object.entries(mission.reward).map(([t,a]) => `${a} ${t}`).join(', ');
+    let msg = `✅ Misja zakończona!\n${mission.name}\n\nNagroda: ${rewardText}\nZmęczenie: +${mission.fatigue}`;
+
+    if (combat) {
+        msg += `\n\n⚔️ Podczas misji natrafiono na: ${combat.enemy}`;
+        if (combat.win) {
+            msg += `\n🏆 Smok wygrał walkę!`;
+            if (combat.loot) msg += `\n🎁 Łup: ${combat.loot}`;
+            if (combat.gearDrop) msg += `\n✨ Znaleziono ekwipunek: ${combat.gearDrop}!`;
+        } else {
+            msg += `\n💀 Smok przegrał walkę. Dodatkowe zmęczenie: +${combat.penalty}`;
+        }
+    }
+    
+    alert(msg);
+    updateHomeTab();
+    updateInventoryTabFull();
+}
+
+/* =========================================
+   EKRAN EKWIPUNKU SMOKA W DOMU
+========================================= */
+
+function renderDragonGearPanel(dragonNum, dragonLvl) {
+    const equipment = loadDragonEquipment(dragonNum);
+    const gearInventory = loadGearInventory();
+    
+    let html = `<details style="margin:8px 0;"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🛡️ Ekwipunek smoka</summary><div style="margin-top:8px;">`;
+    
+    DRAGON_EQUIPMENT_SLOTS.forEach(slot => {
+        const equipped = equipment[slot.id];
+        const locked = slot.minLevel && dragonLvl < slot.minLevel;
+        const availableGear = gearInventory.filter(g => g.slot === slot.id);
+
+        html += `<div style="margin:6px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;">
+            <b>${slot.icon} ${slot.label}</b>${locked ? ` <span style="color:#996; font-size:11px;">(wymaga poz. ${slot.minLevel})</span>` : ''}`;
+        
+        if (equipped) {
+            const statStr = Object.entries(equipped.stats || {}).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(', ');
+            html += `<div style="color:#66cc88; margin:3px 0;">${equipped.name} ${statStr ? `(${statStr})` : ''} ${equipped.speedBonus ? `+${Math.round(equipped.speedBonus*100)}% szybkości` : ''}</div>`;
+            html += `<div class="dialog-button" style="margin-top:3px; font-size:12px;" onclick="handleUnequip(${dragonNum}, '${slot.id}')">Zdejmij</div>`;
+        } else if (!locked) {
+            html += `<div style="color:#6070a0; margin:3px 0;">— puste —</div>`;
+        }
+
+        if (!locked && availableGear.length > 0) {
+            html += `<div style="margin-top:4px;">`;
+            availableGear.forEach(g => {
+                const statStr = Object.entries(g.stats || {}).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(', ');
+                html += `<div style="margin:3px 0; padding:4px 8px; background:rgba(20,35,55,0.6); border-radius:4px; font-size:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <span>${g.name} ${statStr ? `(${statStr})` : ''}${g.rarity === 'rare' ? ' ✨' : g.rarity === 'epic' ? ' 💎' : ''}</span>
+                    <div class="dialog-button" style="margin:0; padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="handleEquip(${dragonNum}, ${g.instanceId})">Załóż</div>
+                </div>`;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+    });
+
+    html += `</div></details>`;
+    return html;
+}
+
+function handleEquip(dragonNum, instanceId) {
+    const success = equipGear(dragonNum, instanceId);
+    if (success) updateHomeTab();
+}
+
+function handleUnequip(dragonNum, slot) {
+    unequipGear(dragonNum, slot);
+    updateHomeTab();
+}
+
+/* =========================================
+   ZAKUP EKWIPUNKU U KOWALA
+========================================= */
+
+function renderSmithShopFull() {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    const dragonLvl1 = getDragonCurrentLevel(1);
+    const dragonLvl2 = getDragonCurrentLevel(2);
+    const dragonLvl3 = getDragonCurrentLevel(3);
+    const maxLvl = Math.max(dragonLvl1, dragonLvl2, getDragonCurrentLevel(3));
+
+    let html = `<p style="color:#aab; font-size:13px; font-style:italic; margin-bottom:12px;">Wystawa kowala Braga Żelaznorękiego. Ekwipunek smoczego wojownika i jeźdźca:</p>`;
+
+    // Regular shop items
+    const regularItems = [...SMITH_ITEMS, ...SMITH_DRAGON_GEAR.map(g => ({
+        ...g,
+        id: g.id,
+        name: g.name,
+        desc: g.desc + (g.stats ? ` (${Object.entries(g.stats).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(', ')})` : ''),
+        inventoryKey: null, // gear goes to gearInventory
+        isGear: true
+    }))];
+
+    regularItems.forEach(item => {
+        const totalCopper = item.cost ? costToCopper(item.cost.copper, item.cost.silver, item.cost.gold) : 0;
+        const affordable = canAfford(totalCopper);
+        const locked = item.minLevel && maxLvl < item.minLevel;
+        
+        html += `<div style="margin:8px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px; ${locked ? 'opacity:0.5;' : ''}">
+            <b>${item.name}</b>${locked ? ` <span style="color:#996; font-size:11px;">(wymaga smoka poz. ${item.minLevel})</span>` : ''}
+            <br><span style="color:#8090aa; font-size:12px;">${item.desc}</span>
+            <br>💰 ${formatCostLabel(item.cost ? item.cost.copper : 0, item.cost ? item.cost.silver : 0, item.cost ? item.cost.gold : 0)}
+            ${!locked && affordable ? `<div class="dialog-button" style="margin-top:6px;" onclick="handleBuyShopItem('${item.id}', ${item.isGear ? 'true' : 'false'})">Kup</div>` : ''}
+            ${!locked && !affordable ? `<div style="color:#7080aa; font-size:12px; margin-top:4px;">Brakuje środków.</div>` : ''}
+        </div>`;
+    });
+    
+    box.innerHTML = html + `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>`;
+}
+
+function handleBuyShopItem(itemId, isGear) {
+    if (isGear) {
+        const item = SMITH_DRAGON_GEAR.find(i => i.id === itemId);
+        if (!item) return;
+        const total = costToCopper(item.cost.copper, item.cost.silver, item.cost.gold);
+        if (!spendCurrency(total)) { alert('Brakuje środków.'); return; }
+        addGearToInventory(item.id, 'kowal');
+        alert(`Kupiono: ${item.name}! Znajdziesz go w ekwipunku smoka w zakładce Dom.`);
+        updateInventoryTabFull();
+        renderSmithShopFull();
+    } else {
+        handleBuySmithItem(itemId);
+    }
+}
+
+/* =========================================
+   ZAKTUALIZOWANY EKWIPUNEK — WYŚWIETL GEAR
+========================================= */
+
+function updateInventoryTabFull() {
+    const inv = document.getElementById("inventory-content");
+    let html = `<h2>Ekwipunek</h2>`;
+    
+    const gearInventory = loadGearInventory();
+    if (gearInventory.length > 0) {
+        html += `<h3>🛡️ Ekwipunek Smoczych Jeźdźców</h3>
+            <p style="color:#8090aa; font-size:13px;">Przedmioty możesz zakładać smokom w zakładce <b>Dom</b>.</p>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+            <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Przedmiot</th><th style="padding:8px;">Slot</th><th style="padding:8px; text-align:right;">Źródło</th></tr>`;
+        gearInventory.forEach(g => {
+            const slotDef = DRAGON_EQUIPMENT_SLOTS.find(s => s.id === g.slot);
+            html += `<tr style="border-bottom:1px solid #445; color:#e0e0e0;">
+                <td style="padding:8px;">${g.name} ${g.rarity === 'rare' ? '✨' : g.rarity === 'epic' ? '💎' : ''}</td>
+                <td style="padding:8px; text-align:center;">${slotDef ? slotDef.icon + ' ' + slotDef.label : g.slot}</td>
+                <td style="padding:8px; text-align:right; color:#6070a0; font-size:12px;">${g.source || '—'}</td>
+            </tr>`;
+        });
+        html += `</table>`;
+    }
+
+    if (Object.keys(inventory).length > 0) {
+        html += `<h3>📦 Przedmioty</h3>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+            <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Przedmiot</th><th style="padding:8px; text-align:right;">Ilość</th></tr>`;
+        Object.entries(inventory).forEach(([item, count]) => {
+            html += `<tr style="border-bottom:1px solid #445; color:#e0e0e0;">
+                <td style="padding:8px;">${item}</td>
+                <td style="padding:8px; text-align:right;"><b>${count}</b></td>
+            </tr>`;
+        });
+        html += `</table>`;
+    }
+
+    if (gearInventory.length === 0 && Object.keys(inventory).length === 0) {
+        html += `<p style="color:#999;">Ekwipunek jest pusty.</p>`;
+    }
+
+    html += `<h3>🍖 Jedzenie dla Smoków</h3>
+        <table style="width:100%; border-collapse:collapse;">
+        <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Typ</th><th style="padding:8px; text-align:right;">Ilość</th></tr>
+        <tr style="border-bottom:1px solid #445; color:#e0e0e0;"><td style="padding:8px;">Mięso</td><td style="padding:8px; text-align:right;"><b>${foodItems.mięso || 0}</b></td></tr>
+        <tr style="border-bottom:1px solid #445; color:#e0e0e0;"><td style="padding:8px;">Jagody</td><td style="padding:8px; text-align:right;"><b>${foodItems.jagody || 0}</b></td></tr>
+        </table>`;
+    
+    inv.innerHTML = html;
+}
+
+/* =========================================
+   MIASTO — 3 DZIELNICE
+========================================= */
+
+const CITY_DISTRICTS = [
+    {
+        name: 'Dzielnica Targowa',
+        desc: 'Tu bije serce handlu Astorveil. Kramy, głośne targi i zapachy wszystkich zakątków świata.',
+        color: '#6a4a1a',
+        borderColor: '#cc9944',
+        locations: ['tablica', 'handlarz_jaj', 'handlarz_zywnosci', 'karczma', 'plac']
+    },
+    {
+        name: 'Dzielnica Rzemieślnicza',
+        desc: 'Kuźnie, szkoły i miejsca nauki. Tu wykuwa się zarówno metal jak i wiedzę.',
+        color: '#1a3a2a',
+        borderColor: '#44aa66',
+        locations: ['kowal', 'szkola_magii', 'biblioteka', 'posterunek']
+    },
+    {
+        name: 'Dzielnica Honorowa',
+        desc: 'Prestiżowe miejsca dla odważnych. Arena, Port i Pałac — symbol władzy Astorveil.',
+        color: '#1a2a4a',
+        borderColor: '#4466aa',
+        locations: ['swiatynia', 'arena', 'port', 'palac']
+    }
+];
+
+// Patch openRegion for 'miasto' to show districts
+const _originalOpenRegion = window.openRegion;
+
+function openRegionMiasto(regionKey) {
+    if (regionKey !== 'miasto') {
+        // fallback to original for non-city
+        openRegionOriginal(regionKey);
+        return;
+    }
+    
+    const region = worldData[regionKey];
+    const wasVisited = visitedLocations[regionKey];
+    if (!wasVisited) {
+        visitedLocations[regionKey] = true;
+        saveWorldState();
+    }
+    const desc = wasVisited ? region.desc : region.firstVisitDesc;
+    worldHistory = [{ type: 'region', key: regionKey }];
+
+    const area = document.getElementById("world-content-area");
+    const subregions = document.getElementById("world-subregions");
+    if (subregions) subregions.style.display = "none";
+
+    let districtsHtml = CITY_DISTRICTS.map(district => {
+        const districtLocs = district.locations.map(locId => {
+            const loc = region.locations.find(l => l.id === locId);
+            if (!loc) return '';
+            return `<div class="dialog-button" style="margin:4px 0; font-size:13px;" onclick="openLocation('${regionKey}', '${loc.id}')">${loc.icon} ${loc.label}</div>`;
+        }).join('');
+        
+        return `<div style="flex:1; min-width:180px; background:rgba(${hexToRgb(district.color)},0.3); border:1px solid ${district.borderColor}; border-radius:10px; padding:14px;">
+            <div style="font-weight:bold; color:${district.borderColor}; margin-bottom:6px; font-size:14px; border-bottom:1px solid ${district.borderColor}33; padding-bottom:6px;">${district.name}</div>
+            <div style="color:#8090aa; font-size:12px; font-style:italic; margin-bottom:10px; line-height:1.5;">${district.desc}</div>
+            ${districtLocs}
+        </div>`;
+    }).join('');
+
+    area.innerHTML = `
+        <div class="dialog-window" style="margin-top:20px; max-width:900px;">
+            <div class="dialog-title">${region.icon} ${region.label}</div>
+            <div class="dialog-text" style="white-space:pre-line;">${desc}</div>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:12px;">
+                ${districtsHtml}
+            </div>
+            <div class="dialog-button" style="margin-top:15px; border-color:#778; color:#aab;" onclick="closeRegion()">← Wróć do mapy</div>
+        </div>
+    `;
+}
+
+function hexToRgb(hex) {
+    // Simple hex color to rgb string for rgba() use
+    const map = {
+        '#6a4a1a': '106,74,26',
+        '#1a3a2a': '26,58,42',
+        '#1a2a4a': '26,42,74',
+    };
+    return map[hex] || '30,40,60';
+}
+
+
 /* ======= world_v2.js ======= */
 /* -----------------------------------------
    SYSTEM ŚWIATA - ZMIENNE
@@ -993,7 +1476,7 @@ function hasHighLevelDragon(minLevel) {
 const worldData = {
     miasto: {
         label: "Miasto Astorveil",
-        firstVisitDesc: `Twoje stopy dotykają brukowanych ulic Astorveil — miasta zbudowanego w cieniu Smoczej Góry, której sylwetka dominuje nad każdym dachem i każdą wieżą. Powietrze pachnie dymem z kuźni, korzennymi przyprawami z kramów i czymś nieuchwytnym — może to woń łusek, może starożytnej magii przesiąkniętej w kamienie fundamentów.\n\nMiasto żyje. Dzieci biegają między straganami, kuźnie grają rytmicznym stukaniem młotów, a gdzieś w oddali słyszysz ryk — nie wiadomo, czy to człowiek czy stworzenie. Astorveil nie jest miejscem dla słabych. Jest miejscem dla tych, którzy mają powód tu być.\n\n Dokąd się udasz?`,
+        firstVisitDesc: `Twoje stopy dotykają brukowanych ulic Astorveil — miasta zbudowanego w cieniu Smoczej Góry, której sylwetka dominuje nad każdym dachem i każdą wieżą. Powietrze pachnie dymem z kuźni, korzennymi przyprawami z kramów i czymś nieuchwytnym — może to woń łusek, może starożytnej magii przesiąkniętej w kamienie fundamentów.\n\nMiasto żyje. Dzieci biegają między straganami, kuźnie grają rytmicznym stukaniem młotów, a gdzieś w oddali słyszysz ryk — nie wiadomo, czy to człowiek czy stworzenie. Astorveil nie jest miejscem dla słabych. Jest miejscem dla tych, którzy mają powód tu być.\n\nWitaj. Dokąd się udasz?`,
         desc: `Gwar Astorveil wita Cię jak zawsze — hałaśliwie i bez ceremonii. Brukowane ulice, dym z kuźni, krzyki handlarzy. Miasto nie śpi i nie zwalnia. Dokąd się udasz?`,
         icon: "🏙️",
         locations: [
@@ -1004,7 +1487,7 @@ const worldData = {
                 desc: `Dębowa tablica przy głównej bramie jest oblepiona kawałkami pergaminu. Niektóre świeże, niektóre pożółkłe i prawie nieczytelne. Miejski gończy właśnie przybija nowe ogłoszenie. Zapach tuszu miesza się z wonią siana z pobliskiej stajni.`,
                 actions: [
                     { label: "Sprawdź zlecenia", action: "openWorkTab", desc: "Przejrzyj dostępne prace i zlecenia." },
-                    { label: "Podsłuchaj ludzi przy tablicy", action: "readRumors", desc: "Może coś ciekawego krąży wśród mieszkańców." },
+                    { label: "Przeczytaj plotki", action: "readRumors", desc: "Może coś ciekawego krąży wśród mieszkańców." },
                     { label: "Zawróć", action: "back" }
                 ]
             },
@@ -1308,7 +1791,7 @@ function updateWorldTab() {
     `;
 }
 
-function openRegion(regionKey) {
+function openRegionOriginal(regionKey) {
     const region = worldData[regionKey];
     const wasVisited = visitedLocations[regionKey];
     if (!wasVisited) {
@@ -1401,6 +1884,15 @@ function renderLocationActions(regionKey, locationId, actions) {
     }).join('');
 }
 
+
+function openRegion(regionKey) {
+    if (regionKey === 'miasto') {
+        openRegionMiasto(regionKey);
+    } else {
+        openRegionOriginal(regionKey);
+    }
+}
+
 function closeRegion() {
     worldHistory = [];
     const area = document.getElementById("world-content-area");
@@ -1434,7 +1926,7 @@ const locationResponses = {
         spendCurrency(10);
         foodItems.mięso = (foodItems.mięso || 0) + 1;
         localStorage.setItem('foodItems', JSON.stringify(foodItems));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Handlarka zawija kawałek mięsa w pergamin i podaje ci go z uśmiechem. +1 Mięso.";
     },
     buyBerries: () => {
@@ -1442,7 +1934,7 @@ const locationResponses = {
         spendCurrency(5);
         foodItems.jagody = (foodItems.jagody || 0) + 1;
         localStorage.setItem('foodItems', JSON.stringify(foodItems));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Pachnące jagody lądują w twojej torbie. Podobno rosną w Lesie Mgieł. +1 Jagody.";
     },
     chatFoodMerchant: () => {
@@ -1470,7 +1962,7 @@ const locationResponses = {
         ];
         return items[Math.floor(Math.random() * items.length)];
     },
-    browseSmith: () => { renderSmithShop(); return null; },
+    browseSmith: () => { renderSmithShopFull(); return null; },
 
     // ŚWIĄTYNIA
     pray: () => {
@@ -1542,7 +2034,7 @@ const locationResponses = {
         spendCurrency(3);
         inventory['Świeża ryba'] = (inventory['Świeża ryba'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Rybak podaje ci świeżą rybę zawiniętą w liście. Pachnie morzem. +1 Świeża ryba.";
     },
 
@@ -1619,7 +2111,7 @@ const locationResponses = {
         spendCurrency(8);
         inventory['Zioła leśne'] = (inventory['Zioła leśne'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Leśniczka podaje ci wiązankę suszonych ziół. Pachną mocno i dziwnie. — Na co to? — pytasz. — Na wszystko — odpowiada. +1 Zioła leśne.";
     },
 
@@ -1644,7 +2136,7 @@ const locationResponses = {
     pickFlowers: () => {
         inventory['Niebieski kwiat'] = (inventory['Niebieski kwiat'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Zrywasz jeden kwiat. Jest zimny w dotyku. Nie więdnie przez cały dzień. +1 Niebieski kwiat.";
     },
 
@@ -1655,7 +2147,7 @@ const locationResponses = {
             const amount = Math.floor(Math.random() * 2) + 1;
             foodItems.jagody = (foodItems.jagody || 0) + amount;
             localStorage.setItem('foodItems', JSON.stringify(foodItems));
-            updateInventoryTab();
+            updateInventoryTabFull();
             return `Zbierasz jagody przez chwilę. Są duże, syte i pachną jak magia. +${amount} Jagody.`;
         }
         return "Szukasz jagód, ale ptaki były przed tobą. Polana jest tego dnia pusta.";
@@ -1665,7 +2157,7 @@ const locationResponses = {
         if (success) {
             inventory['Zioła leśne'] = (inventory['Zioła leśne'] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
             return "Między trawami znajdujesz pęczek rzadkich ziół — białe kwiaty, wąskie liście. +1 Zioła leśne.";
         }
         return "Szukasz ziół, ale dziś polana daje tylko trawę i kwiaty, których nie rozpoznajesz.";
@@ -1683,7 +2175,7 @@ const locationResponses = {
         if (found) {
             inventory['Stary kamień'] = (inventory['Stary kamień'] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
             return "Grzebiesz w ziemi. Między korzeniami znajdujesz gładki, ciemny kamień — wygląda na obrobiony. +1 Stary kamień.";
         }
         return "Grzebiesz w ziemi. Robaki, korzenie i glina. Ziemia jest tu wyjątkowo bogata, ale skarbu nie ma.";
@@ -1700,7 +2192,7 @@ const locationResponses = {
         if (r.includes('Bierzesz')) {
             inventory['Ciepły kamień'] = (inventory['Ciepły kamień'] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
         }
         return r;
     },
@@ -1735,7 +2227,7 @@ const locationResponses = {
             const item = items[Math.floor(Math.random() * items.length)];
             inventory[item] = (inventory[item] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
             return `Przeszukujesz ruiny. Pod wywróconym kamieniem znajdujesz ${item}. +1 ${item}.`;
         }
         return "Przeszukujesz ruiny dokładnie. Kamienie, ziemia, liście. Nic oprócz historii, która nie chce się ujawnić.";
@@ -1759,7 +2251,7 @@ const locationResponses = {
         if (r.includes('pióro')) {
             inventory['Złote pióro'] = (inventory['Złote pióro'] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
         }
         return r;
     },
@@ -1781,7 +2273,7 @@ const locationResponses = {
         spendCurrency(4);
         inventory['Górski ser'] = (inventory['Górski ser'] || 0) + 1;
         localStorage.setItem('inventory', JSON.stringify(inventory));
-        updateInventoryTab();
+        updateInventoryTabFull();
         return "Pasterz kroi gruby kawałek sera i zawija w liście. Ser jest twardy, ostry i wyjątkowo smaczny. +1 Górski ser.";
     },
 
@@ -1793,7 +2285,7 @@ const locationResponses = {
         if (found) {
             inventory['Kryształ górski'] = (inventory['Kryształ górski'] || 0) + 1;
             localStorage.setItem('inventory', JSON.stringify(inventory));
-            updateInventoryTab();
+            updateInventoryTabFull();
             return "W szczelinie między skałami coś błyszczy. Wyciągasz kryształ górski — przezroczysty, zimny, piękny. +1 Kryształ górski.";
         }
         return "Przeszukujesz szczeliny między skałami. Wiatr, kamień i suchy mech. Tym razem nic.";
@@ -2069,7 +2561,7 @@ function completeJob() {
         alert("Praca zakończona! Otrzymałeś nagrody.");
     }
     updateWorkTab();
-    updateInventoryTab();
+    updateInventoryTabFull();
 }
 
 function skipJob() {
@@ -2176,7 +2668,8 @@ function unlockWork() {
     updateWorkTab();
 }
 
-function updateInventoryTab() {
+function updateInventoryTab() { return updateInventoryTabFull(); }
+function updateInventoryTab_legacy() {
     const inv = document.getElementById("inventory-content");
     let html = `<h2>Ekwipunek</h2>`;
     
@@ -2343,12 +2836,9 @@ function finalizeDragon() {
 function startGame() {
     document.getElementById("sidebar").style.display = "flex";
     document.getElementById("intro").style.display = "none";
-
-    // odblokuj zakładkę praca od razu
     if (!workUnlocked) {
         unlockWork();
     }
-
     updateCurrencyDisplay();
     updateDragonsTab();
     updateHomeTab();
@@ -2835,26 +3325,12 @@ function unlockThird(element) {
 function openTab(name) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
     document.getElementById(name).style.display = "block";
-    
-    // zawsze odświeżamy widok właściwy dla zakładki
-    if (name === "world") { 
-        updateWorldTab();
-    }
-    if (name === "dragons") {
-        updateDragonsTab();
-    }
-    if (name === "home") {
-        updateHomeTab();
-    }
-    if (name === "work") {
-        updateWorkTab();
-    }
-    if (name === "inventory") {
-        updateInventoryTab();
-    }
-    if (name === "merchant") {
-        updateMerchantTab();
-    }
+    if (name === "world") updateWorldTab();
+    if (name === "dragons") updateDragonsTab();
+    if (name === "home") updateHomeTab();
+    if (name === "work") updateWorkTab();
+    if (name === "inventory") updateInventoryTabFull();
+    if (name === "merchant") updateMerchantTab();
 }
 
 /* -----------------------------------------
