@@ -133,3 +133,119 @@ body {
     color: #dfe8ff;
     border-radius: 6px;
 }
+
+/* ========================================
+   SYSTEM ŚWIATA - STYLE
+======================================== */
+
+/* Region buttons w zakładce Świat */
+.world-region-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    background: linear-gradient(135deg, #111e35 0%, #0d1628 100%);
+    border: 1px solid #cfd8ff;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    color: #dfe8ff;
+    font-size: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+.world-region-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(150,170,255,0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.world-region-btn:hover {
+    background: linear-gradient(135deg, #1a2f50 0%, #152240 100%);
+    border-color: #a0b4ff;
+    box-shadow: 0 0 16px rgba(120,150,255,0.25);
+    transform: translateX(-3px);
+}
+
+.world-region-btn:hover::before {
+    opacity: 1;
+}
+
+.region-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.region-label {
+    flex: 1;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.region-arrow {
+    font-size: 20px;
+    color: #8090cc;
+    transition: transform 0.2s;
+}
+
+.world-region-btn:hover .region-arrow {
+    transform: translateX(4px);
+    color: #a0b4ff;
+}
+
+/* Zakładka świat ogólnie */
+#world h2 {
+    color: #cfd8ff;
+    border-bottom: 1px solid #2a3a5a;
+    padding-bottom: 10px;
+    margin-bottom: 6px;
+}
+
+/* Animacja wejścia dla dialog-window w świecie */
+#world-content-area .dialog-window {
+    animation: worldFadeIn 0.35s ease;
+}
+
+@keyframes worldFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Subtelne podświetlenie przycisku "Zawróć" */
+#world-content-area .dialog-button[onclick*="back"],
+#world-content-area .dialog-button[onclick*="closeRegion"],
+#world-content-area .dialog-button[onclick*="openRegion"] {
+    background: linear-gradient(#0e1a2e, #0a1220);
+    border-color: #5a6a8a;
+    color: #8090b0;
+    margin-top: 12px;
+}
+
+#world-content-area .dialog-button[onclick*="back"]:hover,
+#world-content-area .dialog-button[onclick*="closeRegion"]:hover,
+#world-content-area .dialog-button[onclick*="openRegion"]:hover {
+    background: #131f35;
+    color: #a0b0d0;
+    box-shadow: 0 0 8px rgba(100,130,200,0.2);
+}
+
+/* Wynik akcji */
+#location-action-area > div[style*="border-left"] {
+    animation: resultAppear 0.3s ease;
+}
+
+@keyframes resultAppear {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}

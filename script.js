@@ -1,4 +1,938 @@
 /* -----------------------------------------
+   SYSTEM ŚWIATA - ZMIENNE
+----------------------------------------- */
+let worldHistory = JSON.parse(localStorage.getItem("worldHistory")) || [];
+let visitedLocations = JSON.parse(localStorage.getItem("visitedLocations")) || {};
+
+function saveWorldState() {
+    localStorage.setItem("worldHistory", JSON.stringify(worldHistory));
+    localStorage.setItem("visitedLocations", JSON.stringify(visitedLocations));
+}
+
+/* -----------------------------------------
+   SPRAWDZENIE KSIĘŻYCA DLA KSIĘŻYCOWEJ BRAMY
+----------------------------------------- */
+function getMoonPhase() {
+    const knownNewMoon = new Date("2000-01-06T18:14:00Z");
+    const now = new Date();
+    const diff = (now - knownNewMoon) / (1000 * 60 * 60 * 24);
+    const cycle = diff % 29.53058770576;
+    return cycle;
+}
+
+function isMoonGateOpen() {
+    const phase = getMoonPhase();
+    const hour = new Date().getHours();
+    const inNight = (hour >= 21 || hour < 5);
+    // pelnia ~14-15 dzien cyklu, dzien przed i po = 13-16
+    const nearFullMoon = (phase >= 13 && phase <= 16);
+    return inNight && nearFullMoon;
+}
+
+function getMoonGateStatus() {
+    const phase = getMoonPhase();
+    const hour = new Date().getHours();
+    const inNight = (hour >= 21 || hour < 5);
+    const nearFullMoon = (phase >= 13 && phase <= 16);
+    const daysToFull = Math.round(14.76 - phase);
+
+    if (nearFullMoon && inNight) {
+        return { open: true, msg: null };
+    }
+    if (nearFullMoon && !inNight) {
+        return { open: false, msg: "Brama istnieje, lecz milczy. Powróć gdy księżyc wzniesie się wyżej — między dziewiątą a piątą." };
+    }
+    if (!nearFullMoon) {
+        const d = daysToFull > 0 ? daysToFull : Math.round(29.53 - phase + 14.76);
+        return { open: false, msg: `Runiczne symbole są martwe. Brama nie reaguje na żaden dotyk. Być może jest tylko skałą.` };
+    }
+    return { open: false, msg: "Brama milczy." };
+}
+
+/* -----------------------------------------
+   SPRAWDZENIE CZY SMOK MA MIN. POZIOM
+----------------------------------------- */
+function hasHighLevelDragon(minLevel) {
+    const l1 = Math.min(30, dragonFeedings * 5);
+    const l2 = secondDragonUnlocked ? Math.min(30, secondDragonFeedings * 5) : 0;
+    const l3 = thirdDragonUnlocked ? Math.min(30, thirdDragonFeedings * 5) : 0;
+    return Math.max(l1, l2, l3) >= minLevel;
+}
+
+/* -----------------------------------------
+   DANE LOKACJI
+----------------------------------------- */
+const worldData = {
+    miasto: {
+        label: "Miasto Astorveil",
+        firstVisitDesc: `Twoje stopy dotykają brukowanych ulic Astorveil — miasta zbudowanego w cieniu Smoczej Góry, której sylwetka dominuje nad każdym dachem i każdą wieżą. Powietrze pachnie dymem z kuźni, korzennymi przyprawami z kramów i czymś nieuchwytnym — może to woń łusek, może starożytnej magii przesiąkniętej w kamienie fundamentów.\n\nMiasto żyje. Dzieci biegają między straganami, kuźnie grają rytmicznym stukaniem młotów, a gdzieś w oddali słyszysz ryk — nie wiadomo, czy to człowiek czy stworzenie. Astorveil nie jest miejscem dla słabych. Jest miejscem dla tych, którzy mają powód tu być.\n\nWitaj. Dokąd się udasz?`,
+        desc: `Gwar Astorveil wita Cię jak zawsze — hałaśliwie i bez ceremonii. Brukowane ulice, dym z kuźni, krzyki handlarzy. Miasto nie śpi i nie zwalnia. Dokąd się udasz?`,
+        icon: "🏙️",
+        locations: [
+            {
+                id: "tablica",
+                label: "Tablica Ogłoszeń",
+                icon: "📋",
+                desc: `Dębowa tablica przy głównej bramie jest oblepiona kawałkami pergaminu. Niektóre świeże, niektóre pożółkłe i prawie nieczytelne. Miejski gończy właśnie przybija nowe ogłoszenie. Zapach tuszu miesza się z wonią siana z pobliskiej stajni.`,
+                actions: [
+                    { label: "Sprawdź zlecenia", action: "openWorkTab", desc: "Przejrzyj dostępne prace i zlecenia." },
+                    { label: "Przeczytaj plotki", action: "readRumors", desc: "Może coś ciekawego krąży wśród mieszkańców." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "handlarz_jaj",
+                label: "Handlarz Smoczych Jaj",
+                icon: "🥚",
+                desc: `Przed Tobą budynek z kamienia, ciemny niczym łuski smoka. Rytowane runami drzwi stoją lekko uchylone. Z wnętrza wydobywa się ciepło inkubatorów i zapach żywicy. Handlarz patrzy na Ciebie spokojnymi oczami.`,
+                actions: [
+                    { label: "Porozmawiaj z Handlarzem", action: "openMerchantTab", desc: "Może ma dla ciebie coś wyjątkowego." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "handlarz_zywnosci",
+                label: "Handlarz Smoczej Żywności",
+                icon: "🍖",
+                desc: `Stragan zastawiony jest kośćmi, suszonymi ziołami i mięsem o dziwnych barwach. Handlarz — gruba, pogodna kobieta o smagłej cerze — wykrzykuje nazwy towarów z entuzjazmem, który trochę niepokoi.\n\n— Mięso z gór? Mam! Jagody z Lasu Mgieł? Mam! Co dla smoczka, co?`,
+                actions: [
+                    { label: "Kup mięso (10 miedzi)", action: "buyMeat", desc: "Surowe mięso, smoki przepadają za nim." },
+                    { label: "Kup jagody (5 miedzi)", action: "buyBerries", desc: "Dzikie jagody z Lasu Mgieł, bogate w magię." },
+                    { label: "Pogadaj o smokach", action: "chatFoodMerchant", desc: "Handlarka zna wiele historii." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "kowal",
+                label: "Smoczy Kowal",
+                icon: "⚒️",
+                desc: `Kuźnia Braga Żelaznorękiego słynie w całym Astorveil. Mężczyzna o ramionach grubych jak bale drzewa pracuje bez przerwy. Na ścianie wiszą narzędzia i zbroje — część z nich pokryta jest dziwnymi runami.\n\n— Podkuć smoka? Naprawić siodło? Czy może coś większego? — pyta nie odrywając wzroku od kowadła.`,
+                actions: [
+                    { label: "Zamów obrożę dla smoka", action: "orderCollar", desc: "Obroże pomagają smokowi skupić energię żywiołu." },
+                    { label: "Naostrz broń", action: "sharpenWeapon", desc: "Kowal naostrzy twoje narzędzia za niewielką opłatą." },
+                    { label: "Obejrzyj wystawę", action: "browseSmith", desc: "Może coś przykuje twój wzrok." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "swiatynia",
+                label: "Świątynia Astor",
+                icon: "🛕",
+                desc: `Kamienna świątynia poświęcona Astor — Smoczej Matce — stoi w centrum miasta jak kotwica. Przez witraże wpada złote światło. Kapłanka w szacie koloru dymu klęczy przy głównym ołtarzu. Atmosfera jest cicha i pełna powagi.\n\nNa ołtarzu leżą trzy kamienne jaja — symbole pierwszego daru Astor dla ludzi.`,
+                actions: [
+                    { label: "Pomódl się o błogosławieństwo", action: "pray", desc: "Astor może być przychylna tym, którzy o to proszą." },
+                    { label: "Poproś o uzdrowienie smoka", action: "healDragon", desc: "Kapłanka może pomóc choremu smokowi." },
+                    { label: "Posłuchaj kazania", action: "listenSermon", desc: "Stara kapłanka zna wiele historii o smokach." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "szkola_magii",
+                label: "Szkoła Smoczej Magii",
+                icon: "✨",
+                desc: `Wieża Szkoły Smoczej Magii wznosi się nad miastem jak palec wskazujący niebo. Z okien co jakiś czas wydobywają się kolorowe błyski — efekty nieudanych zaklęć lub bardzo udanych eksperymentów. Trudno powiedzieć.\n\nU progu siedzi stary nauczyciel z brodą splecioną w dwa warkocze. Drzema — albo udaje, że drzema.`,
+                actions: [
+                    { label: "Zapisz się na lekcję", action: "magicLesson", desc: "Nauka o smoczyj magii może się przydać." },
+                    { label: "Przejrzyj biblioteczkę zaklęć", action: "spellBook", desc: "Małe zaklęcia dostępne dla każdego." },
+                    { label: "Porozmawiaj z mistrzem", action: "talkMaster", desc: "Stary mistrz wie więcej niż mówi." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "arena",
+                label: "Arena",
+                icon: "⚔️",
+                desc: `Głośna, gorąca, cuchnąca potem i krwią — Arena Astorveil to serce rozrywki dla mieszkańców. Trybuny wypełnione są po brzegi. Na piasku dwie osoby właśnie kończą walkę. Organizator walk — łysy mężczyzna z blizną przez całą twarz — kiwa na ciebie.`,
+                actions: [
+                    { label: "Obserwuj walkę", action: "watchFight", desc: "Możesz się czegoś nauczyć patrząc na mistrzów." },
+                    { label: "Zapisz się do turnieju", action: "joinTournament", desc: "Turniej trwa przez cały miesiąc. Nagrody są pokaźne." },
+                    { label: "Porozmawiaj z organizatorem", action: "talkOrganizer", desc: "Może wie coś ciekawego o innych uczestnikach." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "posterunek",
+                label: "Posterunek Straży",
+                icon: "🛡️",
+                desc: `Posterunek Straży Miejskiej to solidny kamienny budynek przy wschodniej bramie. Strażnicy wchodzą i wychodzą w rytm zmiany warty. Na ścianie wisi tablica z listami gończymi i zawiadomieniami.\n\nKapitan — kobieta w lśniącej kolczudze — siedzi za biurkiem i przegląda raporty.`,
+                actions: [
+                    { label: "Zgłoś problem", action: "reportIssue", desc: "Straż chętnie przyjmuje zgłoszenia od mieszkańców." },
+                    { label: "Sprawdź listy gończe", action: "wantedList", desc: "Może ktoś znajomy jest na liście?" },
+                    { label: "Zaoferuj pomoc", action: "offerHelp", desc: "Straż płaci za pomoc przy pewnych sprawach." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "port",
+                label: "Port",
+                icon: "⛵",
+                desc: `Port Astorveil jest skromny jak na stolicę — kilka drewnianych pomostów, kilkanaście łodzi. Ale to przez tutejsze wody przepływa większość smoczych jaj importowanych z wysp. Rybacy patrzą na ciebie z mieszaniną ciekawości i podejrzliwości.`,
+                actions: [
+                    { label: "Porozmawiaj z rybakami", action: "talkFishermen", desc: "Rybacy widzą dużo z morza." },
+                    { label: "Sprawdź przybywające statki", action: "checkShips", desc: "Może coś interesującego właśnie zawinęło." },
+                    { label: "Kup rybę", action: "buyFish", desc: "Świeża ryba — może smoki ją lubią?" },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "palac",
+                label: "Pałac",
+                icon: "🏛️",
+                desc: `Pałac Władcy Astorveil strzeżony jest przez czterech strażników w złotych zbrojach. Brama jest zamknięta. Przez kratę widać rozległy ogród i fontannę w kształcie smoka.\n\nJeden ze strażników patrzy na ciebie ze spokojem, który mówi: „Nie tędy."`,
+                actions: [
+                    { label: "Zapytaj o audiencję", action: "requestAudience", desc: "Może uda się umówić na spotkanie z władcą." },
+                    { label: "Poobserwuj zmianę warty", action: "watchGuards", desc: "Strażnicy mają swoje rytuały." },
+                    { label: "Odejdź", action: "back" }
+                ]
+            },
+            {
+                id: "biblioteka",
+                label: "Biblioteka",
+                icon: "📚",
+                desc: `Miejska Biblioteka Astorveil pachnie starym pergaminem i woskiem świec. Regały sięgają sufitu. Bibliotekarz — stary mężczyzna z lunetką przy oku — wita cię szepcząc, jakby hałas mógł uszkodzić księgi.\n\n— Czego szukasz, wędrowcze?`,
+                actions: [
+                    { label: "Szukaj ksiąg o smokach", action: "searchDragonBooks", desc: "Tu może być wiedza, której potrzebujesz." },
+                    { label: "Czytaj stare mapy", action: "readMaps", desc: "Stare mapy pokazują miejsca, które dziś są zapomniane." },
+                    { label: "Porozmawiaj z bibliotekarzem", action: "talkLibrarian", desc: "Zna każdą książkę w tym miejscu." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "plac",
+                label: "Główny Plac",
+                icon: "🏟️",
+                desc: `Główny Plac Astorveil jest sercem miasta — tu odbywają się targi, ogłoszenia i festiwale. Fontanna z posągiem Astor pośrodku jest miejscem spotkań. Kilka osób siedzi na ławkach, obserwując przechodniów. Dziecko goni gołębia. Stara kobieta sprzedaje kwiaty.`,
+                actions: [
+                    { label: "Posłuchaj rozmów", action: "listenPlaza", desc: "Plotki miejskie krążą szybko." },
+                    { label: "Poobserwuj ludzi", action: "watchPeople", desc: "Interesujące postacie pojawiają się na placu." },
+                    { label: "Usiądź i odpoczywaj", action: "restPlaza", desc: "Chwila spokoju dobrze robi." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "karczma",
+                label: "Karczma Pod Smokiem",
+                icon: "🍺",
+                desc: `Karczma Pod Smokiem jest głośna, ciepła i pachnie piwem oraz smażonym mięsem. Karczmarz — wysoki mężczyzna z rudą brodą — krząta się za ladą. Kilku gości siedzi przy stolikach. Przy kominku śpi stary pies.`,
+                actions: [
+                    { label: "Zamów piwo (3 miedzi)", action: "buyDrink", desc: "Dobre piwo po długim dniu." },
+                    { label: "Posłuchaj plotek", action: "listenTavern", desc: "Karczma to skarbnica informacji." },
+                    { label: "Zagadaj wędrowca", action: "talkTraveler", desc: "Obcy ludzie przynoszą ciekawe wieści." },
+                    { label: "Wynajmij izbę (5 miedzi)", action: "rentRoom", desc: "Odpoczynek w karczmie przynosi siły." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            }
+        ]
+    },
+
+    las: {
+        label: "Las Mgieł",
+        firstVisitDesc: `Las Mgieł rozciąga się na południe od Astorveil — gęsty, mroczny, pełen szeptów. Wchodzisz między drzewa i natychmiast tracisz z oczu miasto. Mgła kręci się między korzeniami jak żywa. Gałęzie splecione wysoko nad głową tworzą sklepienie, przez które prawie nie przechodzi światło.\n\nW Lesie Mgieł czas płynie inaczej. Mówi się, że kto zostanie tu za długo, wraca odmieniony. Albo nie wraca wcale.\n\nMimo to — wchodzisz. Gdzie się udasz?`,
+        desc: `Las Mgieł wita cię ciszą i zapachem wilgotnej ziemi. Mgła pełznie między drzewami jak zawsze. Dokąd tym razem?`,
+        icon: "🌲",
+        locations: [
+            {
+                id: "siedziba",
+                label: "Siedziba Leśnika",
+                icon: "🏚️",
+                desc: `Pośród drzew stoi mała chata — solidna, choć omszała. Przy progu suszone zioła i pęki piór. Leśnik — stara kobieta o bystre oczach — siedzi przed domem i ceruje skórzane ubranie. Nie odwraca głowy, ale wie, że jesteś.`,
+                actions: [
+                    { label: "Porozmawiaj z Leśniczką", action: "talkForester", desc: "Zna las jak własną kieszeń." },
+                    { label: "Zapytaj o ścieżki", action: "askPaths", desc: "Może wskaże bezpieczną drogę przez las." },
+                    { label: "Kup zioła (8 miedzi)", action: "buyHerbs", desc: "Leśne zioła mają właściwości lecznicze." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "jezioro_snu",
+                label: "Jezioro Snu",
+                icon: "🌙",
+                desc: `Małe, nieruchome jezioro leży w zagłębieniu lasu. Woda jest czarna jak atrament — odbija gwiazdy nawet w środku dnia. Wokół brzegów rosną niebieskie kwiaty, których nie ma nigdzie indziej w lesie.\n\nStan jest dziwny. Masz wrażenie, że jezioro patrzy na ciebie.`,
+                actions: [
+                    { label: "Napij się wody", action: "drinkLake", desc: "Woda wygląda czystą. Chyba." },
+                    { label: "Rzuć kamień", action: "throwStone", desc: "Ciekawość bierze górę." },
+                    { label: "Posiedź w ciszy", action: "sitLake", desc: "Może spokój ci powie coś ważnego." },
+                    { label: "Zbierz niebieskie kwiaty", action: "pickFlowers", desc: "Rzadkie rośliny mogą się do czegoś przydać." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "polana_urodzaju",
+                label: "Polana Urodzaju",
+                icon: "🌿",
+                desc: `Polana jest zaskakująco jasna po mroku lasu. Trawa wysoka, soczysta. Kwiaty rosną w nieregularnych kępach. Owady brzęczą leniwie. Pośrodku polany rośnie ogromne drzewo z rozłożystą koroną — jego korzenie wystają z ziemi jak splecione palce.\n\nPowietrze pachnie tu inaczej. Głębiej. Starszej.`,
+                actions: [
+                    { label: "Zbieraj jagody", action: "gatherBerries", desc: "Dzikie jagody są tu duże i syte." },
+                    { label: "Zbieraj zioła", action: "gatherHerbs", desc: "Na polanie rośnie kilka rzadkich roślin." },
+                    { label: "Usiądź pod drzewem", action: "sitTree", desc: "Stare drzewo ma coś do powiedzenia." },
+                    { label: "Baw się z robakami", action: "digDirt", desc: "Ziemia jest tu wyjątkowo bogata." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "wodospad",
+                label: "Wodospad Milczenia",
+                icon: "💧",
+                desc: `Słyszysz go zanim go widzisz — głuchy szum, który narasta z każdym krokiem. Wodospad spada z mchu pokrytego urwiska do głębokiego basenu. Mgła nad wodą jest gęstsza niż gdziekolwiek indziej.\n\nKamienie za kaskadą wody są pokryte rysunkami — może pradawne malowidła, może ślady pazurów.`,
+                actions: [
+                    { label: "Wejdź za wodospad", action: "behindWaterfall", desc: "Co kryje się za zasłoną wody?" },
+                    { label: "Napełnij bukłak", action: "fillFlask", desc: "Czysta woda ze źródła." },
+                    { label: "Zbadaj malowidła", action: "examineDrawings", desc: "Rysunki mogą coś znaczyć." },
+                    { label: "Posłuchaj wodospadu", action: "listenWaterfall", desc: "Mówi się, że woda tu mówi." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "ruiny_swiatyni",
+                label: "Ruiny Leśnej Świątyni",
+                icon: "🗿",
+                desc: `Między drzewami wyłaniają się z mgły kamienne kolumny — jedne stojące, inne powalone. Chwasty wspinają się po kamieniach. Pośrodku ruin stoi ołtarz — gruby, płaski kamień z wyrytym symbolem, który przypomina skrzydlate stworzenie.\n\nNikt tu nie przychodzi. A jednak kamień wygląda na wyczyszczony.`,
+                actions: [
+                    { label: "Zbadaj ołtarz", action: "examineAltar", desc: "Symbol na kamieniu może coś znaczyć." },
+                    { label: "Zostaw ofiarę", action: "leaveOffering", desc: "Może bóstwo lasu przyjmie twój dar." },
+                    { label: "Przeszukaj ruiny", action: "searchRuins", desc: "Stare miejsca kryją stare przedmioty." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "gniazdo_straznika",
+                label: "Gniazdo Leśnego Strażnika",
+                icon: "🦅",
+                desc: `Wysokie w koronach drzew widzisz ogromne gniazdo — splot gałęzi i traw tak duży, że zmieściłoby się w nim kilka osób. Coś w nim jest. Nie rusza się.\n\nOdgłos skrzydeł w koronach jest bliższy niż byś chciał.`,
+                actions: [
+                    { label: "Wspinaj się na drzewo", action: "climbTree", desc: "Może uda się zajrzeć do gniazda." },
+                    { label: "Zostań w miejscu i obserwuj", action: "observeNest", desc: "Cierpliwość to cnota." },
+                    { label: "Odejdź cicho", action: "sneakAway", desc: "Dyskrecja bywa mądrością." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            }
+        ]
+    },
+
+    gory: {
+        label: "Góry Sarak",
+        firstVisitDesc: `Góry Sarak wznoszą się na wschodzie — ich szczyty giną w chmurach, a zbocza pokrywa las, który z czasem ustępuje nagim skałom. Mówi się, że Góry Sarak istniały zanim powstało pierwsze miasto — że to one nadały kształt tej ziemi.\n\nKamienne ścieżki wiją się ku górze. Powietrze jest chłodniejsze, ostrzejsze. Gdzieś w górze śpiewa wiatr między skałami.\n\nDokąd się udasz?`,
+        desc: `Chłodne powietrze Gór Sarak wita Cię jak zawsze — spokojnie i z dystansem. Skały milczą. Dokąd tym razem?`,
+        icon: "⛰️",
+        locations: [
+            {
+                id: "podnoze",
+                label: "Podnóże Góry",
+                icon: "🪨",
+                desc: `Podnóże Sarak to miejsce, gdzie ścieżka z doliny kończy się i zaczyna prawdziwa wspinaczka. Kilka chat pasterzy stoi przy płaskim kamieniu zwanym Pierwszym Progiem. Starszy mężczyzna siedzi przed chatą i wygrzewa się w słońcu. Kozy pasą się na pobliskiej łące.`,
+                actions: [
+                    { label: "Porozmawiaj z pasterzem", action: "talkShepherd", desc: "Pasterze znają górskie ścieżki." },
+                    { label: "Zbadaj Pierwszy Próg", action: "examineFirstStep", desc: "Wielki kamień wygląda na bardzo stary." },
+                    { label: "Odpoczywaj przy chacie", action: "restFoot", desc: "Przed wspinaczką warto złapać oddech." },
+                    { label: "Kup ser (4 miedzi)", action: "buyCheese", desc: "Górski ser — może smoki go lubią?" },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "szczyt",
+                label: "Szczyt Sarak",
+                icon: "🏔️",
+                requiresLevel: 30,
+                lockedDesc: `Ścieżka ku szczytowi jest stroma i wymagająca. W połowie drogi zatrzymujesz się — nie tyle przez zmęczenie, co przez poczucie, że góra cię nie przepuszcza.\n\nZ jakiegoś powodu nogi odmawiają posłuszeństwa. Wiatr jest silniejszy niż powinieneś. Może nie czas.`,
+                desc: `Szczyt Sarak jest miejscem między niebem a ziemią. Stoisz nad chmurami. Poniżej widać całe Astorveil — małe jak model z drewna. Wiatr szarpie ubraniem. W powietrzu czuć elektryczność.\n\nI nagle rozumiesz, dlaczego smoki lubią latać wysoko.`,
+                actions: [
+                    { label: "Medytuj na szczycie", action: "meditateTop", desc: "Spokój w tak ekstremalnym miejscu coś znaczy." },
+                    { label: "Obserwuj horyzont", action: "watchHorizon", desc: "Widać stąd bardzo daleko." },
+                    { label: "Przeszukaj skalne szczeliny", action: "searchCracks", desc: "Góry kryją skarby dla cierpliwych." },
+                    { label: "Przywołaj smoka", action: "callDragon", desc: "Na szczycie, blisko nieba — może smok cię usłyszy inaczej." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "ksiezycowa_brama",
+                label: "Księżycowa Brama",
+                icon: "🌕",
+                desc: `Przy wschodnim zboczu Sarak, tam gdzie skały tworzą naturalny łuk, stoi coś, czego nie powinno tu być — kamienna brama. Jej filary są pokryte runami tak precyzyjnymi, że musiały być wykute przez nieludzką rękę.\n\nNikt nie przetłumaczył tych symboli. Nikt nie wie, kiedy brama powstała. Wiadomo tylko jedno — czasem, w nocy, coś w niej drga.`,
+                actions: [
+                    { label: "Zbadaj runy", action: "examineRunes", desc: "Może uda się odcyfrować choć jeden symbol." },
+                    { label: "Dotknij bramy", action: "touchGate", desc: "Czy reaguje na dotyk?" },
+                    { label: "Przejdź przez bramę", action: "enterGate", desc: "Jeśli jest otwarta..." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            }
+        ]
+    }
+};
+
+/* -----------------------------------------
+   SYSTEM WYŚWIETLANIA ZAKŁADKI ŚWIAT
+----------------------------------------- */
+function updateWorldTab() {
+    const worldDiv = document.getElementById("world");
+    worldDiv.innerHTML = `
+        <h2>🗺️ Świat</h2>
+        <p style="color:#aab; font-style:italic; margin-bottom:20px;">Wybierz region, który chcesz odwiedzić.</p>
+        <div id="world-subregions">
+            ${Object.entries(worldData).map(([key, region]) => `
+                <div class="world-region-btn" onclick="openRegion('${key}')">
+                    <span class="region-icon">${region.icon}</span>
+                    <span class="region-label">${region.label}</span>
+                    <span class="region-arrow">›</span>
+                </div>
+            `).join('')}
+        </div>
+        <div id="world-content-area"></div>
+    `;
+}
+
+function openRegion(regionKey) {
+    const region = worldData[regionKey];
+    const wasVisited = visitedLocations[regionKey];
+    if (!wasVisited) {
+        visitedLocations[regionKey] = true;
+        saveWorldState();
+    }
+    const desc = wasVisited ? region.desc : region.firstVisitDesc;
+
+    // push to history
+    worldHistory = [{ type: 'region', key: regionKey }];
+
+    const area = document.getElementById("world-content-area");
+    const subregions = document.getElementById("world-subregions");
+    if (subregions) subregions.style.display = "none";
+
+    area.innerHTML = `
+        <div class="dialog-window" style="margin-top:20px;">
+            <div class="dialog-title">${region.icon} ${region.label}</div>
+            <div class="dialog-text" style="white-space:pre-line;">${desc}</div>
+            <div id="location-buttons">
+                ${region.locations.map(loc => `
+                    <div class="dialog-button" onclick="openLocation('${regionKey}', '${loc.id}')">
+                        ${loc.icon} ${loc.label}
+                    </div>
+                `).join('')}
+                <div class="dialog-button" style="margin-top:15px; border-color:#778; color:#aab;" onclick="closeRegion()">← Wróć do mapy</div>
+            </div>
+        </div>
+    `;
+}
+
+function openLocation(regionKey, locationId) {
+    const region = worldData[regionKey];
+    const loc = region.locations.find(l => l.id === locationId);
+    if (!loc) return;
+
+    // push to history
+    worldHistory = [{ type: 'region', key: regionKey }, { type: 'location', regionKey, locationId }];
+
+    const visitKey = `${regionKey}_${locationId}`;
+    const wasVisited = visitedLocations[visitKey];
+    if (!wasVisited) {
+        visitedLocations[visitKey] = true;
+        saveWorldState();
+    }
+
+    // Check level requirement
+    if (loc.requiresLevel && !hasHighLevelDragon(loc.requiresLevel)) {
+        const area = document.getElementById("world-content-area");
+        area.innerHTML = `
+            <div class="dialog-window" style="margin-top:20px;">
+                <div class="dialog-title">${loc.icon} ${loc.label}</div>
+                <div class="dialog-text" style="white-space:pre-line;">${loc.lockedDesc}</div>
+                <div class="dialog-button" onclick="openRegion('${regionKey}')">← Zawróć</div>
+            </div>
+        `;
+        return;
+    }
+
+    // Special handling for moon gate
+    let extraContent = '';
+    if (locationId === 'ksiezycowa_brama') {
+        const moonStatus = getMoonGateStatus();
+        if (!moonStatus.open) {
+            extraContent = `<div style="margin: 10px 0; padding: 10px; background: rgba(40,30,60,0.6); border-left: 3px solid #9966cc; border-radius: 6px; color: #cc99ff; font-style: italic;">${moonStatus.msg}</div>`;
+        } else {
+            extraContent = `<div style="margin: 10px 0; padding: 10px; background: rgba(30,50,30,0.6); border-left: 3px solid #66cc99; border-radius: 6px; color: #99ffcc; font-style: italic;">Runy pulsują zimnym, srebrnym światłem. Brama drży jakby oddychała.</div>`;
+        }
+    }
+
+    const area = document.getElementById("world-content-area");
+    area.innerHTML = `
+        <div class="dialog-window" style="margin-top:20px;">
+            <div class="dialog-title">${loc.icon} ${loc.label}</div>
+            <div class="dialog-text" style="white-space:pre-line;">${loc.desc}</div>
+            ${extraContent}
+            <div id="location-action-area">
+                ${renderLocationActions(regionKey, locationId, loc.actions)}
+            </div>
+        </div>
+    `;
+}
+
+function renderLocationActions(regionKey, locationId, actions) {
+    return actions.map(action => {
+        if (action.action === 'back') {
+            return `<div class="dialog-button" style="margin-top:15px; border-color:#778; color:#aab;" onclick="openRegion('${regionKey}')">← Zawróć</div>`;
+        }
+        return `<div class="dialog-button" onclick="handleLocationAction('${regionKey}', '${locationId}', '${action.action}')">${action.label}</div>`;
+    }).join('');
+}
+
+function closeRegion() {
+    worldHistory = [];
+    const area = document.getElementById("world-content-area");
+    if (area) area.innerHTML = '';
+    const subregions = document.getElementById("world-subregions");
+    if (subregions) subregions.style.display = "block";
+}
+
+/* -----------------------------------------
+   OBSŁUGA AKCJI W LOKACJACH
+----------------------------------------- */
+const locationResponses = {
+    // TABLICE / PRACA
+    openWorkTab: () => { openTab('work'); },
+    openMerchantTab: () => { openTab('merchant'); },
+
+    readRumors: () => {
+        const rumors = [
+            "Ktoś napisał, że w Lesie Mgieł widziano smocze ślady wielkości stodoły.",
+            "Podobno Księżycowa Brama w Górach Sarak otworzyła się ostatnim razem dokładnie w pełnię.",
+            "Handlarz smoczych jaj kupił nowy transport z Wysp Ognistych. Podobno wyjątkowy.",
+            "Mówią, że w Jeziorze Snu można zobaczyć przyszłość — jeśli masz odwagę patrzeć.",
+            "Strażnicy szepczą, że coś dużego ruszyło się w kopalni na północy."
+        ];
+        return rumors[Math.floor(Math.random() * rumors.length)];
+    },
+
+    // HANDLARZ ŻYWNOŚCI
+    buyMeat: () => {
+        if (copper < 10) return "Nie masz wystarczająco miedzi. Brakuje ci 10 sztuk.";
+        adjustCurrency('copper', -10);
+        foodItems.mięso = (foodItems.mięso || 0) + 1;
+        localStorage.setItem('foodItems', JSON.stringify(foodItems));
+        updateInventoryTab();
+        return "Handlarka zawija kawałek mięsa w pergamin i podaje ci go z uśmiechem. +1 Mięso.";
+    },
+    buyBerries: () => {
+        if (copper < 5) return "Nie masz wystarczająco miedzi. Brakuje ci 5 sztuk.";
+        adjustCurrency('copper', -5);
+        foodItems.jagody = (foodItems.jagody || 0) + 1;
+        localStorage.setItem('foodItems', JSON.stringify(foodItems));
+        updateInventoryTab();
+        return "Pachnące jagody lądują w twojej torbie. Podobno rosną w Lesie Mgieł. +1 Jagody.";
+    },
+    chatFoodMerchant: () => {
+        const tales = [
+            "— Smoki z żywiołem wody wolą jagody — mówi handlarka. — Ale ogniste? Te, to tylko mięso. Surowe, najlepiej.",
+            "— Mój dziad mówił, że smoczy kowal w Astorveil podkuwa smoki od czterech pokoleń. Dobra robota, tylko droga.",
+            "— Słyszałam, że na Polanie Urodzaju jagody rosną dwa razy większe niż te moje. Ale jak iść do lasu, to trzeba uważać.",
+            "— Wie pan, że smoki na poziomie piętnastu już prawie same decydują, co jedzą? Mój klient mówił, że jego smok odrzucił mięso i zażądał ryby. Ryby!"
+        ];
+        return tales[Math.floor(Math.random() * tales.length)];
+    },
+
+    // KUŹNIA
+    orderCollar: () => "— Obroża dla smoka? Dam radę — mówi Brag. — Wróć za trzy dni, będzie gotowa. I przynieś ze sobą łuskę smoka, żebym mógł dostroić metal.",
+    sharpenWeapon: () => {
+        if (copper < 5) return "— Pięć miedzi za ostrzenie — mówi kowal. — I ani grosza mniej.";
+        adjustCurrency('copper', -5);
+        return "Kowal bierze twoje narzędzie i w kilkanaście sekund naostrza je do ideału. Teraz świeci jak nowe.";
+    },
+    browseSmith: () => {
+        const items = [
+            "Widzisz zbroję z łusek smoczych — lekką, ale niesamowicie wytrzymałą. Cena: 50 złotych. Na razie tylko popatrzysz.",
+            "Na wystawie leży hełm wykuty z rudy znalezionej w Górach Sarak. Kowal mówi, że odporna na ogień.",
+            "Mały amulet w kształcie smoczego pazura — podobno przynosi szczęście hodowcom. Kowal żąda 3 srebrnych."
+        ];
+        return items[Math.floor(Math.random() * items.length)];
+    },
+
+    // ŚWIĄTYNIA
+    pray: () => {
+        const blessings = [
+            "Kapłanka prowadzi cię do ołtarza i szepcze modlitwę. Czujesz ciepłe drżenie w powietrzu. Astor słyszy.",
+            "Klęczysz przed posągiem Smoczej Matki. Kamienna twarz wydaje się przez chwilę łagodna.",
+            "Modlitwa płynie z ust spokojnie. Świece migoczą bez powodu. Może to znak, może tylko przeciąg."
+        ];
+        return blessings[Math.floor(Math.random() * blessings.length)];
+    },
+    healDragon: () => "Kapłanka przysłuchuje się opisowi smoka i kiwa głową. — Przyprowadź go jutro o świcie. Rytuał oczyszczenia trwa godzinę, ale powinno pomóc.",
+    listenSermon: () => {
+        const sermons = [
+            "— Astor dała nam troje — mówi kapłanka. — Troje, by uczyć nas równowagi. Czwarte to pycha. Pycha prowadzi do upadku.",
+            "— Smok nie jest narzędziem — śpiewa kapłanka cicho. — Jest sprzymierzeńcem. Traktujcie go jak równego, a odwdzięczy się tym samym.",
+            "— Ogień, woda, ziemia, powietrze — to cztery żywioły, ale jeden duch. Każdy smok jest częścią większej całości."
+        ];
+        return sermons[Math.floor(Math.random() * sermons.length)];
+    },
+
+    // SZKOŁA MAGII
+    magicLesson: () => "Stary mistrz otwiera jedno oko. — Zapisać się? Można. Ale nauka trwa miesiące, a opłata wynosi dwie złote monety za kwartał. Wróć, jak się zdecydujesz.",
+    spellBook: () => {
+        const spells = [
+            "Zaklęcie Spokoju — uspokoić wzburzonego smoka. Wymaga szczypty piasku z Gór Sarak.",
+            "Mała Iluminacja — świetlna kula, która nie gaśnie przez godzinę. Bezużyteczna, ale efektowna.",
+            "Zaklęcie Rozmowy ze Zwierzęciem — podobno działa na smoki. Wymaga dwudziestu lat nauki."
+        ];
+        return spells[Math.floor(Math.random() * spells.length)];
+    },
+    talkMaster: () => {
+        const wisdom = [
+            "— Widzę, że masz smoka — mówi mistrz nie otwierając oczu. — Żywioł jest ważny, ale charakter ważniejszy. Karm go dobrze, a sam znajdzie drogę.",
+            "— Księżycowa Brama? — mistrz otwiera oczy. — Tak, słyszałem. Runy są w języku przedpotopowym. Nikt żyjący go nie zna. Ale może... kiedyś.",
+            "— Szkoła uczy zaklęć. Ale prawdziwa smocza magia przychodzi sama — gdy smok ci ufa."
+        ];
+        return wisdom[Math.floor(Math.random() * wisdom.length)];
+    },
+
+    // ARENA
+    watchFight: () => "Dwóch wojowników kończy walkę. Jeden z nich, mężczyzna z tatuażem smoka na szyi, kłania się publiczności. Trener obok ciebie szepcze: — Niezły, ale ma słabą lewą stronę.",
+    joinTournament: () => "— Turniej startuje pierwszego każdego miesiąca — mówi organizator. — Trzy rundy, walka na czas. Nagroda: 10 złotych i tytuł Mistrza Areny. Rejestracja kosztuje 1 srebrną.",
+    talkOrganizer: () => "— Widziałem już wszystko na tej arenie — mówi mężczyzna z blizną. — Ale smoczego wojownika? Nigdy. To by dopiero było widowisko.",
+
+    // POSTERUNEK
+    reportIssue: () => "Kapitan wysłuchuje cię ze spokojem i notuje kilka słów. — Weźmiemy to pod uwagę — mówi i wraca do raportów. Wychodzisz z poczuciem, że nic z tego nie będzie.",
+    wantedList: () => {
+        const wanted = [
+            "Na liście widzisz portret kogoś, kto wygląda trochę jak karczmarz. Ale pewnie zbieżność imion.",
+            "Poszukiwany: Handlarz Marak, oskarżony o sprzedaż podrabianych smoczych jaj. Nagroda: 5 srebrnych.",
+            "Lista jest długa. Większość to zwykłe przestępstwa. Jedno imię jest przekreślone — sprawa zamknięta."
+        ];
+        return wanted[Math.floor(Math.random() * wanted.length)];
+    },
+    offerHelp: () => "Kapitan unosi głowę. — Mamy kilka otwartych spraw, które nie są na tablicy ogłoszeń. Wróć, jak będziesz miał czas i... odpowiednie możliwości.",
+
+    // PORT
+    talkFishermen: () => {
+        const fisherTales = [
+            "— Widział pan? — pyta rybak. — Wczoraj w nocy coś wielkiego przepłynęło pod moją łódką. Coś z łuskami.",
+            "— Z morza przynosi się czasem rzeczy, których nikt nie rozumie — mówi stary rybak. — Kiedyś wyłowiłem jajo. Nie wiem, co z niego wyszło.",
+            "— Statki z Wysp Ognistych przypływają rzadko — mówi rybak. — Ale jak przypłyną, Handlarz Jaj jest pierwszym, który na nabrzeżu czeka."
+        ];
+        return fisherTales[Math.floor(Math.random() * fisherTales.length)];
+    },
+    checkShips: () => "Przy pomoście cumują dwie łódki rybackie i jeden większy statek z flagą, której nie rozpoznajesz. Marynarze rozładowują skrzynie — ciężkie, ostrożnie traktowane.",
+    buyFish: () => {
+        if (copper < 3) return "Rybak kręci głową. — Trzy miedzi za rybę. Tyle.";
+        adjustCurrency('copper', -3);
+        inventory['Świeża ryba'] = (inventory['Świeża ryba'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTab();
+        return "Rybak podaje ci świeżą rybę zawiniętą w liście. Pachnie morzem. +1 Świeża ryba.";
+    },
+
+    // PAŁAC
+    requestAudience: () => "Strażnik wysłuchuje cię z kamienną twarzą. — Audiencje udzielane są w pierwszą środę miesiąca, po złożeniu pisemnej prośby. Formularz dostępny w Bibliotece.",
+    watchGuards: () => "Zmiana warty odbywa się punktualnie co cztery godziny. Strażnicy są zdyscyplinowani i milczący. Jeden z nich mruga do ciebie — albo to słońce go oślepiło.",
+
+    // BIBLIOTEKA
+    searchDragonBooks: () => {
+        const books = [
+            "Znajdujesz 'Zwyczaje Smoków Ognistych' — rozdział o nawykach żywieniowych. Autor twierdzi, że ogniste smoki lepiej rosną na mięsie niż jagodach.",
+            "Natrafiasz na 'Historia Gór Sarak' — wzmianka o Księżycowej Bramie: 'Tradycja mówi o bramie otwieranej przez księżyc. Zapiski są niespójne.'",
+            "Stara księga opisuje rytuał nadawania imion smokom. Autor radzi, by imię nadawać po pierwszym locie smoka — nie wcześniej."
+        ];
+        return books[Math.floor(Math.random() * books.length)];
+    },
+    readMaps: () => "Stare mapy pokazują Astorveil znacznie mniejsze niż dziś. Las Mgieł był wtedy dwa razy większy. I jest na nich zaznaczone coś na północy — bez nazwy, przekreślone.",
+    talkLibrarian: () => "— Runy z Księżycowej Bramy? — bibliotekarz ożywia się nagle. — Mamy o nich trzy wzmianki w zbiorach. Żadna pełna. Ale jeśli znajdziesz kopię symboli... może razem coś odkryjemy.",
+
+    // PLAC
+    listenPlaza: () => {
+        const gossip = [
+            "Dwóch kupców kłóci się o cenę smoczego jaja. — Pięćdziesiąt złotych to mało! — krzyczy jeden. — Na wyspach płacą sto!",
+            "Stara kobieta sprzedająca kwiaty szepce do sąsiadki: — Mówię ci, w tamtej nocy w Górach coś świeciło. Niebieskie światło. Jak księżyc, tylko z ziemi.",
+            "Dziecko biega między nogami dorosłych wołając: — Mój tata widział smoka nad portem! Prawdziwy, duży!"
+        ];
+        return gossip[Math.floor(Math.random() * gossip.length)];
+    },
+    watchPeople: () => "Mężczyzna w szarym płaszczu siedzi przy fontannie od godziny, obserwując każdego kto przechodzi. Gdy spotykasz jego wzrok, wstaje i odchodzi.",
+    restPlaza: () => {
+        return "Siadasz przy fontannie. Woda pluszcze spokojnie. Gwar miasta jest tu stłumiony, jakby fontanna tworzyła własną bańkę ciszy. Odpoczywasz chwilę.";
+    },
+
+    // KARCZMA
+    buyDrink: () => {
+        if (copper < 3) return "— Trzy miedzi za kufel — mówi karczmarz. — Tyle.";
+        adjustCurrency('copper', -3);
+        return "Karczmarz stawia przed tobą kufel piwa. Zimne, lekko gorzkie, dokładnie takie jak powinno być. Miły odpoczynek.";
+    },
+    listenTavern: () => {
+        const tavernTalk = [
+            "— Słyszałeś? — pyta jeden pijący. — Handlarz Jaj dostał zamówienie od samego Pałacu. Mówią, że Władca chce smoka.",
+            "— Księżycowa Brama otworzyła się ostatnio trzy lata temu — wspomina stary przy kominku. — Ktoś wszedł. Nie wrócił. Ale to może legenda.",
+            "— Las Mgieł ma nowego mieszkańca — szepcze ktoś. — Widzieli go pasterze. Duży, milczący, zostawia ślady jak tace."
+        ];
+        return tavernTalk[Math.floor(Math.random() * tavernTalk.length)];
+    },
+    talkTraveler: () => {
+        const travelers = [
+            "Wędrowiec przy stoliku pochodzi z dalekiego południa. — U nas smoki to rzadkość — mówi. — Ale słyszałem o hodowcach tu, w Astorveil. Mówią, że najlepsi na świecie.",
+            "Kobieta z węzełkiem na plecach patrzy na ciebie podejrzliwie, ale w końcu mówi: — Szłam przez Góry Sarak. Widziałam bramę. Nie dotykałam.",
+            "Stary rycerz popija piwo i bez pytania mówi: — Byłem na Szczycie Sarak raz w życiu. Widać stąd do końca świata. Prawie."
+        ];
+        return travelers[Math.floor(Math.random() * travelers.length)];
+    },
+    rentRoom: () => {
+        if (copper < 5) return "— Pięć miedzi za izbę na noc — mówi karczmarz. — Wróć jak będziesz miał.";
+        adjustCurrency('copper', -5);
+        return "Karczmarz podaje ci klucz z drewnianą zawieszką. Izba jest mała, ale czysta. Śpisz spokojnie. Rano czujesz się lepiej.";
+    },
+
+    // LAS - LEŚNICZKA
+    talkForester: () => {
+        const foresterTales = [
+            "Kobieta nie podnosi wzroku. — Las nie jest zły — mówi powoli. — Ale ukarze tych, którzy przychodzą bez szacunku. Pamiętaj o tym.",
+            "— Jezioro Snu ma swoją naturę — mówi. — Nie pij z niego o wschodzie słońca. Nigdy. Dlaczego? Bo tak mówię.",
+            "— Polana Urodzaju istnieje, bo kiedyś stała tu wielka świątynia — mówi leśniczka. — Kiedy ją zburzono, ziemia pamiętała."
+        ];
+        return foresterTales[Math.floor(Math.random() * foresterTales.length)];
+    },
+    askPaths: () => "Kobieta odkłada cerowanie i rysuje palcem w powietrzu. — Jezioro Snu jest na wschód. Polana na północ. Ruiny... nie polecam na razie. Wodospad jest bezpieczny. Gniazdo — zostaw w spokoju.",
+    buyHerbs: () => {
+        if (copper < 8) return "— Osiem miedzi. Ani grosza mniej — mówi leśniczka.";
+        adjustCurrency('copper', -8);
+        inventory['Zioła leśne'] = (inventory['Zioła leśne'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTab();
+        return "Leśniczka podaje ci wiązankę suszonych ziół. Pachną mocno i dziwnie. — Na co to? — pytasz. — Na wszystko — odpowiada. +1 Zioła leśne.";
+    },
+
+    // LAS - JEZIORO
+    drinkLake: () => {
+        const outcomes = [
+            "Woda jest chłodna i czysta. Pije się dobrze. Nic się nie dzieje. Ale przez resztę dnia masz wrażenie, że widzisz coś na obrzeżu wzroku.",
+            "Woda smakuje jak deszcz. Zwykły deszcz. Ale zanim odejdziesz, przez chwilę w tafli widzisz twarz — nie swoją.",
+            "Pijesz. Nic. Woda jak woda. Może jezioro cię oceniło i uznało, że nie czas na wizje."
+        ];
+        return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+    throwStone: () => {
+        const outcomes = [
+            "Kamień uderza w wodę z głuchym pluskiem. Kręgi rozchodzą się powoli — wolniej niż powinny. Zanim znikną, widzisz w nich coś, co nie jest odbiciem nieba.",
+            "Kamień tonie. Woda znowu staje nieruchomo w ciągu sekundy. Jakby nic nie wrzuciłeś.",
+            "Kamień znika przed dotknięciem wody. Nie słyszysz plusku."
+        ];
+        return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+    sitLake: () => "Siedzisz przy brzegu przez długi czas. Woda jest nieruchoma. Niebieski kwiat obok ciebie otwiera się, choć słońca prawie nie ma. Czujesz się spokojniejszy — i trochę nieswojo z tym spokojem.",
+    pickFlowers: () => {
+        inventory['Niebieski kwiat'] = (inventory['Niebieski kwiat'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTab();
+        return "Zrywasz jeden kwiat. Jest zimny w dotyku. Nie więdnie przez cały dzień. +1 Niebieski kwiat.";
+    },
+
+    // POLANA
+    gatherBerries: () => {
+        const success = Math.random() > 0.2;
+        if (success) {
+            const amount = Math.floor(Math.random() * 2) + 1;
+            foodItems.jagody = (foodItems.jagody || 0) + amount;
+            localStorage.setItem('foodItems', JSON.stringify(foodItems));
+            updateInventoryTab();
+            return `Zbierasz jagody przez chwilę. Są duże, syte i pachną jak magia. +${amount} Jagody.`;
+        }
+        return "Szukasz jagód, ale ptaki były przed tobą. Polana jest tego dnia pusta.";
+    },
+    gatherHerbs: () => {
+        const success = Math.random() > 0.3;
+        if (success) {
+            inventory['Zioła leśne'] = (inventory['Zioła leśne'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+            return "Między trawami znajdujesz pęczek rzadkich ziół — białe kwiaty, wąskie liście. +1 Zioła leśne.";
+        }
+        return "Szukasz ziół, ale dziś polana daje tylko trawę i kwiaty, których nie rozpoznajesz.";
+    },
+    sitTree: () => {
+        const messages = [
+            "Drzewo jest stare. Opierasz się o korę i czujesz wibrację — jakby w środku coś oddychało bardzo powoli. Za wolno jak dla drzewa.",
+            "Siedzisz pod rozłożystą koroną. Liście poruszają się, choć wiatru nie ma. Gdzieś wysoko słyszysz coś, co brzmi jak westchnienie.",
+            "Pod drzewem jest spokój głębszy niż gdziekolwiek indziej. Siedzisz długo. Kiedy wstajesz, masz wrażenie, że drzewo cię zapamiętało."
+        ];
+        return messages[Math.floor(Math.random() * messages.length)];
+    },
+    digDirt: () => {
+        const found = Math.random() > 0.5;
+        if (found) {
+            inventory['Stary kamień'] = (inventory['Stary kamień'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+            return "Grzebiesz w ziemi. Między korzeniami znajdujesz gładki, ciemny kamień — wygląda na obrobiony. +1 Stary kamień.";
+        }
+        return "Grzebiesz w ziemi. Robaki, korzenie i glina. Ziemia jest tu wyjątkowo bogata, ale skarbu nie ma.";
+    },
+
+    // WODOSPAD
+    behindWaterfall: () => {
+        const outcomes = [
+            "Za zasłoną wody jest wnęka. Sucha, choć otoczona wodą. Na ścianie rysunki — smoki i ludzie razem, ciągnące jakiś ciężar. Albo tańczące. Trudno powiedzieć.",
+            "Za wodą jest ciemność i skała. Ale na podłodze leży kamień inny od reszty — gładki, ciepły w dotyku, jakby ktoś go tu zostawił. Bierzesz go.",
+            "Za wodą jest przestrzeń. Stoisz w niej przez chwilę otoczony szumem. Czujesz się jak w innym miejscu. Może w innym czasie."
+        ];
+        const r = outcomes[Math.floor(Math.random() * outcomes.length)];
+        if (r.includes('Bierzesz')) {
+            inventory['Ciepły kamień'] = (inventory['Ciepły kamień'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+        }
+        return r;
+    },
+    fillFlask: () => "Napełniasz bukłak czystą wodą ze źródła wodospadu. Zimna, krystaliczna. Smakuje jak góry.",
+    examineDrawings: () => "Rysunki są stare — tak stare, że ciężko powiedzieć kiedy je zrobiono. Pokazują smoka i człowieka w ceremonialnej pozie. Coś między ich rękoma — okrągłe, może jajo.",
+    listenWaterfall: () => {
+        const voices = [
+            "Szum wody jest rytmiczny. Stoisz i słuchasz. Przez chwilę wydaje się, że w dźwięku jest coś więcej — nie słowa, ale coś na kształt sensu.",
+            "Woda mówi. Nie słowami. Ale stojąc tu przez chwilę, czujesz spokój, który nie przychodzi znikąd.",
+            "Szum jest jednostajny. Nic nie słyszysz. Albo za mało słuchasz."
+        ];
+        return voices[Math.floor(Math.random() * voices.length)];
+    },
+
+    // RUINY
+    examineAltar: () => "Symbol na kamieniu to splot trzech linii tworzących kształt skrzydlatego stworzenia. Pod spodem mniejszy symbol — okrąg z krzyżem w środku. Znasz go skądś, ale nie możesz sobie przypomnieć.",
+    leaveOffering: () => {
+        if (Object.keys(inventory).length === 0 && (foodItems.mięso || 0) === 0 && (foodItems.jagody || 0) === 0) {
+            return "Nie masz nic do zaoferowania. Ołtarz milczy.";
+        }
+        const outcomes = [
+            "Zostawiasz jagody na ołtarzu. Świeca, której tu nie było, zapala się sama. Gaśnie po chwili. Zostaje wosk.",
+            "Zostawiasz mięso na kamieniu. Nic się nie dzieje. Ale kiedy wychodzisz z ruin, czujesz, że ktoś na ciebie patrzy. Nie wrogo.",
+            "Zostawiasz jeden ze swoich przedmiotów. Kamień drga pod palcami przez sekundę."
+        ];
+        return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+    searchRuins: () => {
+        const found = Math.random() > 0.4;
+        if (found) {
+            const items = ['Stara moneta', 'Fragment ceramiki', 'Zardzewiały klucz'];
+            const item = items[Math.floor(Math.random() * items.length)];
+            inventory[item] = (inventory[item] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+            return `Przeszukujesz ruiny. Pod wywróconym kamieniem znajdujesz ${item}. +1 ${item}.`;
+        }
+        return "Przeszukujesz ruiny dokładnie. Kamienie, ziemia, liście. Nic oprócz historii, która nie chce się ujawnić.";
+    },
+
+    // GNIAZDO
+    climbTree: () => {
+        const outcomes = [
+            "Wspinasz się na kilka metrów, gdy gałąź pęka pod tobą. Lądowanie jest twarde, ale bezpieczne. Nie widziałeś gniazda z bliska.",
+            "Docierasz do gniazda. Wewnątrz są pióra i kości — i jeden jasny przedmiot. Zanim zdążysz go wziąć, coś szarpie cię za ubranie i jesteś z powrotem na ziemi."
+        ];
+        return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+    observeNest: () => {
+        const outcomes = [
+            "Czekasz. Po chwili z gniazda wysuwa się głowa — wielki ptak z żółtymi oczami. Patrzy na ciebie. Ani wrogo, ani przyjaźnie. Potem chowa głowę.",
+            "Czekasz długo. Nic. Potem nagle z koron drzew opada wielkie pióro — złoto-brązowe, dłuższe niż twoje ramię. Ląduje u twoich stóp.",
+            "Obserwujesz. Gniazdo milczy. Ale masz pewność, że coś tam jest — i że ono też ciebie obserwuje."
+        ];
+        const r = outcomes[Math.floor(Math.random() * outcomes.length)];
+        if (r.includes('pióro')) {
+            inventory['Złote pióro'] = (inventory['Złote pióro'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+        }
+        return r;
+    },
+    sneakAway: () => "Wycofujesz się ostrożnie, krok po kroku, nie odrywając wzroku od gniazda. Kiedy jesteś dość daleko — odwracasz się i szybko odchodzisz. To była mądra decyzja.",
+
+    // GÓRY - PODNÓŻE
+    talkShepherd: () => {
+        const tales = [
+            "— Na szczyt? — pyta pasterz. — Dużo ludzi próbuje. Niewielu dociera. I nie chodzi o nogi. Góra sama decyduje, kogo przepuszcza.",
+            "— Brama na wschodnim zboczu? — stary wzdycha. — Znam ją od dziecka. Dziadek mówił, że w księżycowe noce coś w niej się świeci. Nigdy nie sprawdzałem.",
+            "— Kozy tu rosną zdrowe bo powietrze czyste — mówi pasterz. — A smoki? Jedno przelatuje co jakiś czas nad szczytem. Duże. Wolne."
+        ];
+        return tales[Math.floor(Math.random() * tales.length)];
+    },
+    examineFirstStep: () => "Pierwszy Próg to ogromny, płaski głaz pokryty inskrypcjami w języku, którego nikt z żyjących nie czyta. Pasterz mówi, że stoi tu od zawsze. Kamień jest ciepły w dotyku nawet w chłodne dni.",
+    restFoot: () => "Siadasz przy chacie na drewnianej ławie. Pasterz przynosi ci kubek gorącego napoju z ziół. Siedzisz i patrzysz na górę. Wydaje się bliska i nieskończenie daleka jednocześnie.",
+    buyCheese: () => {
+        if (copper < 4) return "— Cztery miedzi — mówi pasterz. — Na więcej nie mogę zejść.";
+        adjustCurrency('copper', -4);
+        inventory['Górski ser'] = (inventory['Górski ser'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTab();
+        return "Pasterz kroi gruby kawałek sera i zawija w liście. Ser jest twardy, ostry i wyjątkowo smaczny. +1 Górski ser.";
+    },
+
+    // SZCZYT
+    meditateTop: () => "Siadasz na zimnych kamieniach i zamykasz oczy. Wiatr przestaje. Przez chwilę jest absolutna cisza — jakby góra zatrzymała oddech. Kiedy otwierasz oczy, niebo wydaje się bliższe.",
+    watchHorizon: () => "Widać stąd wszystko. Las Mgieł jak zielona chmura na południu. Astorveil jak model z kamieni. Morze na zachodzie — błyszczące. I coś na dalekim północy — ciemna plama, której na mapach nie ma.",
+    searchCracks: () => {
+        const found = Math.random() > 0.5;
+        if (found) {
+            inventory['Kryształ górski'] = (inventory['Kryształ górski'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTab();
+            return "W szczelinie między skałami coś błyszczy. Wyciągasz kryształ górski — przezroczysty, zimny, piękny. +1 Kryształ górski.";
+        }
+        return "Przeszukujesz szczeliny między skałami. Wiatr, kamień i suchy mech. Tym razem nic.";
+    },
+    callDragon: () => {
+        return "Wydajesz dźwięk, który wydaje ci się właściwy — nie słowo, nie rozkaz, coś pośrodku. Góra odpowiada echem. Daleko, bardzo daleko, słyszysz odpowiedź. Może smok. Może wiatr.";
+    },
+
+    // KSIĘŻYCOWA BRAMA
+    examineRunes: () => "Runy są głęboko wyrytle — każda precyzyjna jak chirurgiczny nacięcie. Wzory się powtarzają, co sugeruje alfabet. Ale powiązania są zupełnie obce. Bibliotekarz w Astorveil mógłby się zainteresować.",
+    touchGate: () => {
+        const moonStatus = getMoonGateStatus();
+        if (moonStatus.open) {
+            return "Dotykasz filaru. Kamień jest ciepły. Przez Twoją rękę przechodzi drżenie — nie nieprzyjemne, jak kontakt z czymś żywym. Runy na chwilę rozświetlają się srebrzyście, potem gasną.";
+        }
+        return "Dotykasz kamienia. Zimny, twardy, milczący. Nic. Jakbyś dotykał zwykłej skały.";
+    },
+    enterGate: () => {
+        const moonStatus = getMoonGateStatus();
+        if (!moonStatus.open) {
+            return "Próbujesz przejść przez bramę. Stajesz między filarami. Nic. Brama jest jak każdy inny łuk skalny — tylko skała i powietrze.";
+        }
+        const entered = localStorage.getItem('moonGateEntered') === 'true';
+        localStorage.setItem('moonGateEntered', 'true');
+        if (!entered) {
+            return "Przechodzisz przez bramę. Przez sekundę wszystko jest srebrzyste i ciche — absolutna cisza, jak przed snem. Potem z powrotem jesteś przy bramie, od drugiej strony. Ale coś jest inne. Nie wiesz co. Po powrocie do Astorveil, jeden ze smoków zachowuje się spokojniej.";
+        }
+        return "Przechodzisz przez bramę ponownie. Cisza. Srebro. I z powrotem. Tym razem bez zaskoczenia — ale nie bez poczucia, że brama coś wie o tobie.";
+    }
+};
+
+function handleLocationAction(regionKey, locationId, actionName) {
+    if (actionName === 'back') {
+        openRegion(regionKey);
+        return;
+    }
+
+    const handler = locationResponses[actionName];
+    let result = null;
+
+    if (typeof handler === 'function') {
+        result = handler();
+    }
+
+    if (result === null || result === undefined) return;
+
+    // If handler redirected (like openWorkTab), don't show result
+    if (actionName === 'openWorkTab' || actionName === 'openMerchantTab') return;
+
+    const actionArea = document.getElementById("location-action-area");
+    if (!actionArea) return;
+
+    // Find the location
+    const region = worldData[regionKey];
+    const loc = region.locations.find(l => l.id === locationId);
+
+    actionArea.innerHTML = `
+        <div style="padding: 12px; margin: 10px 0; background: rgba(15,30,55,0.8); border-left: 3px solid #cfd8ff; border-radius: 6px; color: #dfe8ff; font-style: italic; line-height: 1.6;">
+            ${result}
+        </div>
+        ${renderLocationActions(regionKey, locationId, loc.actions)}
+    `;
+}
+
+/* =========================================
+   ORYGINALNE ZMIENNE I LOGIKA GRY
+=========================================*/
+/* -----------------------------------------
    ZMIENNE STARTOWE
 ----------------------------------------- */
 let chosenDragon = localStorage.getItem("chosenDragon");
@@ -1083,6 +2017,9 @@ function openTab(name) {
     document.getElementById(name).style.display = "block";
     
     // zawsze odświeżamy widok właściwy dla zakładki
+    if (name === "world") {
+        updateWorldTab();
+    }
     if (name === "dragons") {
         updateDragonsTab();
     }
