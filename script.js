@@ -399,9 +399,9 @@ function getDragonHomeDesc() {
 
 function updateHomeTab() {
     const home = document.getElementById("home-content");
-    dragonLevel = Math.min(15, dragonFeedings * 5);
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
-    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+    dragonLevel = dragonFeedings * 5;
+    secondDragonLevel = secondDragonFeedings * 5;
+    thirdDragonLevel = thirdDragonFeedings * 5;
 
     // Dynamiczny opis domu
     const homeDesc = getDragonHomeDesc();
@@ -444,8 +444,11 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
         missionHtml = `
             <div style="margin:8px 0; padding:8px; background:rgba(40,30,10,0.6); border-left:3px solid #cc9900; border-radius:4px;">
                 🦅 Na misji: <b>${mission.name}</b><br>
-                Pozostały czas: <b>${formatTime(remaining)}</b>
-                <div class="dialog-button" style="margin-top:6px;" onclick="checkMissionStatus(${num})">Sprawdź status</div>
+                <span style="color:#aaa; font-size:13px;">Pozostały czas: <b style="color:#ffcc44;">${formatTime(remaining)}</b></span>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <div class="dialog-button" style="flex:1;" onclick="checkMissionStatus(${num})">🔍 Status</div>
+                    <div class="dialog-button" style="flex:1; background:linear-gradient(#2a1800,#1a0f00); border-color:#cc6600; color:#ffaa44;" onclick="skipDragonMission(${num})">⏭️ Pomiń</div>
+                </div>
             </div>
         `;
     }
@@ -483,7 +486,15 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             ${missionHtml}
 
             ${!isOnMission ? `
-                ${level < 15 ? `<div class="dialog-button" onclick="feedDragon${num}()">🍖 Nakarm smoka</div>` : ''}
+                <details style="margin:6px 0;"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🍖 Nakarm smoka</summary>
+                <div style="margin-top:6px;">
+                    ${(foodItems.mięso||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'mięso')">🥩 Mięso (${foodItems.mięso}) — +Siła, +5 poz.</div>` : ''}
+                    ${(foodItems.jagody||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'jagody')">🫐 Jagody (${foodItems.jagody}) — +Inteligencja, +5 poz.</div>` : ''}
+                    ${(inventory['Świeża ryba']||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'ryba')">🐟 Ryba (${inventory['Świeża ryba']}) — +Zręczność, +5 poz.</div>` : ''}
+                    ${(inventory['Chleb']||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'chleb')">🍞 Chleb (${inventory['Chleb']}) — +Wytrzymałość, +5 poz.</div>` : ''}
+                    ${(inventory['Górski ser']||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'ser')">🧀 Ser (${inventory['Górski ser']}) — +Siła Woli, +5 poz.</div>` : ''}
+                    ${((foodItems.mięso||0)+(foodItems.jagody||0)+(inventory['Świeża ryba']||0)+(inventory['Chleb']||0)+(inventory['Górski ser']||0)) === 0 ? '<p style="color:#6070a0; font-size:12px; margin:4px 0;">Brak jedzenia. Kup u Handlarza Żywności lub znajdź na wyprawie.</p>' : ''}
+                </div></details>
                 ${vitals.fatigue > 0 ? `<div class="dialog-button" onclick="handleRestDragon(${num})">💤 Pozwól odpocząć</div>` : ''}
             ` : ''}
 
@@ -559,6 +570,72 @@ function skipDragonMission(dragonNum) {
     completeDragonMission(dragonNum);
 }
 
+
+/* =========================================
+   KARMIENIE SMOKA JEDZENIEM
+========================================= */
+const FOOD_STAT_MAP = {
+    'mięso':   { stat: 'sila',         label: 'Siła',       source: 'foodItems' },
+    'jagody':  { stat: 'inteligencja', label: 'Inteligencja', source: 'foodItems' },
+    'ryba':    { stat: 'zrecznosc',    label: 'Zręczność',   source: 'inventory', key: 'Świeża ryba' },
+    'chleb':   { stat: 'wytrzymalosc', label: 'Wytrzymałość', source: 'inventory', key: 'Chleb' },
+    'ser':     { stat: 'sila_woli',    label: 'Siła Woli',   source: 'inventory', key: 'Górski ser' },
+};
+
+function feedDragonFood(dragonNum, foodType) {
+    const foodDef = FOOD_STAT_MAP[foodType];
+    if (!foodDef) return;
+
+    // Check if food available
+    let hasFood = false;
+    if (foodDef.source === 'foodItems') {
+        hasFood = (foodItems[foodType] || 0) > 0;
+    } else {
+        hasFood = (inventory[foodDef.key] || 0) > 0;
+    }
+    if (!hasFood) { alert('Brak tego jedzenia!'); return; }
+
+    // Consume food
+    if (foodDef.source === 'foodItems') {
+        foodItems[foodType]--;
+        localStorage.setItem('foodItems', JSON.stringify(foodItems));
+    } else {
+        inventory[foodDef.key]--;
+        if (inventory[foodDef.key] <= 0) delete inventory[foodDef.key];
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+    }
+
+    // Increase feeding count (level +5)
+    if (dragonNum === 1) {
+        dragonFeedings++;
+        dragonLevel = dragonFeedings * 5;
+        localStorage.setItem('dragonFeedings', dragonFeedings);
+        localStorage.setItem('dragonLevel', dragonLevel);
+    } else if (dragonNum === 2) {
+        secondDragonFeedings++;
+        secondDragonLevel = secondDragonFeedings * 5;
+        localStorage.setItem('secondDragonFeedings', secondDragonFeedings);
+        localStorage.setItem('secondDragonLevel', secondDragonLevel);
+    } else if (dragonNum === 3) {
+        thirdDragonFeedings++;
+        thirdDragonLevel = thirdDragonFeedings * 5;
+        localStorage.setItem('thirdDragonFeedings', thirdDragonFeedings);
+        localStorage.setItem('thirdDragonLevel', thirdDragonLevel);
+    }
+
+    // Increase stat
+    const stats = loadDragonStats(dragonNum);
+    stats[foodDef.stat] = (stats[foodDef.stat] || 1) + 1;
+    saveDragonStats(dragonNum, stats);
+
+    const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
+    alert(`${name} zjadł ${foodType}!\n+5 poziomów | +1 ${foodDef.label}`);
+
+    updateHomeTab();
+    updateDragonsTab();
+    updateInventoryTabFull();
+}
+
 function checkMissionStatus(num) {
     const mission = loadDragonMission(num);
     if (!mission) {
@@ -580,9 +657,9 @@ function checkMissionStatus(num) {
 
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
-    dragonLevel = Math.min(15, dragonFeedings * 5);
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
-    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+    dragonLevel = dragonFeedings * 5;
+    secondDragonLevel = secondDragonFeedings * 5;
+    thirdDragonLevel = thirdDragonFeedings * 5;
 
     let html = renderDragonOverviewSlot(1, dragonName, chosenDragon, eggHeats, dragonLevel);
 
@@ -1116,7 +1193,7 @@ function unequipGear(dragonNum, slot) {
 }
 
 function getDragonCurrentLevel(dragonNum) {
-    if (dragonNum === 1) return Math.min(100, dragonFeedings * 5);
+    if (dragonNum === 1) return dragonFeedings * 5;
     if (dragonNum === 2) return Math.min(100, secondDragonFeedings * 5);
     if (dragonNum === 3) return Math.min(100, thirdDragonFeedings * 5);
     return 0;
@@ -1552,15 +1629,260 @@ function getMoonGateStatus() {
    SPRAWDZENIE CZY SMOK MA MIN. POZIOM
 ----------------------------------------- */
 function hasHighLevelDragon(minLevel) {
-    const l1 = Math.min(30, dragonFeedings * 5);
-    const l2 = secondDragonUnlocked ? Math.min(30, secondDragonFeedings * 5) : 0;
-    const l3 = thirdDragonUnlocked ? Math.min(30, thirdDragonFeedings * 5) : 0;
+    const l1 = dragonFeedings * 5;
+    const l2 = secondDragonUnlocked ? secondDragonFeedings * 5 : 0;
+    const l3 = thirdDragonUnlocked ? thirdDragonFeedings * 5 : 0;
     return Math.max(l1, l2, l3) >= minLevel;
 }
 
 /* -----------------------------------------
    DANE LOKACJI
 ----------------------------------------- */
+/* =========================================
+   ROZBUDOWANY QUEST — KSIĘŻYCOWA BRAMA
+========================================= */
+
+const RUNE_QUEST_STAGES = {
+    none: 'Brak postępów',
+    sketch: 'Czeka na szkic run',
+    readFirst: 'Czyta księgi',
+    readBooks: 'Po lekturze',
+    knowAlready: 'Odwiedził bramę',
+    notInterested: 'Niezainteresowany',
+    done: 'Zakończył wstępne badania',
+    delivered: 'Kartka dostarczona — bibliotekarz bada',
+    researchDone: 'Bibliotekarz zakończył badania',
+    fragment_hunt: 'Szuka fragmentów inskrypcji',
+    translated: 'Runy przetłumaczone',
+};
+
+function getRuneQuestStage() {
+    return localStorage.getItem('runeQuestProgress') || 'none';
+}
+
+function setRuneQuestStage(stage) {
+    localStorage.setItem('runeQuestProgress', stage);
+}
+
+// Returns extra content + extra actions for ksiezycowa_brama based on quest progress
+function getMoonGateQuestContent(moonOpen) {
+    const stage = getRuneQuestStage();
+    const hasSzkicownik = (inventory['Szkicownik'] || 0) > 0;
+    const hasKartka = (inventory['Kartka z runami'] || 0) > 0;
+    const hasKopia = (inventory['Kopia inskrypcji'] || 0) > 0;
+    const hasFrag1 = (inventory['Fragment runicznego kamienia I'] || 0) > 0;
+    const hasFrag2 = (inventory['Fragment runicznego kamienia II'] || 0) > 0;
+    const hasFrag3 = (inventory['Fragment runicznego kamienia III'] || 0) > 0;
+
+    let extra = '';
+    let questActions = [];
+
+    // Stage: has szkicownik, no kartka yet
+    if (hasSzkicownik && !hasKartka) {
+        extra += `<div style="margin:8px 0; padding:10px; background:rgba(20,40,30,0.6); border-left:3px solid #44cc88; border-radius:6px; color:#99ffcc;">
+            Masz przy sobie szkicownik. Runy są przed tobą — precyzyjne, tajemnicze.
+        </div>`;
+        questActions.push({ label: '📝 Przeszkicuj runy', onclick: 'sketchMoonGateRunes()' });
+    }
+
+    // Stage: has kartka — remind to go to library
+    if (hasKartka) {
+        extra += `<div style="margin:8px 0; padding:8px; background:rgba(10,40,20,0.4); border-left:3px solid #44cc88; border-radius:6px; color:#88cc88; font-size:13px; font-style:italic;">
+            Masz szkic run w ekwipunku. Bibliotekarz z pewnością będzie chciał go zobaczyć.
+        </div>`;
+    }
+
+    // Stage: bibliotekarz skończył badania — czas wrócić
+    if (stage === 'researchDone') {
+        extra += `<div style="margin:8px 0; padding:10px; background:rgba(30,10,60,0.6); border-left:3px solid #cc66ff; border-radius:6px; color:#cc99ff;">
+            Masz poczucie, że powinieneś wrócić do bibliotekarza. Coś jest gotowe.
+        </div>`;
+    }
+
+    // Stage: fragment_hunt — szukaj fragmentów przy bramie
+    if (stage === 'fragment_hunt') {
+        const collected = [hasFrag1, hasFrag2, hasFrag3].filter(Boolean).length;
+        extra += `<div style="margin:8px 0; padding:10px; background:rgba(30,10,60,0.6); border-left:3px solid #9966cc; border-radius:6px; color:#cc99ff; font-size:13px;">
+            Bibliotekarz twierdzi, że fragmenty kamienia mogą być ukryte w pobliżu bramy lub zdobyte na wyprawach.<br>
+            Zebrano: ${collected}/3 fragmentów.
+        </div>`;
+        if (!hasFrag1) questActions.push({ label: '🔍 Szukaj wśród skał (I)', onclick: 'searchForFragment(1)' });
+        if (hasFrag1 && !hasFrag2) questActions.push({ label: '🔍 Szukaj głębiej (II)', onclick: 'searchForFragment(2)' });
+    }
+
+    // Stage: translated — brama reaguje inaczej
+    if (stage === 'translated' && moonOpen) {
+        extra += `<div style="margin:8px 0; padding:12px; background:rgba(30,50,10,0.6); border-left:3px solid #88ff44; border-radius:6px; color:#ccff88; font-style:italic; line-height:1.7;">
+            Znasz już znaczenie run. Jedna z nich — ta po lewej — oznacza "wejście". Inna "powrót". I jedna, pośrodku, której bibliotekarz nie przetłumaczył do końca — tylko napisał: "warunek".
+        </div>`;
+    }
+
+    return { extra, questActions };
+}
+
+function searchForFragment(num) {
+    // Random chance — the fragment may be there
+    const chance = num === 1 ? 0.7 : num === 2 ? 0.5 : 0.3;
+    if (Math.random() < chance) {
+        const key = `Fragment runicznego kamienia ${['I','II','III'][num-1]}`;
+        inventory[key] = 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTabFull();
+        alert(`Znalazłeś: ${key}!\nKamień jest ciepły w dotyku. Coś w nim drga — jakby część bramy żyła w tym fragmencie.`);
+    } else {
+        const msgs = [
+            'Szukasz między skałami przez dłuższą chwilę. Nic. Może trzeba tu wrócić innym razem — albo inną drogą.',
+            'Palce ślizgają się po zimnym kamieniu. Ziemia wydaje się obiecywać, ale dziś nie daje.',
+            'Coś błyszczało między głazami — ale gdy podchodzisz bliżej, to tylko rosa na skale.'
+        ];
+        alert(msgs[Math.floor(Math.random() * msgs.length)]);
+    }
+    openLocation('gory', 'ksiezycowa_brama');
+}
+
+/* =========================================
+   MISJA POSTERUNKU STRAŻY — 3 ZAKOŃCZENIA
+========================================= */
+
+function startGuardMission() {
+    localStorage.setItem('guardMissionStage', 'intro');
+    localStorage.setItem('guardMissionStart', String(Date.now()));
+    renderGuardMission();
+}
+
+function renderGuardMission() {
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    const stage = localStorage.getItem('guardMissionStage') || 'none';
+
+    if (stage === 'none' || !stage) {
+        box.innerHTML = `
+            <div class="dialog-button" onclick="startGuardMission()">⚔️ Podjij misję dla Kapitan</div>
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>
+        `;
+        return;
+    }
+
+    const stages = {
+        intro: {
+            title: 'Zlecenie Kapitan Miry',
+            text: `Kapitan Mira odkłada raporty i mierzy cię wzrokiem.\n\n— Mamy problem. Kurier z dokumentami zaginął trzy dni temu gdzieś między miastem a fortem na wzgórzu. Dokumenty są ważne — nie dla mnie, dla kogoś wyżej. Chcę żebyś się tym zajął. Dyskretnie.\n\nPodaje ci opisany kawałek pergaminu — wizerunek kuriera i ostatnia znana trasa.\n\n— Ale zapamiętaj — mówi cicho. — Jak go znajdziesz, wróć tu zanim cokolwiek zrobisz. Mamy swój sposób postępowania z takimi rzeczami.`,
+            actions: [
+                { label: '„Jasne, najpierw do ciebie." (Posłuszna droga)', onclick: "advanceGuardMission('loyal')" },
+                { label: '„A jeśli będę musiał działać na miejscu?" (Niezależna droga)', onclick: "advanceGuardMission('independent')" },
+                { label: '„Czemu to takie ważne? Co to za dokumenty?"', onclick: "advanceGuardMission('question')" },
+            ]
+        },
+        question: {
+            title: 'Pytanie',
+            text: `Kapitan przez chwilę milczy.\n\n— Są ważne — mówi w końcu, z naciskiem na "ważne". — I to wystarczy. Mira uśmiecha się, ale uśmiech nie dosięga oczu. — Interesuje cię zlecenie czy nie?\n\nPrzełykasz ślinę.`,
+            actions: [
+                { label: '„Tak. Podejmuję."', onclick: "advanceGuardMission('loyal')" },
+                { label: '„Działam jak uznam za stosowne."', onclick: "advanceGuardMission('independent')" },
+            ]
+        },
+        loyal: {
+            title: 'Fort na wzgórzu',
+            text: `Docierasz do fortu późnym popołudniem. Wartownicy wpuszczają cię bez pytań — Kapitan wyraźnie was uprzedziła.\n\nW piwnicy fortu siedzą trzej podejrzani mężczyźni. Jeden z nich — chudy, nerwowy — ma na odzieży ślad po torbie kurierskiej.\n\nPod kątem przepytywania okazuje się, że kurier żyje. Trzymają go w karczmie niedaleko — skradziono mu dokumenty, ale on sam uciekł i ukrywa się ze strachu.\n\nZnajdujesz go. Dokumenty — zwinięte w rulon za lustrem — wciąż są przy nim.\n\nCo robisz?`,
+            actions: [
+                { label: 'Weź dokumenty i wróć do Kapitan (koniec A)', onclick: "finishGuardMission('A')" },
+                { label: 'Najpierw zapytaj kuriera o zawartość dokumentów (koniec B)', onclick: "advanceGuardMission('loyal_read')" },
+            ]
+        },
+        loyal_read: {
+            title: 'Zawartość',
+            text: `Kurier patrzy na ciebie z wahaniem, potem kiwa głową.\n\n— Widziałem je gdy je pobierałem. Listy. Czyjeś listy do kogoś. Adresy, nazwiska, spotkania. Brzmiało jak... spis osób obserwowanych przez Straż.\n\nSerce przyspiesza. To rejestr szpiegów — albo osób szpiegowanych. Oboje.\n\n— Kapitan Mira zleca takie rzeczy? — pytasz.\nKurier wzrusza ramionami. — Skąd mam wiedzieć. Rozkaz przyszedł z góry.\n\nCo robisz?`,
+            actions: [
+                { label: 'Wróć do Kapitan z dokumentami (koniec A)', onclick: "finishGuardMission('A')" },
+                { label: 'Weź dokumenty ale nie wróć do Kapitan — oddaj Handlarzowi w Pałacu (koniec C)', onclick: "finishGuardMission('C')" },
+            ]
+        },
+        independent: {
+            title: 'Fort na wzgórzu',
+            text: `Działasz sam, bez meldowania do Posterunku.\n\nSytuacja jest ta sama — kurier żyje, ukrywa się w karczmie. Dokumenty za lustrem.\n\nAle gdy sięgasz po rulon, kurier łapie cię za rękę.\n\n— Nie wiem kto cię przysłał — szepcze. — Ale wiem, że te dokumenty są niebezpieczne dla wielu ludzi. Dla mnie też. Jeśli wrócą do Straży, niektórzy skończą w lochu.\n\nCo robisz?`,
+            actions: [
+                { label: 'Wróć do Kapitan z dokumentami (koniec A)', onclick: "finishGuardMission('A')" },
+                { label: 'Zniszcz dokumenty na miejscu (koniec B)', onclick: "finishGuardMission('B')" },
+                { label: 'Oddaj dokumenty kurierowi i powiedz mu żeby uciekał (koniec C)', onclick: "finishGuardMission('C')" },
+            ]
+        },
+    };
+
+    const current = stages[stage];
+    if (!current) {
+        box.innerHTML = `<p style="color:#888;">Błąd misji. <div class="dialog-button" onclick="openRegion('miasto')">← Wróć</div></p>`;
+        return;
+    }
+
+    box.innerHTML = `
+        <div style="margin-bottom:12px; padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; white-space:pre-line; font-style:italic;">${current.text}</div>
+        ${current.actions.map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
+    `;
+}
+
+function advanceGuardMission(nextStage) {
+    localStorage.setItem('guardMissionStage', nextStage);
+    renderGuardMission();
+}
+
+function finishGuardMission(ending) {
+    localStorage.setItem('guardMissionStage', 'done_' + ending);
+    localStorage.setItem('guardMissionEnding', ending);
+
+    const box = document.getElementById("location-action-area");
+    if (!box) return;
+
+    const endings = {
+        A: {
+            title: '⚔️ Zakończenie A: Droga Straży',
+            text: `Wracasz do Kapitan z dokumentami. Mira bierze je bez słowa, nie otwierając.\n\n— Dobrze — mówi. — Zapłacę ci jak obiecałam.\n\nDostaje też krótkie skinienie głową — symbol uznania. Lub może tylko pokwitowania.\n\nKurier zostaje zwolniony z aresztu kilka dni później. Podobno. Nie pytaj za dużo.\n\n🏆 Nagroda: 5 srebrnych + reputacja w Straży`,
+            reward: () => { spendCurrency(-500); } // add 5 silver
+        },
+        B: {
+            title: '🔥 Zakończenie B: Droga Sprawiedliwości',
+            text: `Paliasz dokumenty w kominku karczmy. Kurier patrzy jak ogień pochłania pergamin i odchodzi bez słowa.\n\nWracasz do Kapitan z pustymi rękami.\n\n— Gdzie są dokumenty? — pyta twardo.\n— Spłonęły — odpowiadasz spokojnie.\n\nMilczenie trwa długo.\n\n— Rozumiem — mówi w końcu. — Nie możemy ci zapłacić za to czego nie ma. Ale... nie melduj się tu przez jakiś czas.\n\nWychodzisz. Na schodach masz wrażenie, że ktoś na ciebie patrzy.\n\n⚔️ Brak nagrody pieniężnej. Coś jednak zostało zapamiętane.`,
+            reward: () => {
+                inventory['Tajemnicza notatka'] = (inventory['Tajemnicza notatka'] || 0) + 1;
+                localStorage.setItem('inventory', JSON.stringify(inventory));
+            }
+        },
+        C: {
+            title: '🌑 Zakończenie C: Droga Cienia',
+            text: `Dokumenty trafiają w inne ręce. Skryte, dyskretne.\n\nNie wiesz, co się z nimi stanie. Nie chcesz wiedzieć.\n\nKilka dni później przy twoich drzwiach (a może przy smoczym gnieździe?) pojawia się anonimowa paczka. W środku: złota moneta i kartka bez podpisu.\n\n"Dobra robota. Będziemy w kontakcie."\n\n💰 Nagroda: 1 złota + nowe możliwości w przyszłości`,
+            reward: () => {
+                spendCurrency(-5000); // add 1 gold
+                localStorage.setItem('shadowContact', 'true');
+            }
+        }
+    };
+
+    const e = endings[ending];
+    if (!e) return;
+
+    // Apply reward
+    if (ending === 'A') { adjustCurrency('silver', 5); }
+    else if (ending === 'B') {
+        inventory['Tajemnicza notatka'] = (inventory['Tajemnicza notatka'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+    }
+    else if (ending === 'C') {
+        adjustCurrency('gold', 1);
+        localStorage.setItem('shadowContact', 'true');
+    }
+
+    updateInventoryTabFull();
+
+    box.innerHTML = `
+        <div style="margin-bottom:12px; padding:14px; background:rgba(10,20,40,0.8); border:1px solid #5a4a2a; border-radius:8px; color:#e0d090; line-height:1.8; white-space:pre-line; font-style:italic;">
+            <div style="font-weight:bold; color:#ffcc66; margin-bottom:10px; font-size:15px;">${e.title}</div>
+            ${e.text}
+        </div>
+        <div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+    `;
+}
+
+
 const worldData = {
     miasto: {
         label: "Miasto Astorveil",
@@ -1657,7 +1979,7 @@ const worldData = {
                 actions: [
                     { label: "Zgłoś problem", action: "reportIssue", desc: "Straż chętnie przyjmuje zgłoszenia od mieszkańców." },
                     { label: "Sprawdź listy gończe", action: "wantedList", desc: "Może ktoś znajomy jest na liście?" },
-                    { label: "Zaoferuj pomoc", action: "offerHelp", desc: "Straż płaci za pomoc przy pewnych sprawach." },
+                    { label: "🗡️ Podjij misję dla Straży", action: "offerHelp", desc: "Kapitan ma zlecenie specjalne — może nie wygodne, ale intratne." },
                     { label: "Zawróć", action: "back" }
                 ]
             },
@@ -1941,6 +2263,7 @@ function openLocation(regionKey, locationId) {
 
     // Special handling for moon gate
     let extraContent = '';
+    let extraQuestActions = [];
     if (locationId === 'ksiezycowa_brama') {
         const moonStatus = getMoonGateStatus();
         if (!moonStatus.open) {
@@ -1948,18 +2271,9 @@ function openLocation(regionKey, locationId) {
         } else {
             extraContent = `<div style="margin: 10px 0; padding: 10px; background: rgba(30,50,30,0.6); border-left: 3px solid #66cc99; border-radius: 6px; color: #99ffcc; font-style: italic;">Runy pulsują zimnym, srebrnym światłem. Brama drży jakby oddychała.</div>`;
         }
-        // Extra option: sketch runes if player has Szkicownik and doesn't yet have the sketch
-        const hasSzkicownik = (inventory['Szkicownik'] || 0) > 0;
-        const hasKartka = (inventory['Kartka z runami'] || 0) > 0;
-        if (hasSzkicownik && !hasKartka) {
-            extraContent += `<div style="margin: 10px 0; padding: 10px; background: rgba(20,40,30,0.6); border-left: 3px solid #44cc88; border-radius: 6px; color: #99ffcc;">
-                Masz przy sobie szkicownik. Runy są przed tobą — precyzyjne, tajemnicze.
-                <div class="dialog-button" style="margin-top:8px;" onclick="sketchMoonGateRunes()">📝 Przeszkicuj runy</div>
-            </div>`;
-        }
-        if (hasKartka) {
-            extraContent += `<div style="margin: 8px 0; padding: 8px; background: rgba(20,30,20,0.5); border-left: 3px solid #44cc88; border-radius: 6px; color: #88cc88; font-size:13px; font-style:italic;">Masz już szkic run w ekwipunku. Bibliotekarz na pewno chętnie go przejrzy.</div>`;
-        }
+        const questContent = getMoonGateQuestContent(moonStatus.open);
+        extraContent += questContent.extra;
+        extraQuestActions = questContent.questActions;
     }
 
     const area = document.getElementById("world-content-area");
@@ -1969,6 +2283,7 @@ function openLocation(regionKey, locationId) {
             <div class="dialog-text" style="white-space:pre-line;">${loc.desc}</div>
             ${extraContent}
             <div id="location-action-area">
+                ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
                 ${renderLocationActions(regionKey, locationId, loc.actions)}
             </div>
         </div>
@@ -2117,7 +2432,7 @@ const locationResponses = {
         ];
         return wanted[Math.floor(Math.random() * wanted.length)];
     },
-    offerHelp: () => "Kapitan unosi głowę. — Mamy kilka otwartych spraw, które nie są na tablicy ogłoszeń. Wróć, jak będziesz miał czas i... odpowiednie możliwości.",
+    offerHelp: () => { renderGuardMission(); return null; },
 
     // PORT
     talkFishermen: () => {
@@ -2433,7 +2748,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -2470,10 +2785,10 @@ let secondDragonName = localStorage.getItem("secondDragonName") || "Drugi Smok";
 
 // poziomy i karmienie
 let dragonFeedings = Number(localStorage.getItem("dragonFeedings")) || 0;
-let dragonLevel = Math.min(15, dragonFeedings * 5);
+let dragonLevel = dragonFeedings * 5;
 
 let secondDragonFeedings = Number(localStorage.getItem("secondDragonFeedings")) || 0;
-let secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+let secondDragonLevel = secondDragonFeedings * 5;
 
 // odblokowanie trzeciego oraz stan handlarza
 let thirdDragonUnlocked = localStorage.getItem("thirdDragonUnlocked") === "true";
@@ -2483,7 +2798,7 @@ let thirdLastHeat = Number(localStorage.getItem("thirdLastHeat")) || 0;
 let thirdDragonName = localStorage.getItem("thirdDragonName") || "Trzeci Smok";
 
 let thirdDragonFeedings = Number(localStorage.getItem("thirdDragonFeedings")) || 0;
-let thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+let thirdDragonLevel = thirdDragonFeedings * 5;
 
 let merchantAfterSecondVisit = localStorage.getItem("merchantAfterSecondVisit") === "true";
 let merchantAfterThirdVisit = localStorage.getItem("merchantAfterThirdVisit") === "true";
@@ -2982,7 +3297,7 @@ function heatEgg1() {
 function feedDragon1() {
     if (dragonLevel >= 15) return;
     dragonFeedings++;
-    dragonLevel = Math.min(15, dragonFeedings * 5);
+    dragonLevel = dragonFeedings * 5;
     localStorage.setItem("dragonFeedings", dragonFeedings);
     localStorage.setItem("dragonLevel", dragonLevel);
 
@@ -2993,7 +3308,7 @@ function feedDragon1() {
 function feedDragon2() {
     if (secondDragonLevel >= 15) return;
     secondDragonFeedings++;
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+    secondDragonLevel = secondDragonFeedings * 5;
     localStorage.setItem("secondDragonFeedings", secondDragonFeedings);
     localStorage.setItem("secondDragonLevel", secondDragonLevel);
 
@@ -3028,7 +3343,7 @@ function heatEgg3() {
 function feedDragon3() {
     if (thirdDragonLevel >= 15) return;
     thirdDragonFeedings++;
-    thirdDragonLevel = Math.min(15, thirdDragonFeedings * 5);
+    thirdDragonLevel = thirdDragonFeedings * 5;
     localStorage.setItem("thirdDragonFeedings", thirdDragonFeedings);
     localStorage.setItem("thirdDragonLevel", thirdDragonLevel);
 
@@ -3215,8 +3530,8 @@ function updateMerchantTab() {
     merchantGreetingShown = localStorage.getItem("merchantGreetingShown") === "true";
 
     // ensure levels up-to-date
-    dragonLevel = Math.min(15, dragonFeedings * 5);
-    secondDragonLevel = Math.min(15, secondDragonFeedings * 5);
+    dragonLevel = dragonFeedings * 5;
+    secondDragonLevel = secondDragonFeedings * 5;
 
     // Show atmospheric greeting on first visit
     if (secondDragonUnlocked === false && !merchantGreetingShown) {
@@ -3384,6 +3699,9 @@ function merchantConfirm(element) {
                 „Dobrze. Oto twoje jajo. Dbaj o nie, a wykluje się potężny smok.”
             </div>
         </div>
+            <div class="dialog-button" onclick="openTab('world'); setTimeout(()=>openRegion('miasto'),80)">← Wróć do Astorveil</div>
+            <div class="dialog-button" style="border-color:#556; color:#aab;" onclick="openTab('home')">🏠 Przejdź do Domu</div>
+        </div>
     `;
 
     updateDragonsTab();
@@ -3413,6 +3731,8 @@ function unlockThird(element) {
                 „Widzę, że spełniłeś wymagania. Trzecie jajo jest teraz twoje – ale o tym później...<br>
                 Gratulacje wyboru! Na pewno Astor jest przychylny Twojej decyzji. Bądźcie zdrowi!”
             </div>
+            <div class="dialog-button" onclick="openTab('world'); setTimeout(()=>openRegion('miasto'),80)">← Wróć do Astorveil</div>
+            <div class="dialog-button" style="border-color:#556; color:#aab;" onclick="openTab('home')">🏠 Przejdź do Domu</div>
         </div>
     `;
     updateDragonsTab();
