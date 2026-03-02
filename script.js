@@ -105,24 +105,24 @@ const RAISABLE_STATS = ['sila', 'wytrzymalosc', 'zrecznosc', 'inteligencja', 'si
 
 const DRAGON_SPELLS = {
     ogien: [
-        { id: 'ogniste_uderzenie', name: 'Ogniste Uderzenie', desc: 'Potężny atak ogniem, zadający obrażenia jednemu celowi.', manaCost: 5 },
-        { id: 'sciana_ognia', name: 'Ściana Ognia', desc: 'Smok tworzy barierę z płomieni, blokującą wrogów.', manaCost: 8 },
-        { id: 'oddech_smoka', name: 'Smocze Żar', desc: 'Klasyczny oddech smoka — szeroki i niszczycielski.', manaCost: 10 }
+        { id: 'ogniste_uderzenie', name: 'Ogniste Uderzenie', desc: 'Potężny atak ogniem, zadający obrażenia jednemu celowi.', manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'sciana_ognia',      name: 'Ściana Ognia',      desc: 'Smok tworzy barierę z płomieni, niszcząc wszystko wokół.',          manaCost: 8,  dmgMult: [2.0, 3.5] },
+        { id: 'oddech_smoka',      name: 'Smocze Żar',        desc: 'Klasyczny oddech smoka — szeroki i niszczycielski.',                 manaCost: 10, dmgMult: [3.0, 5.0] }
     ],
     woda: [
-        { id: 'wodne_uderzenie', name: 'Wodne Uderzenie', desc: 'Strumień wody o zabójczej sile trafia w cel.', manaCost: 5 },
-        { id: 'lodowy_podmuch', name: 'Lodowy Podmuch', desc: 'Zamarza teren wokół wroga, spowalniając go.', manaCost: 8 },
-        { id: 'uzdrawiajacy_strumien', name: 'Uzdrawiający Strumień', desc: 'Smok leczy siebie lub sojusznika strumieniem magicznej wody.', manaCost: 10 }
+        { id: 'wodne_uderzenie',     name: 'Wodne Uderzenie',     desc: 'Strumień wody o zabójczej sile trafia w cel.',      manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'lodowy_podmuch',      name: 'Lodowy Podmuch',      desc: 'Zamarza teren wokół wroga, spowalniając i raniąc.', manaCost: 8,  dmgMult: [2.0, 3.5] },
+        { id: 'uzdrawiajacy_strumien', name: 'Uzdrawiający Strumień', desc: 'Smok leczy siebie strumieniem magicznej wody.', manaCost: 10, heal: [20, 40], isHeal: true }
     ],
     ziemia: [
-        { id: 'kamienne_uderzenie', name: 'Kamienne Uderzenie', desc: 'Głaz wali z ogromną siłą w przeciwnika.', manaCost: 5 },
-        { id: 'trzesienie_ziemi', name: 'Trzęsienie Ziemi', desc: 'Smok uderza w ziemię, destabilizując wrogów.', manaCost: 8 },
-        { id: 'kamienna_skora', name: 'Kamienna Skóra', desc: 'Ciało smoka pokrywa się skałą, zwiększając obronę.', manaCost: 10 }
+        { id: 'kamienne_uderzenie', name: 'Kamienne Uderzenie', desc: 'Głaz wali z ogromną siłą w przeciwnika.',                     manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'trzesienie_ziemi',   name: 'Trzęsienie Ziemi',   desc: 'Smok uderza w ziemię, fala wstrząsów dosięga każdego.',       manaCost: 8,  dmgMult: [2.0, 3.5] },
+        { id: 'kamienna_skora',     name: 'Kamienna Skóra',     desc: 'Ciało smoka pokrywa się skałą — leczenie i pancerz.',         manaCost: 10, heal: [15, 30], isHeal: true }
     ],
     powietrze: [
-        { id: 'powietrzne_uderzenie', name: 'Powietrzne Uderzenie', desc: 'Ostra podmuch powietrza tnie jak ostrze.', manaCost: 5 },
-        { id: 'cyklon', name: 'Cyklon', desc: 'Smok wznosi spiralę wichru, odrzucając wrogów.', manaCost: 8 },
-        { id: 'taniec_wiatru', name: 'Taniec Wiatru', desc: 'Smok staje się nieuchwytny jak wiatr, unikając ataków.', manaCost: 10 }
+        { id: 'powietrzne_uderzenie', name: 'Powietrzne Uderzenie', desc: 'Ostra podmuch powietrza tnie jak ostrze.',              manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'cyklon',              name: 'Cyklon',               desc: 'Smok wznosi spiralę wichru, odrzucając i raniąc wrogów.', manaCost: 8,  dmgMult: [2.0, 4.0] },
+        { id: 'taniec_wiatru',       name: 'Taniec Wiatru',        desc: 'Smok staje się nieuchwytny — unik i leczący podmuch.',    manaCost: 10, heal: [10, 25], dodge: true, isHeal: true }
     ]
 };
 
@@ -253,11 +253,12 @@ function incrementArenaFights(dragonNum) {
 }
 
 const ARENA_OPPONENTS = [
-    { name: 'Dziki Szczur Podziemi', sila: 4, wytrzymalosc: 3, zrecznosc: 6 },
-    { name: 'Leśny Padalec', sila: 5, wytrzymalosc: 5, zrecznosc: 5 },
-    { name: 'Smoczek z Gór', sila: 7, wytrzymalosc: 6, zrecznosc: 4 },
-    { name: 'Starszy Gryf', sila: 8, wytrzymalosc: 7, zrecznosc: 7 },
-    { name: 'Chimera Miejska', sila: 10, wytrzymalosc: 9, zrecznosc: 8 },
+    { name: 'Dziki Szczur Podziemi', sila: 4, wytrzymalosc: 3, zrecznosc: 6,  reward: { silver: 1 },  rewardDesc: '1 srebro',  difficulty: '🟢 Łatwy',  desc: 'Wielki gryzień o ostrych kłach. Szybki, ale kruchy.' },
+    { name: 'Leśny Padalec',         sila: 5, wytrzymalosc: 5, zrecznosc: 5,  reward: { silver: 1 },  rewardDesc: '1 srebro',  difficulty: '🟢 Łatwy',  desc: 'Jadowity wąż z lasu. Przeciętne statystyki, groźny jad.' },
+    { name: 'Smoczek z Gór',         sila: 7, wytrzymalosc: 6, zrecznosc: 4,  reward: { silver: 2 },  rewardDesc: '2 srebro',  difficulty: '🟡 Średni', desc: 'Młody smok górski. Powolny, ale bardzo wytrzymały.' },
+    { name: 'Starszy Gryf',          sila: 8, wytrzymalosc: 7, zrecznosc: 7,  reward: { silver: 3 },  rewardDesc: '3 srebro',  difficulty: '🟡 Średni', desc: 'Skrzydlate stworzenie z pazurami jak szable. Zwinne i silne.' },
+    { name: 'Chimera Miejska',       sila: 10, wytrzymalosc: 9, zrecznosc: 8, reward: { silver: 5 },  rewardDesc: '5 srebra', difficulty: '🔴 Trudny',  desc: 'Potwór trzech głów. Mistrz areny. Walczy na wielu frontach.' },
+    { name: 'Smok Ognia Zapomnianego', sila: 13, wytrzymalosc: 12, zrecznosc: 10, reward: { gold: 1 }, rewardDesc: '1 złota', difficulty: '🔴 Legenda', desc: 'Pradawny smok ognisty — pół legenda, pół koszmар. Mało kto wraca.' },
 ];
 
 function simulateDragonFight(dragonNum) {
@@ -397,6 +398,15 @@ function getDragonHomeDesc() {
    ZAKŁADKA DOM (NOWA WERSJA)
 ========================================= */
 
+
+const _detailsState = {};
+function saveDetailsState(type, num, isOpen) {
+    _detailsState[type + num] = isOpen ? 'open' : 'closed';
+}
+function getDetailsState(type, num) {
+    return _detailsState[type + num] || (type === 'feed' ? 'open' : 'closed');
+}
+
 function updateHomeTab() {
     const home = document.getElementById("home-content");
     dragonLevel = dragonFeedings * 5;
@@ -486,7 +496,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             ${missionHtml}
 
             ${!isOnMission ? `
-                <details style="margin:6px 0;" open id="feed-details-${num}"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🍖 Nakarm smoka</summary>
+                <details style="margin:6px 0;" ${getDetailsState('feed', num) !== 'closed' ? 'open' : ''} id="feed-details-${num}" ontoggle="saveDetailsState('feed', ${num}, this.open)"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🍖 Nakarm smoka</summary>
                 <div style="margin-top:6px;">
                     ${(foodItems.mięso||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'mięso')">🥩 Mięso (${foodItems.mięso}) — +Siła, +5 poz.</div>` : ''}
                     ${(foodItems.jagody||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'jagody')">🫐 Jagody (${foodItems.jagody}) — +Inteligencja, +5 poz.</div>` : ''}
@@ -500,7 +510,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
 
             <!-- Misje smoka -->
             ${!isOnMission ? `
-                <details style="margin:8px 0;">
+                <details style="margin:8px 0;" ${getDetailsState('mission', num) === 'open' ? 'open' : ''} ontoggle="saveDetailsState('mission', ${num}, this.open)">
                     <summary style="cursor:pointer; color:#9ab; padding:6px 0;">🗺️ Wyślij na misję</summary>
                     <div style="margin-top:8px;">
                         ${DRAGON_MISSIONS.map(m => `
@@ -775,6 +785,94 @@ function handleEnrollDragon(num) {
    ARENA — ZAKTUALIZOWANE AKCJE
 ========================================= */
 
+
+function getTempleHeals() {
+    const today = new Date().toISOString().slice(0,10);
+    const stored = JSON.parse(localStorage.getItem('templeHeals') || '{"date":"","count":0}');
+    if (stored.date !== today) return 0;
+    return stored.count;
+}
+function useTempleHeal() {
+    const today = new Date().toISOString().slice(0,10);
+    const current = getTempleHeals();
+    localStorage.setItem('templeHeals', JSON.stringify({ date: today, count: current + 1 }));
+}
+
+function renderTempleHeal() {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    const healsUsed = getTempleHeals();
+    const healsLeft = 3 - healsUsed;
+
+    const dragons = [];
+    if (eggHeats >= 3) dragons.push({ num: 1, name: dragonName });
+    if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ num: 2, name: secondDragonName });
+    if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ num: 3, name: thirdDragonName });
+
+    let html = `
+        <div style="padding:12px; background:rgba(40,20,10,0.6); border-left:3px solid #cc9900; border-radius:6px; margin-bottom:12px; font-style:italic; color:#e0c080; line-height:1.7;">
+            Kapłanka pochyla się nad ołtarzem i wzbudza święty ogień.<br>
+            — Astor może odnowić siły twojego smoka. Jedno uzdrowienie kosztuje <b style="color:#ffcc44;">1 srebro</b>.<br>
+            Leczeń pozostało dziś: <b style="color:${healsLeft>0?'#66ff88':'#ff6666'};">${healsLeft}/3</b>
+        </div>
+    `;
+
+    if (healsLeft <= 0) {
+        html += `<div style="color:#7080aa; font-style:italic; margin-bottom:10px;">Astor potrzebuje odpoczynku. Wróć jutro.</div>`;
+    } else if (!canAfford(100)) {
+        html += `<div style="color:#ff6666; font-style:italic; margin-bottom:10px;">Brakuje ci srebra (1 srebrna moneta).</div>`;
+    } else if (dragons.length === 0) {
+        html += `<div style="color:#7080aa; font-style:italic; margin-bottom:10px;">Nie masz wyklutego smoka.</div>`;
+    } else {
+        dragons.forEach(d => {
+            const stats = loadDragonStats(d.num);
+            const vitals = loadDragonVitals(d.num);
+            const maxHP = getDragonMaxHP(stats);
+            const maxMana = getDragonMaxMana(stats);
+            const alreadyFull = vitals.hp >= maxHP && vitals.mana >= maxMana && vitals.fatigue === 0;
+            html += `
+                <div style="margin:6px 0; padding:8px; background:rgba(20,30,20,0.5); border-radius:6px;">
+                    <b>${d.name}</b> — ❤️ ${vitals.hp}/${maxHP} | 💧 ${vitals.mana}/${maxMana} | 😴 ${vitals.fatigue}/100
+                    ${alreadyFull
+                        ? '<div style="color:#66cc88; font-size:12px; margin-top:4px;">✅ Pełne zdrowie</div>'
+                        : `<div class="dialog-button" style="margin-top:6px; font-size:13px;" onclick="doTempleHeal(${d.num})">🙏 Uzdrów (1 srebro)</div>`
+                    }
+                </div>
+            `;
+        });
+    }
+
+    html += `<div class="dialog-button" style="margin-top:10px; border-color:#778; color:#aab;" onclick="openLocation('miasto','swiatynia')">← Wróć do Świątyni</div>`;
+    box.innerHTML = html;
+}
+
+function doTempleHeal(dragonNum) {
+    if (getTempleHeals() >= 3) { alert('Wyczerpano dzienne leczeń.'); return; }
+    if (!canAfford(100)) { alert('Brakuje 1 srebrnej monety.'); return; }
+    spendCurrency(100);
+    useTempleHeal();
+
+    const stats = loadDragonStats(dragonNum);
+    const vitals = loadDragonVitals(dragonNum);
+    vitals.hp = getDragonMaxHP(stats);
+    vitals.mana = getDragonMaxMana(stats);
+    vitals.fatigue = 0;
+    saveDragonVitals(dragonNum, vitals);
+    updateCurrencyDisplay();
+    updateHomeTab();
+    renderTempleHeal();
+    const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
+    // Show brief flash
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        const notice = document.createElement('div');
+        notice.style.cssText = 'padding:8px 12px; background:rgba(20,50,20,0.8); border-left:3px solid #44cc88; border-radius:4px; color:#99ffcc; font-size:13px; margin-bottom:8px; font-style:italic;';
+        notice.textContent = `Astor błogosławi ${name}. HP, Mana i Zmęczenie przywrócone do pełni!`;
+        box.insertBefore(notice, box.firstChild);
+        setTimeout(() => notice.remove(), 3000);
+    }
+}
+
 function renderArenaContent(arenaType) {
     const box = document.getElementById("location-action-area");
     if (!box) return;
@@ -786,7 +884,7 @@ function renderArenaContent(arenaType) {
         if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ num: 2, name: secondDragonName, element: secondDragonElement });
         if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ num: 3, name: thirdDragonName, element: thirdDragonElement });
 
-        let html = `<p style="color:#aab; font-size:13px; font-style:italic;">Smoki mogą walczyć do 3 razy dziennie. Zwycięstwo podnosi losową cechę i przynosi 1 srebro.</p>`;
+        let html = `<p style="color:#aab; font-size:13px; font-style:italic; margin-bottom:10px;">Smoki mogą walczyć do 3 razy dziennie. Wybierz smoka i przeciwnika — trudniejszy = większa nagroda.</p>`;
 
         if (dragons.length === 0) {
             html += `<p style="color:#7080aa;">Nie masz wyklutego smoka do walki.</p>`;
@@ -795,14 +893,40 @@ function renderArenaContent(arenaType) {
                 const fights = loadArenaFights(d.num);
                 const mission = loadDragonMission(d.num);
                 const vitals = loadDragonVitals(d.num);
-                html += `
-                    <div style="margin:8px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
-                        <b>${d.name}</b> | Walki dziś: ${fights}/3 | 😴 ${vitals.fatigue}/100
-                        ${mission ? `<div style="color:#cc9900; font-size:12px;">Na misji — walka niedostępna.</div>` : ''}
-                        ${!mission && fights < 3 ? `<div class="dialog-button" style="margin-top:6px;" onclick="handleDragonFight(${d.num})">⚔️ Wyślij do walki</div>` : ''}
-                        ${fights >= 3 ? `<div style="color:#7080aa; font-size:12px; margin-top:4px;">Wyczerpany. Wróć jutro.</div>` : ''}
-                    </div>
-                `;
+                html += `<div style="margin:8px 0; padding:10px; background:rgba(20,30,50,0.5); border-radius:7px;">
+                    <b>${d.name}</b> | Walki dziś: ${fights}/3 | 😴 ${vitals.fatigue}/100`;
+                if (mission) {
+                    html += `<div style="color:#cc9900; font-size:12px; margin-top:4px;">Na misji — walka niedostępna.</div>`;
+                } else if (fights >= 3) {
+                    html += `<div style="color:#7080aa; font-size:12px; margin-top:4px;">Wyczerpany. Wróć jutro.</div>`;
+                } else {
+                    // Show 3 opponent choices
+                    const stats = loadDragonStats(d.num);
+                    const power = (stats.sila||5)*1.5 + (stats.wytrzymalosc||5) + (stats.zrecznosc||5)*0.8;
+                    // Pick 3 opponents spread across difficulty
+                    const picks = [
+                        ARENA_OPPONENTS[0],
+                        ARENA_OPPONENTS[Math.floor(ARENA_OPPONENTS.length / 2)],
+                        ARENA_OPPONENTS[ARENA_OPPONENTS.length - 1]
+                    ];
+                    html += `<div style="font-size:12px; color:#8090aa; margin:8px 0 4px;">Wybierz przeciwnika:</div>`;
+                    picks.forEach((opp, idx) => {
+                        const oppPower = opp.sila * 1.5 + opp.wytrzymalosc + opp.zrecznosc * 0.8;
+                        const winChance = Math.round(Math.min(95, Math.max(5, (power / (power + oppPower)) * 100)));
+                        html += `<div style="margin:4px 0; padding:8px; background:rgba(10,15,30,0.6); border-radius:5px; border-left:3px solid ${idx===0?'#44cc66':idx===1?'#cccc44':'#cc4444'};">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:bold; font-size:13px;">${opp.difficulty} ${opp.name}</span>
+                                <span style="color:#ffcc44; font-size:12px;">💰 ${opp.rewardDesc}</span>
+                            </div>
+                            <div style="color:#8090aa; font-size:12px; margin:3px 0;">${opp.desc}</div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+                                <span style="font-size:11px; color:#9ab;">Szansa: ~${winChance}%</span>
+                                <div class="dialog-button" style="margin:0; padding:4px 12px; font-size:12px;" onclick="startInteractiveFightVs(${d.num}, ${ARENA_OPPONENTS.indexOf(opp)})">⚔️ Walcz</div>
+                            </div>
+                        </div>`;
+                    });
+                }
+                html += `</div>`;
             });
         }
 
@@ -1758,7 +1882,6 @@ const COURIER_SEARCH_LOCATIONS = [
     { region: 'miasto', loc: 'tablica',           label: 'Tablica Ogłoszeń' },
     { region: 'miasto', loc: 'handlarz_zywnosci', label: 'Stragan Handlarki Żywności' },
     { region: 'miasto', loc: 'kowal',             label: 'Kuźnia Braga' },
-    { region: 'miasto', loc: 'swiatynia',         label: 'Świątynia Astora' },
     { region: 'miasto', loc: 'biblioteka',        label: 'Biblioteka' },
 ];
 
@@ -1799,6 +1922,28 @@ function pickNextCourierLocation(usedIndices) {
 }
 
 // Called from offerHelp action in posterunek
+
+function renderGuardMissionOrHostile() {
+    const ending = localStorage.getItem('guardMission2') ? 
+        JSON.parse(localStorage.getItem('guardMission2')).ending : null;
+    
+    if (ending === 'C') {
+        const box = document.getElementById('location-action-area');
+        if (!box) { renderGuardMission(); return; }
+        box.innerHTML = `
+            <div style="padding:14px; background:rgba(40,10,10,0.8); border-left:3px solid #cc2200; border-radius:6px; color:#ffaaaa; line-height:1.8; font-style:italic; margin-bottom:12px;">
+                Kapitan Mira unosi wzrok i mierzy cię lodowatym spojrzeniem.<br><br>
+                — <em>Żebyś znowu pokazał, że umiesz coś spierdolić?</em> Powinnam cię zamknąć w lochu.
+                <span style="color:#cc8888;"> — kręci głową z dezaprobatą i patrzy na ciebie wymownie —</span>
+                Nie mam na ciebie teraz czasu. <em>Precz mi z oczu!</em>
+            </div>
+            <div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+        `;
+        return;
+    }
+    renderGuardMission();
+}
+
 function renderGuardMission() {
     const box = document.getElementById('location-action-area');
     if (!box) return;
@@ -1976,7 +2121,7 @@ function renderCourierSearchButton(regionKey, locationId) {
         setTimeout(courierLocTimerTick, 100);
     return `<div style="margin:10px 0; padding:12px; background:rgba(30,20,50,0.7); border:2px solid #9966cc; border-radius:8px; animation:worldFadeIn 0.5s;">
             <b style="color:#cc99ff;">🔍 Ślad kuriera wiedzie tutaj</b>
-            <p style="color:#c0aae0; font-size:13px; margin:6px 0 6px;">Kapitan Miry obserwują okolicę. Szukanie możliwe za:</p>
+            <p style="color:#c0aae0; font-size:13px; margin:6px 0 6px;">Ty i ludzie Kapitan Miry obserwujecie okolicę. Szukanie możliwe za:</p>
             <div style="font-size:22px; font-weight:bold; color:#ffcc44;" id="loc-courier-timer">...</div>
 <!-- timer started by courierLocTimerTick() -->
         </div>`;
@@ -2327,17 +2472,26 @@ function checkMissionCompleteNotification() {
             anyComplete = true;
         }
     });
-    const homeTabBtn = document.querySelector('[onclick*="openTab"][onclick*="home"]');
+    // Find home tab button by id (added in HTML) or by text content
+    let homeTabBtn = document.getElementById('tab-home-btn');
+    if (!homeTabBtn) {
+        // Fallback: find by text
+        document.querySelectorAll('.tab').forEach(t => {
+            if (t.textContent.trim() === 'Dom') homeTabBtn = t;
+        });
+    }
     if (homeTabBtn) {
         if (anyComplete) {
-            homeTabBtn.style.background = 'linear-gradient(#2a4a1a, #1a3a0a)';
-            homeTabBtn.style.borderColor = '#66cc44';
+            homeTabBtn.style.background = 'linear-gradient(#1a4a0a, #0a2a05)';
+            homeTabBtn.style.borderColor = '#66ff44';
             homeTabBtn.style.color = '#99ff66';
+            homeTabBtn.style.boxShadow = '0 0 8px rgba(100,255,50,0.4)';
             homeTabBtn.setAttribute('data-mission-complete', 'true');
         } else if (homeTabBtn.getAttribute('data-mission-complete') === 'true') {
             homeTabBtn.style.background = '';
             homeTabBtn.style.borderColor = '';
             homeTabBtn.style.color = '';
+            homeTabBtn.style.boxShadow = '';
             homeTabBtn.removeAttribute('data-mission-complete');
         }
     }
@@ -2424,11 +2578,18 @@ function renderCombatScreen() {
             <!-- Actions -->
             <div style="font-size:12px; color:#8090aa; margin-bottom:8px;">Co robi ${dragonName_local}?</div>
             <div class="dialog-button" onclick="combatAction('claw')">🐾 Atak Pazurami (${Math.floor(effectiveSila * 2 + effectiveWytr * 0.5)} - ${Math.floor(effectiveSila * 3 + effectiveWytr * 0.5)} obrażeń)</div>
-            ${knownSpells.length > 0 ? knownSpells.map(sp => `
-                <div class="dialog-button" ${c.dragonMana < sp.manaCost ? 'style="opacity:0.5;pointer-events:none;"' : ''} onclick="combatAction('spell','${sp.id}')">
-                    ✨ ${sp.name} (mana: ${sp.manaCost}) ${c.dragonMana < sp.manaCost ? '— brak many' : ''}
-                </div>
-            `).join('') : ''}
+            ${knownSpells.length > 0 ? knownSpells.map(sp => {
+                const intel = c.stats.inteligencja || 5;
+                let rangeStr = '';
+                if (sp.isHeal) {
+                    rangeStr = `💚 leczy ${sp.heal[0]}–${sp.heal[1]} HP`;
+                } else if (sp.dmgMult) {
+                    rangeStr = `${Math.floor(intel * sp.dmgMult[0])}–${Math.floor(intel * sp.dmgMult[1])} obrażeń`;
+                }
+                return `<div class="dialog-button" ${c.dragonMana < sp.manaCost ? 'style="opacity:0.5;pointer-events:none;"' : ''} onclick="combatAction('spell','${sp.id}')">
+                    ✨ ${sp.name} <span style="font-size:11px; color:#aab;">(mana: ${sp.manaCost} | ${rangeStr})${c.dragonMana < sp.manaCost ? ' — brak many' : ''}</span>
+                </div>`;
+            }).join('') : ''}
             <div class="dialog-button" style="border-color:#cc4422;color:#ff8866;" onclick="combatAction('flee')">🏃 Uciekaj</div>
         </div>
     `;
@@ -2466,9 +2627,24 @@ function combatAction(action, spellId) {
         const spell = elementSpells.find(s => s.id === spellId);
         if (spell && c.dragonMana >= spell.manaCost) {
             c.dragonMana -= spell.manaCost;
-            dmgToEnemy = Math.floor((c.stats.inteligencja || 5) * 3 + (Math.random() * 10));
-            dmgToDragon = Math.floor(c.enemy.sila * (0.5 + Math.random() * 0.3));
-            actionLog = `${spell.name}! Zadaje ${dmgToEnemy} obrażeń magicznych.`;
+            const intel = c.stats.inteligencja || 5;
+            if (spell.isHeal) {
+                const healAmt = Math.floor(spell.heal[0] + Math.random() * (spell.heal[1] - spell.heal[0]));
+                const dragonMaxHP = getDragonMaxHP(c.stats);
+                c.dragonHP = Math.min(dragonMaxHP, c.dragonHP + healAmt);
+                if (spell.dodge) {
+                    dmgToDragon = 0;
+                    actionLog = `${spell.name}! Smok leczy ${healAmt} HP i unika ataku!`;
+                } else {
+                    dmgToDragon = Math.floor(c.enemy.sila * (0.5 + Math.random() * 0.3));
+                    actionLog = `${spell.name}! Smok leczy ${healAmt} HP.`;
+                }
+                dmgToEnemy = 0;
+            } else if (spell.dmgMult) {
+                dmgToEnemy = Math.floor(intel * (spell.dmgMult[0] + Math.random() * (spell.dmgMult[1] - spell.dmgMult[0])));
+                dmgToDragon = Math.floor(c.enemy.sila * (0.5 + Math.random() * 0.3));
+                actionLog = `${spell.name}! Zadaje ${dmgToEnemy} obrażeń magicznych.`;
+            }
         }
     }
 
@@ -3157,7 +3333,7 @@ const locationResponses = {
         ];
         return blessings[Math.floor(Math.random() * blessings.length)];
     },
-    healDragon: () => "Kapłanka przysłuchuje się opisowi smoka i kiwa głową. — Przyprowadź go jutro o świcie. Rytuał oczyszczenia trwa godzinę, ale powinno pomóc.",
+    healDragon: () => { renderTempleHeal(); return null; },
     listenSermon: () => {
         const sermons = [
             "— Astor dała nam troje — mówi kapłanka. — Troje, by uczyć nas równowagi. Czwarte to pycha. Pycha prowadzi do upadku.",
@@ -3201,7 +3377,7 @@ const locationResponses = {
         ];
         return wanted[Math.floor(Math.random() * wanted.length)];
     },
-    offerHelp: () => { renderGuardMission(); return null; },
+    offerHelp: () => { renderGuardMissionOrHostile(); return null; },
 
     // PORT
     talkFishermen: () => {
@@ -3517,7 +3693,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -4547,7 +4723,18 @@ function openTab(name) {
     document.getElementById(name).style.display = "block";
     if (name === "world") updateWorldTab();
     if (name === "dragons") updateDragonsTab();
-    if (name === "home") updateHomeTab();
+    if (name === "home") {
+        updateHomeTab();
+        // Clear mission complete highlight when user opens home tab
+        const btn = document.getElementById('tab-home-btn');
+        if (btn) {
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+            btn.style.boxShadow = '';
+            btn.removeAttribute('data-mission-complete');
+        }
+    }
     if (name === "work") updateWorkTab();
     if (name === "inventory") updateInventoryTabFull();
     if (name === "merchant") updateMerchantTab();
