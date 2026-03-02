@@ -2503,17 +2503,18 @@ function checkMissionCompleteNotification() {
 
 let _pendingCombat = null; // { dragonNum, enemy, dragonHP, mana, stats, equipBonus }
 
-function startInteractiveFight(dragonNum) {
+function startInteractiveFight(dragonNum) { startInteractiveFightVs(dragonNum, 0); }
+function startInteractiveFightVs(dragonNum, opponentIndex) {
     const fightsDone = loadArenaFights(dragonNum);
-    if (fightsDone >= 3) { alert('Ten smok walczył już 3 razy dzisiaj.'); return; }
+    if (fightsDone >= 3) { alert('Ten smok walczył już 3 razy dzisiaj. Wróć jutro.'); return; }
     const vitals = loadDragonVitals(dragonNum);
-    if (vitals.fatigue >= 80) { alert('Smok jest zbyt zmęczony (zmęczenie ≥80).'); return; }
+    if (vitals.fatigue >= 80) { alert('Smok jest zbyt zmęczony (zmęczenie ≥80). Pozwól mu odpocząć.'); return; }
     const mission = loadDragonMission(dragonNum);
-    if (mission) { alert('Smok jest na misji.'); return; }
+    if (mission) { alert('Smok jest na misji. Nie może teraz walczyć.'); return; }
 
     const stats = loadDragonStats(dragonNum);
     const equipBonus = getEquipmentStatBonus(dragonNum);
-    const opponent = ARENA_OPPONENTS[Math.min(fightsDone, ARENA_OPPONENTS.length - 1)];
+    const opponent = ARENA_OPPONENTS[Math.min(opponentIndex ?? fightsDone, ARENA_OPPONENTS.length - 1)];
     const enemyMaxHP = opponent.wytrzymalosc * 10 + 30;
 
     _pendingCombat = {
