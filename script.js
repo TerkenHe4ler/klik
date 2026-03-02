@@ -165,13 +165,35 @@ function learnSpell(dragonNum, spellId, element) {
    SYSTEM MISJI SMOKA (ZMĘCZENIE)
 ========================================= */
 
+
+// Moon Gate expedition loot table
+const MOON_GATE_LOOT = [
+    { key: 'Księżycowy Kamień',              weight: 40, desc: 'Kamień nasycony energią księżycowej pełni.' },
+    { key: 'Srebrny Pył Zza Bramy',          weight: 25, desc: 'Świecący pył zebrany po drugiej stronie.' },
+    { key: 'Strzęp Zasłony Między Światami', weight: 20, desc: 'Materiał istniejący tylko przy bramie.' },
+    { key: 'Eter Księżycowy',                weight: 12, desc: 'Skupiona magia miejsca — niezwykle rzadka.' },
+    { key: 'Fragment Ostrza Śmierci',        weight: 3,  desc: '⚠️ Przerażający fragment zakazanego artefaktu. Drga w twojej dłoni.' },
+];
+
+function rollMoonGateLoot() {
+    if (Math.random() > 0.75) return null; // 25% no loot
+    const totalWeight = MOON_GATE_LOOT.reduce((s, i) => s + i.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const item of MOON_GATE_LOOT) {
+        roll -= item.weight;
+        if (roll <= 0) return item;
+    }
+    return MOON_GATE_LOOT[0];
+}
+
 const DRAGON_MISSIONS = [
     { id: 'patrol', name: 'Patrol okolic wioski', duration: 5000, fatigue: 15, reward: { copper: 30 }, desc: 'Krótki lot patrolowy. Smok sprawdza czy okolice są bezpieczne.' },
     { id: 'eskort_karawany', name: 'Eskorta karawany z powietrza', duration: 10000, fatigue: 25, reward: { silver: 1 }, desc: 'Smok leci nad karawaną kupców, odpędzając zagrożenia.' },
     { id: 'polow_ryb', name: 'Połów ryb na jeziorze', duration: 7000, fatigue: 10, reward: { copper: 50 }, desc: 'Smok nurkuje w Jeziorze Snu w poszukiwaniu ryb.' },
     { id: 'wyprawa_las', name: 'Zwiad nad Lasem Mgieł', duration: 12000, fatigue: 30, reward: { silver: 1, copper: 50 }, desc: 'Smok penetruje Las Mgieł z powietrza, szukając informacji.' },
     { id: 'wyprawa_gory', name: 'Lot przez Góry Sarak', duration: 18000, fatigue: 45, reward: { silver: 3 }, desc: 'Długa wyprawa przez niebezpieczne górskie szczyty.' },
-    { id: 'misja_tajna', name: 'Tajna misja dla Posterunku', duration: 22000, fatigue: 60, reward: { silver: 5 }, desc: 'Kapitan Posterunku prosi o dyskretną pomoc. Szczegóły niedostępne.' }
+    { id: 'misja_tajna', name: 'Tajna misja dla Posterunku', duration: 22000, fatigue: 60, reward: { silver: 5 }, desc: 'Kapitan Posterunku prosi o dyskretną pomoc. Szczegóły niedostępne.' },
+    { id: 'wyprawa_ksiezycowa', name: 'Wyprawa do Księżycowej Bramy', duration: 25000, fatigue: 55, reward: { silver: 3 }, desc: '🌕 Tajemnicza wyprawa za próg Księżycowej Bramy. Tylko w pełni księżyca. Możliwe unikalne znaleziska.' }
 ];
 
 function loadDragonMission(num) {
@@ -513,7 +535,12 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
                 <details style="margin:8px 0;" ${getDetailsState('mission', num) === 'open' ? 'open' : ''} ontoggle="saveDetailsState('mission', ${num}, this.open)">
                     <summary style="cursor:pointer; color:#9ab; padding:6px 0;">🗺️ Wyślij na misję</summary>
                     <div style="margin-top:8px;">
-                        ${DRAGON_MISSIONS.map(m => `
+                        ${DRAGON_MISSIONS.filter(m => {
+                            if (m.id === 'wyprawa_ksiezycowa') {
+                                return getMoonGateStatus().open;
+                            }
+                            return true;
+                        }).map(m => `
                             <div style="margin:6px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;">
                                 <b>${m.name}</b><br>
                                 <span style="color:#8090aa; font-size:12px;">${m.desc}</span><br>
@@ -1045,125 +1072,256 @@ function sketchMoonGateRunes() {
     }
 }
 
+/* ==========================================================
+   QUEST BIBLIOTEKARZA — ROZSZERZONY
+========================================================== */
+
+function libTextBox(text, color = '#c0c0e0', border = '#9966cc') {
+    return `<div style="margin:10px 0; padding:12px; background:rgba(10,20,40,0.6); border-left:3px solid ${border}; border-radius:6px; color:${color}; font-style:italic; line-height:1.8;">${text}</div>`;
+}
+
 function renderLibrarianRuneOptions() {
     const box = document.getElementById("location-action-area");
     if (!box) return;
 
-    // Check if library is closed
+    // ── Zamknięta biblioteka ──────────────────────────────
     const libClosedUntil = Number(localStorage.getItem('libClosedUntil') || '0');
     if (libClosedUntil > Date.now()) {
-        const remaining = libClosedUntil - Date.now();
         box.innerHTML = `
-            <div style="margin:10px 0; padding:15px; background:rgba(10,15,30,0.8); border-left:3px solid #556; border-radius:6px; color:#7080a0; font-style:italic;">
-                Drzwi biblioteki są zamknięte. Na drzwiach wisi karteczka:<br><br>
-                <em>„Zamknięte z powodu ważnych badań. Proszę wracać za:"</em><br><br>
-                <span style="font-size:1.2em; color:#9ab; font-style:normal;" id="lib-timer">...</span>
-            </div>
+            ${libTextBox('Drzwi biblioteki są zamknięte. Na drzwiach wisi karteczka:<br><br><em>„Zamknięte z powodu ważnych badań. Proszę wracać za:"</em><br><br><span style="font-size:1.2em; color:#9ab; font-style:normal;" id="lib-timer">...</span>', '#7080a0', '#556')}
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do miasta</div>
         `;
-        // Live countdown
-        const updateLibTimer = () => {
+        const tick = () => {
             const el = document.getElementById('lib-timer');
             if (!el) return;
             const rem = Number(localStorage.getItem('libClosedUntil') || '0') - Date.now();
             if (rem <= 0) { renderLibrarianRuneOptions(); return; }
             el.textContent = formatTime(rem);
         };
-        updateLibTimer();
-        const timerInt = setInterval(() => {
-            if (!document.getElementById('lib-timer')) { clearInterval(timerInt); return; }
-            updateLibTimer();
-        }, 1000);
+        tick();
+        const iv = setInterval(() => { if (!document.getElementById('lib-timer')) { clearInterval(iv); return; } tick(); }, 1000);
         return;
     }
 
-    const runeProgress = localStorage.getItem('runeQuestProgress') || 'none';
+    const stage    = localStorage.getItem('runeQuestProgress') || 'none';
     const hasKartka = (inventory['Kartka z runami'] || 0) > 0;
+    const enteredGate = localStorage.getItem('moonGateEntered') === 'true';
+    const ingredientQuest = localStorage.getItem('libIngredientQuest') || 'none'; // none | active | secret | done
 
-    let html = `
-        <div style="margin:10px 0; padding:12px; background:rgba(10,20,40,0.6); border-left:3px solid #9966cc; border-radius:6px; color:#c0c0e0; font-style:italic; line-height:1.7;">
-            Bibliotekarz unosi głowę znad notatek. Jego oczy błyszczą pod grubymi szkłami lunetki.
-        </div>
-    `;
+    const intro = libTextBox('Bibliotekarz unosi głowę znad notatek. Jego oczy błyszczą pod grubymi szkłami lunetki.');
 
-    // Priority: if player has the rune sketch, handle that first
+    // ── Gracz ma kartkę z runami ──────────────────────────
     if (hasKartka) {
-        box.innerHTML = html + `
-            <div style="color:#99ffcc; margin:8px 0; padding:12px; background:rgba(10,40,25,0.6); border-left:3px solid #44cc88; border-radius:6px; line-height:1.7;">
-                Bibliotekarz dostrzega kartkę w twojej dłoni. Przez chwilę milczy, po czym jego oczy rozszerzają się.<br><br>
-                — Niech... niech to będzie... — szepcze, biorąc kartkę ostrożnie jak relikwię. — To jest autentyczne. Precyzja rytów, proporcje symboli... to nie jest ludzka robota.<br><br>
-                Przez chwilę chodzi między regałami, rozmawiając sam ze sobą.<br><br>
-                — Muszę to porównać z trzema zbiorami, które mam w piwnicy. Archiwami sprzed Epoki Odbudowy... To może zająć kilka godzin. Przepraszam, ale muszę prosić...<br><br>
-                Wskazuje ci uprzejmie drzwi.
-            </div>
+        box.innerHTML = intro + `
+            ${libTextBox('Bibliotekarz dostrzega kartkę w twojej dłoni. Przez chwilę milczy, po czym jego oczy rozszerzają się.<br><br>— Niech... niech to będzie... — szepcze, biorąc kartkę ostrożnie jak relikwię. — To jest autentyczne. Precyzja rytów, proporcje symboli... to nie jest ludzka robota.<br><br>Przez chwilę chodzi między regałami, rozmawiając sam ze sobą.<br><br>— Muszę to porównać z archiwami sprzed Epoki Odbudowy. To może potrwać chwilę. Przepraszam, ale muszę prosić...<br><br>Wskazuje ci uprzejmie drzwi.', '#99ffcc', '#44cc88')}
             <div class="dialog-button" onclick="handleDeliverRunes()">Oddaj kartkę i pozwól mu pracować</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć później</div>
         `;
         return;
     }
 
-    if (runeProgress === 'none') {
-        html += `
+    // ── Bibliotekarz wrócił z wynikami (stage = delivered, biblioteka właśnie się otworzyła) ──
+    if (stage === 'delivered') {
+        box.innerHTML = intro + `
+            ${libTextBox('Bibliotekarz otwiera ci drzwi z wyraźnym podnieceniem w oczach.<br><br>— Pracowałem całą noc — zaczyna szybko. — Jest dużo wzmianek. Bardzo dużo. Pismo na twojej kartce pojawia się w co najmniej piętnastu źródłach, które mam — ale za każdym razem są to strzępki, urwane zdania.<br><br>Kładzie na biurku kilka notatek.<br><br>— Jedno jest pewne: jest mowa o <b style="color:#cc99ff;">magii</b>. Starej, bardzo starej — sprzed wszystkich znanych nam szkół. I wielokrotnie pojawia się wzmianka o <b style="color:#cc99ff;">fazach księżyca</b>. Dokładnie w kontekście "otwarcia" i "przejścia".<br><br>Zawiesza głos.<br><br>— Niestety nie jestem w stanie powiedzieć więcej. To jakby czytać mapę bez legendy. Ale... — podnosi wzrok — ...jeśli kiedyś dowiesz się czegoś od strony tej bramy, wróć do mnie.', '#e0d0ff', '#9966cc')}
+            <div class="dialog-button" onclick="libResearchDone()">„Dziękuję. To już coś."</div>
+        `;
+        return;
+    }
+
+    // ── Główny ongoing dialog po zakończeniu badań ────────
+    if (stage === 'researchDone' || stage === 'researchAcknowledged') {
+        // Has player entered the gate?
+        if (enteredGate && ingredientQuest === 'none') {
+            // Unlock option 2
+            box.innerHTML = intro + `
+                ${libTextBox('— Co nowego? — pyta bibliotekarz z nadzieją w głosie. — Rozgryzłeś już o co chodzi z tą bramą?', '#c0d0ff', '#6677cc')}
+                <div class="dialog-button" onclick="libAnswerNotYet()">„Jeszcze nie, ale się nie poddaję."</div>
+                <div class="dialog-button" style="border-color:#66ff99; color:#99ffcc;" onclick="libAnswerYesGate()">„Tak! Ona otwiera się w pełnie! Tam jest jak w innym świecie!"</div>
+            `;
+        } else if (ingredientQuest === 'none') {
+            // Gate not entered yet
+            box.innerHTML = intro + `
+                ${libTextBox('— Co nowego? — pyta bibliotekarz z nadzieją w głosie. — Rozgryzłeś już o co chodzi z tą bramą?', '#c0d0ff', '#6677cc')}
+                <div class="dialog-button" onclick="libAnswerNotYet()">„Jeszcze nie, ale się nie poddaję."</div>
+            `;
+        } else if (ingredientQuest === 'active') {
+            renderLibrarianIngredientShop(box, intro);
+            return;
+        } else if (ingredientQuest === 'secret') {
+            box.innerHTML = intro + `
+                ${libTextBox('— Cóż... nie wiem dlaczego, ale mam nadzieję, że z czasem mi to wytłumaczysz — mówi bibliotekarz z mieszaniną rozczarowania i spokoju. Sięga po książkę.<br><br>Wydaje się, że szanuje twoją decyzję.', '#c0a0a0', '#9944aa')}
+                <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do miasta</div>
+            `;
+        } else if (ingredientQuest === 'done') {
+            box.innerHTML = intro + `
+                ${libTextBox('— Dziękuję ci za wszystko co przyniosłeś — mówi bibliotekarz spokojnie. — Moje badania posuwają się naprzód. Może kiedyś odkryjemy prawdę o tej bramie.', '#99cc99', '#44aa66')}
+                <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do miasta</div>
+            `;
+        }
+        return;
+    }
+
+    // ── Stany wstępne quests ──────────────────────────────
+    if (stage === 'none') {
+        box.innerHTML = intro + `
             <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Dobrze, postaram się je naszkicować gdy następnym razem tam będę."</div>
             <div class="dialog-button" onclick="handleRuneChoice('readFirst')">„Najpierw przeczytam księgi tutaj, może coś znajdę."</div>
             <div class="dialog-button" onclick="handleRuneChoice('notInterested')">„W sumie to tylko ciekawość — specjalnie po to nie chcę tam iść."</div>
             <div class="dialog-button" onclick="handleRuneChoice('knowAlready')">„Byłem już przy bramie. Runy są bardzo precyzyjne."</div>
         `;
-    } else if (runeProgress === 'sketch') {
-        html += `
-            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                — Czekam na ten szkic — mówi bibliotekarz z nutą niecierpliwości. — Odwiedź Księżycową Bramę, naszkicuj runy i wróć do mnie.
-            </div>
-            <div class="dialog-button" onclick="openTab('world'); setTimeout(()=>{ openRegion('gory'); },80)">Idź do Gór Sarak</div>
+    } else if (stage === 'sketch') {
+        box.innerHTML = intro + `
+            ${libTextBox('— Czekam na ten szkic — mówi bibliotekarz z nutą niecierpliwości. — Odwiedź Księżycową Bramę, naszkicuj runy i wróć do mnie.')}
+            <div class="dialog-button" onclick="openTab('world'); setTimeout(()=>openRegion('gory'),80)">🏔️ Idź do Gór Sarak</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
         `;
-    } else if (runeProgress === 'readFirst') {
-        html += `
-            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                Bibliotekarz prowadzi cię do regału w głębi sali. Wyciąga trzy cienkie tomy.<br><br>
-                — Tu są wzmianki. Żadna pełna. Autorzy pisali jakby sami nie rozumieli, co widzieli.
-            </div>
+    } else if (stage === 'readFirst') {
+        box.innerHTML = intro + `
+            ${libTextBox('Bibliotekarz prowadzi cię do regału w głębi sali. Wyciąga trzy cienkie tomy.<br><br>— Tu są wzmianki. Żadna pełna. Autorzy pisali jakby sami nie rozumieli, co widzieli.')}
             <div class="dialog-button" onclick="handleRuneChoice('readBooks')">Zacznij czytać</div>
         `;
-    } else if (runeProgress === 'readBooks') {
-        html += `
-            <div style="color:#c0cce0; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                Czytasz przez godzinę. Wzmianka pierwsza: <em>„brama, gdy księżyc jest pełen, oddycha."</em><br>
-                Wzmianka druga: <em>„nie można jej otworzyć — ona sama decyduje."</em><br>
-                Wzmianka trzecia: urwana w połowie zdania.<br><br>
-                Bibliotekarz patrzy pytająco.
-            </div>
+    } else if (stage === 'readBooks') {
+        box.innerHTML = intro + `
+            ${libTextBox('Czytasz przez godzinę. Wzmianka pierwsza: <em>„brama, gdy księżyc jest pełen, oddycha."</em><br>Wzmianka druga: <em>„nie można jej otworzyć — ona sama decyduje."</em><br>Wzmianka trzecia: urwana w połowie zdania.<br><br>Bibliotekarz patrzy pytająco.', '#c0cce0')}
             <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Pójdę naszkicować runy. Może razem coś odkryjemy."</div>
             <div class="dialog-button" onclick="handleRuneChoice('done')">„Dziękuję. To dużo do przemyślenia."</div>
         `;
-    } else if (runeProgress === 'notInterested' || runeProgress === 'done') {
-        html += `
-            <div style="color:#8090aa; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                — Rozumiem — mówi bibliotekarz, wracając do pracy. — Jeśli kiedyś zmienisz zdanie, będę tutaj.
-            </div>
+    } else if (stage === 'notInterested' || stage === 'done') {
+        box.innerHTML = intro + `
+            ${libTextBox('— Rozumiem — mówi bibliotekarz, wracając do pracy. — Jeśli kiedyś zmienisz zdanie, będę tutaj.', '#8090aa')}
             <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Właściwie... pójdę naszkicować te runy."</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
         `;
-    } else if (runeProgress === 'knowAlready') {
-        html += `
-            <div style="color:#9ab; margin:8px 0; font-style:italic; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                — Precyzyjne, mówisz? — bibliotekarz podnosi głowę. — Jeśli masz możliwość wrócenia tam z czymś do rysowania... Szkic tych symboli byłby bezcenny dla moich badań.
-            </div>
+    } else if (stage === 'knowAlready') {
+        box.innerHTML = intro + `
+            ${libTextBox('— Precyzyjne, mówisz? — bibliotekarz podnosi głowę. — Jeśli masz możliwość wrócenia tam z czymś do rysowania... Szkic tych symboli byłby bezcenny dla moich badań.')}
             <div class="dialog-button" onclick="handleRuneChoice('sketch')">„Postaram się je naszkicować."</div>
             <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
         `;
+    } else {
+        // Fallback for any unknown stage
+        box.innerHTML = intro + `
+            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do miasta</div>
+        `;
+    }
+}
+
+function libResearchDone() {
+    localStorage.setItem('runeQuestProgress', 'researchDone');
+    // Unlock gate hint flag
+    localStorage.setItem('gateHintMoonPhases', 'true');
+    // Small reward
+    adjustCurrency('silver', 2);
+    updateCurrencyDisplay();
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        box.innerHTML = libTextBox('Bibliotekarz ściska ci dłoń.<br><br>— To dla mnie bardzo dużo znaczy. Weź to — wyciąga dwie srebrne monety — za trud i poświęcony czas.<br><br>Wychodzisz z poczuciem że ta historia jeszcze się nie skończyła.', '#99ffcc', '#44cc88') +
+            `<div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    }
+}
+
+function libAnswerNotYet() {
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        box.innerHTML = libTextBox('— Doceniam wytrwałość — mówi bibliotekarz z uśmiechem. — To nie jest tajemnica, którą można rozwiązać przez tydzień. Moje badania też są dalekie od końca.<br><br>Kiwa głową z uznaniem.', '#c0d0ff', '#6677cc') +
+            `<div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    }
+}
+
+function libAnswerYesGate() {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    box.innerHTML = libTextBox('Bibliotekarz zamiera.<br><br>— <b>Zaskakujące!</b> — szepcze, po czym zaczyna chodzić po sali z narastającym podnieceniem. — Pełnia księżyca, wejście, inny świat... To się zgadza z wzmiank...<br><br>Zatrzymuje się i patrzy na ciebie intensywnie.<br><br>— Czy mógłbyś przynieść mi jakieś składniki, które dostępne są <em>tylko tam</em>? Oczywiście zapłacę uczciwie za każdy!', '#e0f0ff', '#44aaff') +
+        `<div class="dialog-button" onclick="libAcceptIngredients('yes')">„Tak, nie ma problemu."</div>
+         <div class="dialog-button" onclick="libAcceptIngredients('maybe')">„Zobaczymy co się uda zrobić."</div>
+         <div class="dialog-button" style="border-color:#9944aa; color:#cc88ff;" onclick="libAcceptIngredients('secret')">„Myślę że powinniśmy zostawić to w tajemnicy przed światem."</div>`;
+}
+
+function libAcceptIngredients(choice) {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    if (choice === 'yes' || choice === 'maybe') {
+        localStorage.setItem('libIngredientQuest', 'active');
+        box.innerHTML = libTextBox('— <b>Wspaniale!</b> — Bibliotekarz klaszcze w dłonie z entuzjazmem godnym dziecka. — Będę czekał z niecierpliwością! Każdy przedmiot z tamtej strony to bezcenny materiał badawczy!<br><br>Wręcza ci małą listę z nazwami składników.', '#99ffcc', '#44cc88') +
+            `<div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    } else {
+        // secret path → end quest, give 10 of each food
+        localStorage.setItem('libIngredientQuest', 'secret');
+        foodItems.mięso   = (foodItems.mięso   || 0) + 10;
+        foodItems.jagody  = (foodItems.jagody  || 0) + 10;
+        inventory['Świeża ryba']  = (inventory['Świeża ryba']  || 0) + 10;
+        inventory['Chleb']        = (inventory['Chleb']        || 0) + 10;
+        inventory['Górski ser']   = (inventory['Górski ser']   || 0) + 10;
+        localStorage.setItem('foodItems', JSON.stringify(foodItems));
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTabFull();
+        box.innerHTML = libTextBox('Bibliotekarz przez chwilę milczy, patrząc na ciebie z mieszaniną niezrozumienia i szacunku.<br><br>— Cóż... nie wiem dlaczego, ale mam nadzieję, że z czasem mi to wytłumaczysz — mówi cicho.<br><br>Kłania się lekko. Quest zakończony po swojemu.', '#c0a0c0', '#9944aa') +
+            `<div style="padding:10px; background:rgba(20,40,20,0.5); border-radius:6px; color:#99ff99; font-size:13px; margin:8px 0;">🎁 Nagroda: +10 każdego jedzenia dla smoków</div>` +
+            `<div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    }
+}
+
+function renderLibrarianIngredientShop(box, intro) {
+    // Items the librarian buys from the Moon Gate
+    const GATE_ITEMS_BUYLIST = [
+        { key: 'Księżycowy Kamień',                 price: 3,  unit: 'silver', desc: 'Kamień nasycony energią księżycowej pełni.' },
+        { key: 'Srebrny Pył Zza Bramy',             price: 5,  unit: 'silver', desc: 'Świecący pył zebrany po drugiej stronie.' },
+        { key: 'Strzęp Zasłony Między Światami',    price: 8,  unit: 'silver', desc: 'Materiał istniejący tylko przy bramie.' },
+        { key: 'Eter Księżycowy',                   price: 10, unit: 'silver', desc: 'Skupiona magia miejsca — niezwykle rzadka.' },
+        { key: 'Fragment Ostrza Śmierci',           price: 15, unit: 'silver', desc: '⚠️ Przerażający fragment zakazanego artefaktu. Bibliotekarz bierze go z wahaniem.' },
+    ];
+
+    let hasAny = GATE_ITEMS_BUYLIST.some(item => (inventory[item.key] || 0) > 0);
+
+    let shopHtml = intro + libTextBox('— Witaj z powrotem! — mówi z ożywieniem. — Masz coś dla mnie z tamtej strony?', '#c0d0ff', '#6677cc');
+
+    if (!hasAny) {
+        shopHtml += libTextBox('Przeglądasz ekwipunek. Nie masz przy sobie żadnych składników z Księżycowej Bramy.<br><br>Wyślij smoka na wyprawę do bramy — być może coś znajdzie.', '#8090aa', '#556');
+    } else {
+        shopHtml += `<div style="font-size:13px; color:#aab; margin:8px 0;">Bibliotekarz skupuje:</div>`;
+        GATE_ITEMS_BUYLIST.forEach(item => {
+            const qty = inventory[item.key] || 0;
+            if (qty > 0) {
+                shopHtml += `
+                    <div style="margin:4px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#e0d0ff;">${item.key} <span style="color:#8090aa;">(masz: ${qty})</span></span>
+                            <span style="color:#ffcc44;">${item.price} srebrnych/szt.</span>
+                        </div>
+                        <div style="font-size:11px; color:#7080a0; margin:2px 0 6px;">${item.desc}</div>
+                        <div style="display:flex; gap:6px;">
+                            <div class="dialog-button" style="flex:1; padding:4px; font-size:12px;" onclick="sellGateItem('${item.key}', 1, ${item.price})">Sprzedaj 1</div>
+                            ${qty > 1 ? `<div class="dialog-button" style="flex:1; padding:4px; font-size:12px;" onclick="sellGateItem('${item.key}', ${qty}, ${item.price})">Sprzedaj wszystkie (${qty})</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+        });
     }
 
-    box.innerHTML = html;
+    shopHtml += `<div class="dialog-button" style="margin-top:10px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    box.innerHTML = shopHtml;
+}
+
+function sellGateItem(key, qty, pricePerUnit) {
+    const have = inventory[key] || 0;
+    const selling = Math.min(qty, have);
+    if (selling <= 0) return;
+    inventory[key] -= selling;
+    if (inventory[key] <= 0) delete inventory[key];
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    adjustCurrency('silver', selling * pricePerUnit);
+    updateCurrencyDisplay();
+    updateInventoryTabFull();
+    renderLibrarianRuneOptions();
 }
 
 function handleDeliverRunes() {
-    // Remove kartka from inventory
     delete inventory['Kartka z runami'];
     localStorage.setItem('inventory', JSON.stringify(inventory));
     localStorage.setItem('runeQuestProgress', 'delivered');
-    // Close library for 4 hours (real time)
-    const closeUntil = Date.now() + 1 * 60 * 1000; // 1 minute
+    const closeUntil = Date.now() + 1 * 60 * 1000;
     localStorage.setItem('libClosedUntil', String(closeUntil));
     updateInventoryTabFull();
     renderLibrarianRuneOptions();
@@ -1425,6 +1583,16 @@ function completeDragonMission(dragonNum) {
     
     let rewardText = Object.entries(mission.reward).map(([t,a]) => `${a} ${t}`).join(', ');
     let msg = `✅ Misja zakończona!\n${mission.name}\n\nNagroda: ${rewardText}\nZmęczenie: +${mission.fatigue}`;
+
+    // Moon Gate special loot
+    if (mission.id === 'wyprawa_ksiezycowa') {
+        const moonLoot = rollMoonGateLoot();
+        if (moonLoot) {
+            inventory[moonLoot.key] = (inventory[moonLoot.key] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            msg += `\n\n🌕 Znalezisko z Księżycowej Bramy:\n${moonLoot.key}`;
+        }
+    }
 
     if (combat) {
         msg += `\n\n⚔️ Podczas misji natrafiono na: ${combat.enemy}`;
@@ -1813,10 +1981,18 @@ function getMoonGateQuestContent(moonOpen) {
         </div>`;
     }
 
+    // Hint after delivering runes — shown permanently at gate
+    if (localStorage.getItem('gateHintMoonPhases') === 'true') {
+        extra += `<div style="margin:8px 0; padding:10px; background:rgba(30,10,60,0.5); border-left:3px solid #9966cc; border-radius:6px; color:#cc99ff; font-size:13px; font-style:italic; line-height:1.7;">
+            📖 Po oddaniu szkicu bibliotekarzowi, mówił on o <b>fazach księżyca</b> i o <b>magii za bramą</b>...<br>
+            Może brama otwiera się tylko wtedy, gdy księżyc jest w pełni?
+        </div>`;
+    }
+
     // Stage: bibliotekarz skończył badania — czas wrócić
-    if (stage === 'researchDone') {
+    if (stage === 'delivered') {
         extra += `<div style="margin:8px 0; padding:10px; background:rgba(30,10,60,0.6); border-left:3px solid #cc66ff; border-radius:6px; color:#cc99ff;">
-            Masz poczucie, że powinieneś wrócić do bibliotekarza. Coś jest gotowe.
+            ✨ Masz poczucie, że bibliotekarz skończył badania. Czas wrócić!
         </div>`;
     }
 
