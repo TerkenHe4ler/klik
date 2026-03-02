@@ -399,18 +399,30 @@ function getDragonHomeDesc() {
         return `${d1.name} i ${d2.name} są w domu. Wygląda na to, że dzień minął spokojnie.`;
     }
 
-    // 3 smoki
-    const elements = dragons.map(d => d.element);
-    if (elements.includes('ogien') && elements.includes('woda')) {
-        const fireD = dragons.find(d => d.element === 'ogien');
-        const waterD = dragons.find(d => d.element === 'woda');
-        const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
-        const thirdDesc = {
+// 3 smoki
+const elements = dragons.map(d => d.element);
+
+if (elements.includes('ogien') && elements.includes('woda')) {
+    const fireD = dragons.find(d => d.element === 'ogien');
+    const waterD = dragons.find(d => d.element === 'woda');
+    const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
+
+    let thirdDesc = '';
+
+    if (thirdD) {
+        const map = {
             ziemia: `${thirdD.name} czeka dokładnie w tym miejscu, co był gdy wychodziłeś. Pewnie siedział tutaj cały czas jak kamień, ignorując całe zamieszanie.`,
-            powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`,
-        }[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
-        return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
+            powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`
+        };
+
+        thirdDesc = map[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
+    } else {
+        // gdy masz 2 ognie albo 2 wody
+        thirdDesc = `Trzeci smok również miesza się do konfliktu — napięcie w powietrzu jest wyczuwalne.`;
     }
+
+    return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
+}
     return `Wszystkie trzy smoki są w domu. Panuje względny spokój — jak na trójkę smoków przystało.`;
 }
 
