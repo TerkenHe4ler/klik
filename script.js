@@ -430,7 +430,18 @@ function getDetailsState(type, num) {
 }
 
 function updateHomeTab() {
-    const home = document.getElementById("home-content");
+    const home = document.getElementById('home-content');
+    if (!home) return;
+
+    // Sync egg heat globals from localStorage before rendering
+    eggHeats        = Number(localStorage.getItem('eggHeats'))        || 0;
+    secondEggHeats  = Number(localStorage.getItem('secondEggHeats'))  || 0;
+    thirdEggHeats   = Number(localStorage.getItem('thirdEggHeats'))   || 0;
+    secondDragonUnlocked = localStorage.getItem('secondDragonUnlocked') === 'true';
+    thirdDragonUnlocked  = localStorage.getItem('thirdDragonUnlocked')  === 'true';
+    thirdDragonElement   = localStorage.getItem('thirdDragonElement') || thirdDragonElement;
+    secondDragonElement  = localStorage.getItem('secondDragonElement') || secondDragonElement;
+
     dragonLevel = dragonFeedings * 5;
     secondDragonLevel = secondDragonFeedings * 5;
     thirdDragonLevel = thirdDragonFeedings * 5;
@@ -456,6 +467,32 @@ function updateHomeTab() {
 }
 
 function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
+    // Always read fresh heats from localStorage — prevents stale global variable bugs
+    const freshHeats = num === 1
+        ? (Number(localStorage.getItem('eggHeats')) || 0)
+        : num === 2
+            ? (Number(localStorage.getItem('secondEggHeats')) || 0)
+            : (Number(localStorage.getItem('thirdEggHeats')) || 0);
+
+    // EARLY RETURN: unhatched egg — no expensive calls, no side effects
+    if (freshHeats < 3) {
+        const elementLabel = element ? element.toUpperCase() : '?';
+        const heatMsg = freshHeats === 0
+            ? 'Jajo jest zimne. Potrzebuje troski.'
+            : freshHeats === 1
+                ? 'Jajo jest ciepłe. Czujesz w nim życie.'
+                : 'Jajo drga. Coś się porusza w środku!';
+        return `
+            <div class="dragon-slot">
+                <div style="font-weight:bold; color:#c0cce0; margin-bottom:4px;">${name} — ${elementLabel}</div>
+                <div style="color:#8090aa; font-size:13px; margin-bottom:8px;">
+                    🥚 Ogrzania: <b style="color:#ffcc44;">${freshHeats}/3</b> — ${heatMsg}
+                </div>
+                <div class="dialog-button" onclick="heatEgg${num}()">🔥 Zadbaj o jajo</div>
+            </div>
+        `;
+    }
+
     const stats = loadDragonStats(num);
     const vitals = initDragonVitalsIfNeeded(num, stats);
     const maxHP = getDragonMaxHP(stats);
@@ -466,7 +503,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
     // Check if mission completed
     if (mission && Date.now() >= mission.endTime) {
         completeDragonMission(num);
-        return renderDragonHomeSlot(num, name, element, heats, level, feedings);
+        return renderDragonHomeSlot(num, name, element, freshHeats, level, feedings);
     }
 
     const isOnMission = !!mission;
@@ -481,16 +518,6 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
                     <div class="dialog-button" style="flex:1;" onclick="checkMissionStatus(${num})">🔍 Status</div>
                     <div class="dialog-button" style="flex:1; background:linear-gradient(#2a1800,#1a0f00); border-color:#cc6600; color:#ffaa44;" onclick="skipDragonMission(${num})">⏭️ Pomiń</div>
                 </div>
-            </div>
-        `;
-    }
-
-    if (heats < 3) {
-        return `
-            <div class="dragon-slot">
-                <b>Smok ${num}</b> — ${element ? element.toUpperCase() : '?'}<br>
-                Ogrzania: ${heats}/3<br>
-                <div class="dialog-button" onclick="heatEgg${num}()">🔥 Zadbaj o jajo</div>
             </div>
         `;
     }
@@ -4436,13 +4463,12 @@ function updateCurrencyDisplay() {
 /* updateHomeTab replaced by new version */
 
 function heatEgg1() {
-    // timing limit temporarily disabled
+    eggHeats = Number(localStorage.getItem('eggHeats')) || 0;
+    if (eggHeats >= 3) { updateHomeTab(); return; }
     eggHeats++;
     lastHeat = Date.now();
-
-    localStorage.setItem("eggHeats", eggHeats);
-    localStorage.setItem("lastHeat", lastHeat);
-
+    localStorage.setItem('eggHeats', String(eggHeats));
+    localStorage.setItem('lastHeat', String(lastHeat));
     updateHomeTab();
     updateDragonsTab();
 }
@@ -4470,25 +4496,23 @@ function feedDragon2() {
 }
 
 function heatEgg2() {
-    // timing limit temporarily disabled
+    secondEggHeats = Number(localStorage.getItem('secondEggHeats')) || 0;
+    if (secondEggHeats >= 3) { updateHomeTab(); return; }
     secondEggHeats++;
     secondLastHeat = Date.now();
-
-    localStorage.setItem("secondEggHeats", secondEggHeats);
-    localStorage.setItem("secondLastHeat", secondLastHeat);
-
+    localStorage.setItem('secondEggHeats', String(secondEggHeats));
+    localStorage.setItem('secondLastHeat', String(secondLastHeat));
     updateHomeTab();
     updateDragonsTab();
 }
 
 function heatEgg3() {
-    // timing limit temporarily disabled
+    thirdEggHeats = Number(localStorage.getItem('thirdEggHeats')) || 0;
+    if (thirdEggHeats >= 3) { updateHomeTab(); return; }
     thirdEggHeats++;
     thirdLastHeat = Date.now();
-
-    localStorage.setItem("thirdEggHeats", thirdEggHeats);
-    localStorage.setItem("thirdLastHeat", thirdLastHeat);
-
+    localStorage.setItem('thirdEggHeats', String(thirdEggHeats));
+    localStorage.setItem('thirdLastHeat', String(thirdLastHeat));
     updateHomeTab();
     updateDragonsTab();
 }
