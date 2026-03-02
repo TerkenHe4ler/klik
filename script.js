@@ -479,8 +479,8 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             <div style="margin:8px 0; font-size:13px; color:#aab;">
                 ❤️ HP: ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 Mana: ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 Zmęczenie: ${vitals.fatigue}/100
             </div>
-            <div style="margin:4px 0 10px 0; font-size:12px; color:#8090aa;">
-                ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b>${v}</b>`).join(' | ')}
+            <div style="margin:4px 0 10px 0; font-size:12px;">
+                ${Object.entries(stats).map(([k,v]) => renderStatWithBonus(k, v, getEquipmentStatBonus(num))).join(' <span style="color:#445;">|</span> ')}
             </div>
 
             ${missionHtml}
@@ -829,10 +829,7 @@ function renderArenaContent(arenaType) {
 }
 
 function handleDragonFight(num) {
-    const result = simulateDragonFight(num);
-    alert(result.msg);
-    renderArenaContent('smocza');
-    updateHomeTab();
+    startInteractiveFight(num);
 }
 
 function handlePlayerFight() {
@@ -1743,143 +1740,802 @@ function searchForFragment(num) {
 /* =========================================
    MISJA POSTERUNKU STRAŻY — 3 ZAKOŃCZENIA
 ========================================= */
+/* Old guard mission functions replaced by new system */
 
-function startGuardMission() {
-    localStorage.setItem('guardMissionStage', 'intro');
-    localStorage.setItem('guardMissionStart', String(Date.now()));
-    renderGuardMission();
+
+
+/* ==============================================
+   MISJA KURIERA — PRZEPISANA OD NOWA
+   Etapy: accept → searching (2min timers) → found → endings
+   Szczęście smoków wpływa na szansę znalezienia
+================================================ */
+
+// All locations where courier button can appear
+const COURIER_SEARCH_LOCATIONS = [
+    { region: 'miasto', loc: 'karczma', label: 'Karczma Pod Smokiem' },
+    { region: 'miasto', loc: 'plac',    label: 'Miejski Plac' },
+    { region: 'miasto', loc: 'port',    label: 'Port Astorveil' },
+    { region: 'las',    loc: 'polana',  label: 'Polana Urodzaju' },
+    { region: 'miasto', loc: 'tablica', label: 'Tablica Ogłoszeń' },
+];
+
+function getGuardState() {
+    const raw = localStorage.getItem('guardMission2');
+    return raw ? JSON.parse(raw) : { stage: 'none' };
 }
 
+function setGuardState(obj) {
+    localStorage.setItem('guardMission2', JSON.stringify(obj));
+}
+
+function getBestLuck() {
+    const nums = [1];
+    if (typeof secondDragonUnlocked !== 'undefined' && secondDragonUnlocked) nums.push(2);
+    if (typeof thirdDragonUnlocked !== 'undefined' && thirdDragonUnlocked) nums.push(3);
+    let best = 0;
+    nums.forEach(n => {
+        const stats = loadDragonStats(n);
+        if ((stats.szczescie || 0) > best) best = stats.szczescie;
+    });
+    return best;
+}
+
+function courierSuccessChance(attempt) {
+    const base = [0.40, 0.60, 0.80, 1.00][Math.min(attempt, 3)];
+    const luck = getBestLuck();
+    const bonus = Math.min(0.20, luck * 0.02); // up to +20% from luck
+    return Math.min(1.0, base + bonus);
+}
+
+function pickNextCourierLocation(usedIndices) {
+    const available = COURIER_SEARCH_LOCATIONS
+        .map((l, i) => ({ ...l, i }))
+        .filter(l => !usedIndices.includes(l.i));
+    if (available.length === 0) return { ...COURIER_SEARCH_LOCATIONS[0], i: 0 };
+    return available[Math.floor(Math.random() * available.length)];
+}
+
+// Called from offerHelp action in posterunek
 function renderGuardMission() {
-    const box = document.getElementById("location-action-area");
+    const box = document.getElementById('location-action-area');
     if (!box) return;
+    const gs = getGuardState();
 
-    const stage = localStorage.getItem('guardMissionStage') || 'none';
+    // Already done?
+    if (gs.stage && gs.stage.startsWith('done_')) {
+        const ending = gs.stage.replace('done_', '');
+        renderGuardEnding(ending);
+        return;
+    }
 
-    if (stage === 'none' || !stage) {
+    if (gs.stage === 'none' || !gs.stage) {
         box.innerHTML = `
-            <div class="dialog-button" onclick="startGuardMission()">⚔️ Podjij misję dla Kapitan</div>
-            <div class="dialog-button" style="border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>
+            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Kapitan Mira odkłada raporty i mierzy cię wzrokiem.\n\n— Mamy problem. Kurier z dokumentami zaginął trzy dni temu. Dokumenty są ważne — nie dla mnie, dla kogoś wyżej. Chcę żebyś się tym zajął. Dyskretnie.\n\nPodaje ci opisany kawałek pergaminu — wizerunek kuriera i ostatnia znana trasa.\n\n— Jak go znajdziesz, wróć tu zanim cokolwiek zrobisz. Zrozumiałeś?</div>
+            <div class="dialog-button" onclick="acceptGuardMission('loyal')">„Jasne. Najpierw wracam do ciebie."</div>
+            <div class="dialog-button" onclick="acceptGuardMission('independent')">„Działam jak uznam za stosowne."</div>
+            <div class="dialog-button" onclick="acceptGuardMission('curious')">„Czemu te dokumenty są takie ważne?"</div>
+            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="declineGuardMission()">Odmów zlecenia</div>
         `;
         return;
     }
 
-    const stages = {
-        intro: {
-            title: 'Zlecenie Kapitan Miry',
-            text: `Kapitan Mira odkłada raporty i mierzy cię wzrokiem.\n\n— Mamy problem. Kurier z dokumentami zaginął trzy dni temu gdzieś między miastem a fortem na wzgórzu. Dokumenty są ważne — nie dla mnie, dla kogoś wyżej. Chcę żebyś się tym zajął. Dyskretnie.\n\nPodaje ci opisany kawałek pergaminu — wizerunek kuriera i ostatnia znana trasa.\n\n— Ale zapamiętaj — mówi cicho. — Jak go znajdziesz, wróć tu zanim cokolwiek zrobisz. Mamy swój sposób postępowania z takimi rzeczami.`,
-            actions: [
-                { label: '„Jasne, najpierw do ciebie." (Posłuszna droga)', onclick: "advanceGuardMission('loyal')" },
-                { label: '„A jeśli będę musiał działać na miejscu?" (Niezależna droga)', onclick: "advanceGuardMission('independent')" },
-                { label: '„Czemu to takie ważne? Co to za dokumenty?"', onclick: "advanceGuardMission('question')" },
-            ]
-        },
-        question: {
-            title: 'Pytanie',
-            text: `Kapitan przez chwilę milczy.\n\n— Są ważne — mówi w końcu, z naciskiem na "ważne". — I to wystarczy. Mira uśmiecha się, ale uśmiech nie dosięga oczu. — Interesuje cię zlecenie czy nie?\n\nPrzełykasz ślinę.`,
-            actions: [
-                { label: '„Tak. Podejmuję."', onclick: "advanceGuardMission('loyal')" },
-                { label: '„Działam jak uznam za stosowne."', onclick: "advanceGuardMission('independent')" },
-            ]
-        },
-        loyal: {
-            title: 'Fort na wzgórzu',
-            text: `Docierasz do fortu późnym popołudniem. Wartownicy wpuszczają cię bez pytań — Kapitan wyraźnie was uprzedziła.\n\nW piwnicy fortu siedzą trzej podejrzani mężczyźni. Jeden z nich — chudy, nerwowy — ma na odzieży ślad po torbie kurierskiej.\n\nPod kątem przepytywania okazuje się, że kurier żyje. Trzymają go w karczmie niedaleko — skradziono mu dokumenty, ale on sam uciekł i ukrywa się ze strachu.\n\nZnajdujesz go. Dokumenty — zwinięte w rulon za lustrem — wciąż są przy nim.\n\nCo robisz?`,
-            actions: [
-                { label: 'Weź dokumenty i wróć do Kapitan (koniec A)', onclick: "finishGuardMission('A')" },
-                { label: 'Najpierw zapytaj kuriera o zawartość dokumentów (koniec B)', onclick: "advanceGuardMission('loyal_read')" },
-            ]
-        },
-        loyal_read: {
-            title: 'Zawartość',
-            text: `Kurier patrzy na ciebie z wahaniem, potem kiwa głową.\n\n— Widziałem je gdy je pobierałem. Listy. Czyjeś listy do kogoś. Adresy, nazwiska, spotkania. Brzmiało jak... spis osób obserwowanych przez Straż.\n\nSerce przyspiesza. To rejestr szpiegów — albo osób szpiegowanych. Oboje.\n\n— Kapitan Mira zleca takie rzeczy? — pytasz.\nKurier wzrusza ramionami. — Skąd mam wiedzieć. Rozkaz przyszedł z góry.\n\nCo robisz?`,
-            actions: [
-                { label: 'Wróć do Kapitan z dokumentami (koniec A)', onclick: "finishGuardMission('A')" },
-                { label: 'Weź dokumenty ale nie wróć do Kapitan — oddaj Handlarzowi w Pałacu (koniec C)', onclick: "finishGuardMission('C')" },
-            ]
-        },
-        independent: {
-            title: 'Fort na wzgórzu',
-            text: `Działasz sam, bez meldowania do Posterunku.\n\nSytuacja jest ta sama — kurier żyje, ukrywa się w karczmie. Dokumenty za lustrem.\n\nAle gdy sięgasz po rulon, kurier łapie cię za rękę.\n\n— Nie wiem kto cię przysłał — szepcze. — Ale wiem, że te dokumenty są niebezpieczne dla wielu ludzi. Dla mnie też. Jeśli wrócą do Straży, niektórzy skończą w lochu.\n\nCo robisz?`,
-            actions: [
-                { label: 'Wróć do Kapitan z dokumentami (koniec A)', onclick: "finishGuardMission('A')" },
-                { label: 'Zniszcz dokumenty na miejscu (koniec B)', onclick: "finishGuardMission('B')" },
-                { label: 'Oddaj dokumenty kurierowi i powiedz mu żeby uciekał (koniec C)', onclick: "finishGuardMission('C')" },
-            ]
-        },
-    };
+    if (gs.stage === 'searching') {
+        const now = Date.now();
+        const unlockTime = gs.nextSearchUnlock || 0;
+        const loc = COURIER_SEARCH_LOCATIONS[gs.currentLocIndex];
+        const remaining = unlockTime - now;
 
-    const current = stages[stage];
-    if (!current) {
-        box.innerHTML = `<p style="color:#888;">Błąd misji. <div class="dialog-button" onclick="openRegion('miasto')">← Wróć</div></p>`;
+        if (remaining > 0) {
+            box.innerHTML = `
+                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #9966cc; border-radius:6px; color:#c0aae0; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                    Masz rysopis kuriera w kieszeni. Szukasz. Podpowiedź wskazuje okolice:<br><b>${loc.label}</b><br><br>
+                    Kolejna szansa za: <b id="courier-timer" style="color:#ffcc44;">...</b>
+                </div>
+                <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Szukaj w mieście</div>
+            `;
+            const tick = () => {
+                const el = document.getElementById('courier-timer');
+                if (!el) return;
+                const rem = (getGuardState().nextSearchUnlock || 0) - Date.now();
+                if (rem <= 0) { renderGuardMission(); return; }
+                el.textContent = formatTime(rem);
+                setTimeout(tick, 1000);
+            };
+            tick();
+        } else {
+            // Ready to search
+            box.innerHTML = `
+                <div style="padding:12px; background:rgba(10,40,20,0.7); border-left:3px solid #44cc88; border-radius:6px; color:#99ffcc; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                    Masz rysopis kuriera w kieszeni. Ostatni ślad prowadzi do: <b>${loc.label}</b>.<br>
+                    Idź tam i szukaj. (Próba ${(gs.attempt||0)+1}/4)
+                </div>
+                <div class="dialog-button" onclick="openRegion('${loc.region}'); setTimeout(()=>openLocation('${loc.region}','${loc.loc}'),80)">📍 Idź do ${loc.label}</div>
+                <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+            `;
+        }
         return;
     }
 
-    box.innerHTML = `
-        <div style="margin-bottom:12px; padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; white-space:pre-line; font-style:italic;">${current.text}</div>
-        ${current.actions.map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
-    `;
+    if (gs.stage === 'curious') {
+        box.innerHTML = `
+            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">— Są ważne — mówi Kapitan z naciskiem. — I to wystarczy.\n\nMira uśmiecha się, ale uśmiech nie dosięga oczu.</div>
+            <div class="dialog-button" onclick="acceptGuardMission('loyal')">„Dobrze. Podejmuję."</div>
+            <div class="dialog-button" onclick="acceptGuardMission('independent')">„Działam jak uznam za stosowne."</div>
+            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="declineGuardMission()">Odmów</div>
+        `;
+        return;
+    }
+
+    if (gs.stage === 'found') {
+        const approach = gs.approach || 'loyal';
+        if (approach === 'loyal') {
+            box.innerHTML = `
+                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Odnalazłeś kuriera. Żyje — skulony w kącie gospody, blady ze strachu. Dokumenty ma przy sobie — zwinięte w rulon ukryty w bucie.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.</div>
+                <div class="dialog-button" onclick="finishGuardMission('A')">Weź dokumenty i wróć do Kapitan</div>
+                <div class="dialog-button" onclick="guardReadDocs()">Zapytaj kuriera co to za dokumenty</div>
+            `;
+        } else {
+            box.innerHTML = `
+                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Odnalazłeś kuriera. Żyje — skulony w kącie gospody. Dokumenty ma przy sobie.\n\nSzepcze: — Nie wiem kto cię przysłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.</div>
+                <div class="dialog-button" onclick="finishGuardMission('A')">Wróć do Kapitan z dokumentami</div>
+                <div class="dialog-button" onclick="finishGuardMission('B')">Spal dokumenty na miejscu</div>
+                <div class="dialog-button" onclick="finishGuardMission('C')">Daj dokumenty kurierowi — niech ucieka</div>
+            `;
+        }
+        return;
+    }
+
+    if (gs.stage === 'declined') {
+        box.innerHTML = `
+            <div style="padding:10px; color:#8090aa; font-style:italic; margin-bottom:10px;">Odmówiłeś zlecenia Kapitan Miry. Może jednak zmienisz zdanie?</div>
+            <div class="dialog-button" onclick="resetGuardMission()">Wróć i podejmij zlecenie</div>
+            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Zawróć</div>
+        `;
+        return;
+    }
 }
 
-function advanceGuardMission(nextStage) {
-    localStorage.setItem('guardMissionStage', nextStage);
+function acceptGuardMission(approach) {
+    const firstLoc = pickNextCourierLocation([]);
+    setGuardState({
+        stage: 'searching',
+        approach,
+        attempt: 0,
+        currentLocIndex: firstLoc.i,
+        usedIndices: [firstLoc.i],
+        nextSearchUnlock: Date.now() + 2 * 60 * 1000, // 2 minutes
+    });
+    // Plant the "courier button" flag for that location
+    localStorage.setItem('courierSearchLoc', firstLoc.i);
     renderGuardMission();
 }
 
-function finishGuardMission(ending) {
-    localStorage.setItem('guardMissionStage', 'done_' + ending);
-    localStorage.setItem('guardMissionEnding', ending);
+function declineGuardMission() {
+    setGuardState({ stage: 'declined' });
+    renderGuardMission();
+}
 
-    const box = document.getElementById("location-action-area");
+function resetGuardMission() {
+    setGuardState({ stage: 'none' });
+    renderGuardMission();
+}
+
+function guardReadDocs() {
+    const gs = getGuardState();
+    gs.readDocs = true;
+    setGuardState(gs);
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    box.innerHTML = `
+        <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Kurier patrzy na ciebie z wahaniem.\n\n— Listy. Czyjeś listy do kogoś. Adresy, nazwiska, spotkania. Spis osób obserwowanych przez Straż.\n\nSerce przyspiesza. To rejestr szpiegów. Kapitan Mira zleca takie rzeczy?</div>
+        <div class="dialog-button" onclick="finishGuardMission('A')">Wróć do Kapitan z dokumentami</div>
+        <div class="dialog-button" onclick="finishGuardMission('C')">Oddaj dokumenty komuś innemu (Droga Cienia)</div>
+    `;
+}
+
+// Called from location rendering when courier location matches
+function renderCourierSearchButton(regionKey, locationId) {
+    const gs = getGuardState();
+    if (gs.stage !== 'searching') return '';
+    const locIdx = Number(localStorage.getItem('courierSearchLoc') ?? -1);
+    const loc = COURIER_SEARCH_LOCATIONS[locIdx];
+    if (!loc || loc.region !== regionKey || loc.loc !== locationId) return '';
+    const now = Date.now();
+    if (gs.nextSearchUnlock && now < gs.nextSearchUnlock) return '';
+
+    return `<div style="margin:10px 0; padding:12px; background:rgba(30,50,20,0.7); border:2px solid #66cc44; border-radius:8px; animation:worldFadeIn 0.5s;">
+        <b style="color:#aaff66;">🔍 Szukaj kuriera tutaj</b>
+        <p style="color:#c0e0a0; font-size:13px; margin:6px 0 10px;">Masz rysopis. Może jest właśnie gdzieś tutaj...</p>
+        <div class="dialog-button" style="border-color:#66cc44;color:#aaff66;" onclick="attemptCourierSearch()">Szukaj</div>
+    </div>`;
+}
+
+function attemptCourierSearch() {
+    const gs = getGuardState();
+    const attempt = gs.attempt || 0;
+    const chance = courierSuccessChance(attempt);
+    const success = Math.random() < chance || attempt >= 3;
+
+    if (success) {
+        gs.stage = 'found';
+        setGuardState(gs);
+        localStorage.removeItem('courierSearchLoc');
+        // Show found message then render
+        const box = document.getElementById('location-action-area');
+        if (box) {
+            box.innerHTML = `<div style="padding:12px; background:rgba(20,50,20,0.7); border-left:3px solid #44cc88; border-radius:6px; color:#99ffcc; margin-bottom:12px; font-style:italic;">
+                Wypatrzyłeś go! Siedzi w kącie, osłaniając twarz kapeluszem. Oczy zdradzają strach.
+                <div class="dialog-button" style="margin-top:10px;" onclick="renderGuardMission()">Podejdź do kuriera</div>
+            </div>`;
+        }
+    } else {
+        // Failed — set timer for next attempt in different location
+        const nextAttempt = attempt + 1;
+        const usedIndices = gs.usedIndices || [gs.currentLocIndex];
+        const nextLoc = pickNextCourierLocation(usedIndices);
+        usedIndices.push(nextLoc.i);
+        gs.attempt = nextAttempt;
+        gs.currentLocIndex = nextLoc.i;
+        gs.usedIndices = usedIndices;
+        gs.nextSearchUnlock = Date.now() + 2 * 60 * 1000;
+        setGuardState(gs);
+        localStorage.setItem('courierSearchLoc', nextLoc.i);
+
+        const msgs = [
+            'Szukasz go wszędzie. Nic. Może jest w innym miejscu.',
+            'Kilka osób widziało kogoś podobnego. Idą w innym kierunku.',
+            'Trop urwał się. Trzeba szukać gdzie indziej.',
+        ];
+        const box = document.getElementById('location-action-area');
+        if (box) {
+            box.innerHTML = `<div style="padding:12px; background:rgba(40,20,10,0.7); border-left:3px solid #cc6644; border-radius:6px; color:#ffaa88; margin-bottom:12px; font-style:italic;">
+                ${msgs[Math.floor(Math.random() * msgs.length)]}<br><br>
+                Nowy ślad: <b>${COURIER_SEARCH_LOCATIONS[nextLoc.i].label}</b>. Poczekaj 2 minuty, zanim znów zaczniesz szukać.
+                <div class="dialog-button" style="margin-top:10px;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+            </div>`;
+        }
+    }
+}
+
+function finishGuardMission(ending) {
+    const gs = getGuardState();
+    gs.stage = 'done_' + ending;
+    gs.ending = ending;
+    setGuardState(gs);
+    localStorage.removeItem('courierSearchLoc');
+    renderGuardEnding(ending);
+}
+
+function renderGuardEnding(ending) {
+    const box = document.getElementById('location-action-area');
     if (!box) return;
 
     const endings = {
         A: {
-            title: '⚔️ Zakończenie A: Droga Straży',
-            text: `Wracasz do Kapitan z dokumentami. Mira bierze je bez słowa, nie otwierając.\n\n— Dobrze — mówi. — Zapłacę ci jak obiecałam.\n\nDostaje też krótkie skinienie głową — symbol uznania. Lub może tylko pokwitowania.\n\nKurier zostaje zwolniony z aresztu kilka dni później. Podobno. Nie pytaj za dużo.\n\n🏆 Nagroda: 5 srebrnych + reputacja w Straży`,
-            reward: () => { spendCurrency(-500); } // add 5 silver
+            color: '#ffcc66', border: '#cc9900',
+            title: '⚔️ Zakończenie: Droga Straży',
+            text: `Wracasz do Kapitan z dokumentami. Mira bierze je bez słowa, nie otwierając.\n\n— Dobrze — mówi. — Jak obiecałam.\n\nKłade na biurku 2 złote monety.\n\n— I jeszcze jedno. — Unosi głowę. — Mamy wakat na nocnej warcie. Jeśli cię to interesuje, daj znać. Dobra robota.`,
+            reward: () => adjustCurrency('gold', 2),
+            showJoin: true,
         },
         B: {
-            title: '🔥 Zakończenie B: Droga Sprawiedliwości',
-            text: `Paliasz dokumenty w kominku karczmy. Kurier patrzy jak ogień pochłania pergamin i odchodzi bez słowa.\n\nWracasz do Kapitan z pustymi rękami.\n\n— Gdzie są dokumenty? — pyta twardo.\n— Spłonęły — odpowiadasz spokojnie.\n\nMilczenie trwa długo.\n\n— Rozumiem — mówi w końcu. — Nie możemy ci zapłacić za to czego nie ma. Ale... nie melduj się tu przez jakiś czas.\n\nWychodzisz. Na schodach masz wrażenie, że ktoś na ciebie patrzy.\n\n⚔️ Brak nagrody pieniężnej. Coś jednak zostało zapamiętane.`,
+            color: '#ff9966', border: '#cc4422',
+            title: '🔥 Zakończenie: Droga Sprawiedliwości',
+            text: `Paliasz dokumenty. Kurier odchodzi bez słowa.\n\nWracasz do Kapitan z pustymi rękami.\n\n— Gdzie są? — pyta twardo.\n— Spłonęły.\n\nMilczenie trwa długo.\n\n— Nie możemy ci zapłacić za to czego nie ma. Nie melduj się tu przez jakiś czas.`,
             reward: () => {
                 inventory['Tajemnicza notatka'] = (inventory['Tajemnicza notatka'] || 0) + 1;
                 localStorage.setItem('inventory', JSON.stringify(inventory));
-            }
+            },
+            showJoin: false,
         },
         C: {
-            title: '🌑 Zakończenie C: Droga Cienia',
-            text: `Dokumenty trafiają w inne ręce. Skryte, dyskretne.\n\nNie wiesz, co się z nimi stanie. Nie chcesz wiedzieć.\n\nKilka dni później przy twoich drzwiach (a może przy smoczym gnieździe?) pojawia się anonimowa paczka. W środku: złota moneta i kartka bez podpisu.\n\n"Dobra robota. Będziemy w kontakcie."\n\n💰 Nagroda: 1 złota + nowe możliwości w przyszłości`,
-            reward: () => {
-                spendCurrency(-5000); // add 1 gold
-                localStorage.setItem('shadowContact', 'true');
-            }
-        }
+            color: '#cc88ff', border: '#9944cc',
+            title: '🌑 Zakończenie: Droga Cienia',
+            text: `Dokumenty trafiają w inne ręce.\n\nKilka dni później anonimowa paczka: złota moneta i kartka.\n\n"Dobra robota. Będziemy w kontakcie."`,
+            reward: () => { adjustCurrency('gold', 1); localStorage.setItem('shadowContact', 'true'); },
+            showJoin: false,
+        },
     };
 
     const e = endings[ending];
     if (!e) return;
-
-    // Apply reward
-    if (ending === 'A') { adjustCurrency('silver', 5); }
-    else if (ending === 'B') {
-        inventory['Tajemnicza notatka'] = (inventory['Tajemnicza notatka'] || 0) + 1;
-        localStorage.setItem('inventory', JSON.stringify(inventory));
-    }
-    else if (ending === 'C') {
-        adjustCurrency('gold', 1);
-        localStorage.setItem('shadowContact', 'true');
-    }
-
+    e.reward();
     updateInventoryTabFull();
 
     box.innerHTML = `
-        <div style="margin-bottom:12px; padding:14px; background:rgba(10,20,40,0.8); border:1px solid #5a4a2a; border-radius:8px; color:#e0d090; line-height:1.8; white-space:pre-line; font-style:italic;">
-            <div style="font-weight:bold; color:#ffcc66; margin-bottom:10px; font-size:15px;">${e.title}</div>
+        <div style="padding:14px; background:rgba(10,20,40,0.8); border:1px solid ${e.border}; border-radius:8px; color:${e.color}; line-height:1.8; white-space:pre-line; font-style:italic; margin-bottom:12px;">
+            <div style="font-weight:bold; font-size:15px; margin-bottom:10px;">${e.title}</div>
             ${e.text}
         </div>
-        <div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+        ${e.showJoin && !isGuardMember() ? `<div class="dialog-button" style="border-color:#cc9900;color:#ffcc66;" onclick="joinGuard()">⚔️ Wstąp do Straży</div>` : ''}
+        ${isGuardMember() ? `<div style="color:#66cc88; margin:8px 0; font-size:13px; font-style:italic;">✅ Jesteś już członkiem Straży Miejskiej.</div>` : ''}
+        <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
     `;
+}
+
+function isGuardMember() {
+    return localStorage.getItem('guardMember') === 'true';
+}
+
+function joinGuard() {
+    localStorage.setItem('guardMember', 'true');
+    unlockWartaTab();
+    alert('Zostałeś przyjęty do Straży Miejskiej Astorveil!\n\nNowa zakładka "Warta" jest teraz dostępna. Możesz zarobić pełniąc służbę.');
+    renderGuardEnding('A');
+    updateSidebarTabs();
+}
+
+/* ==============================================
+   ZAKŁADKA WARTA
+================================================ */
+
+function unlockWartaTab() {
+    localStorage.setItem('wartaUnlocked', 'true');
+    const tab = document.getElementById('tab-warta');
+    if (tab) tab.style.display = 'block';
+}
+
+function updateWartaTab() {
+    const div = document.getElementById('warta-content');
+    if (!div) return;
+
+    const active = localStorage.getItem('wartaActive') === 'true';
+    const endTime = Number(localStorage.getItem('wartaEndTime') || 0);
+    const now = Date.now();
+
+    if (active && endTime > now) {
+        // Warta in progress
+        const remaining = endTime - now;
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(30,20,10,0.7); border:2px solid #cc9900; border-radius:10px; margin-bottom:16px; text-align:center;">
+                <div style="font-size:18px; font-weight:bold; color:#ffcc66; margin-bottom:8px;">⚔️ Pełnisz wartę</div>
+                <div style="color:#aaa; margin-bottom:12px; font-size:13px; font-style:italic;">Stoisz przy bramie. Czas mija powoli.</div>
+                <div style="font-size:32px; font-weight:bold; color:#ffaa44;" id="warta-countdown">...</div>
+                <div style="color:#8090aa; font-size:12px; margin-top:4px;">pozostało</div>
+            </div>
+        `;
+        const tick = () => {
+            const el = document.getElementById('warta-countdown');
+            if (!el) return;
+            const rem = Number(localStorage.getItem('wartaEndTime') || 0) - Date.now();
+            if (rem <= 0) { collectWartaPay(); return; }
+            const m = Math.floor(rem / 60000);
+            const s = Math.floor((rem % 60000) / 1000);
+            el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+            setTimeout(tick, 1000);
+        };
+        tick();
+    } else if (active && endTime <= now) {
+        collectWartaPay();
+    } else {
+        // Setup UI
+        const currentVal = Number(localStorage.getItem('wartaMinutes') || 0);
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(10,20,40,0.6); border:1px solid #3a4a6a; border-radius:10px; margin-bottom:16px;">
+                <h3 style="color:#ffcc66; margin:0 0 8px 0;">⚔️ Służba w Straży Miejskiej</h3>
+                <p style="color:#9ab; font-size:13px; margin-bottom:16px;">Wybierz czas warty. Za każde 10 sekund służby otrzymujesz 10 srebra.</p>
+                <div style="margin-bottom:14px;">
+                    <label style="color:#aab; font-size:13px; display:block; margin-bottom:8px;">Czas warty: <b id="warta-display" style="color:#ffcc66;">${currentVal} minut</b></label>
+                    <input type="range" id="warta-slider" min="0" max="12" step="1" value="${currentVal}"
+                        style="width:100%; accent-color:#cc9900; cursor:pointer;"
+                        oninput="syncWartaInput(this.value)">
+                    <div style="display:flex; justify-content:space-between; color:#6070a0; font-size:11px; margin-top:4px;">
+                        <span>0</span><span>3</span><span>6</span><span>9</span><span>12 min</span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                    <label style="color:#aab; font-size:13px;">Lub wpisz ręcznie:</label>
+                    <input type="number" id="warta-input" min="0" max="12" value="${currentVal}"
+                        style="width:70px; background:#0a1428; border:1px solid #3a4a6a; color:#e0e8ff; border-radius:4px; padding:4px 8px; font-size:14px;"
+                        oninput="syncWartaSlider(this.value)">
+                    <span style="color:#6070a0; font-size:13px;">minut</span>
+                </div>
+                <div style="padding:10px; background:rgba(30,40,20,0.5); border-radius:6px; margin-bottom:12px; font-size:13px; color:#aab;">
+                    💰 Zarobek: <b style="color:#ffcc66;">${currentVal > 0 ? (currentVal * 60 * 10) : 0} srebrnych</b> za ${currentVal} min warty
+                </div>
+                <div class="dialog-button" ${currentVal === 0 ? 'style="opacity:0.4;pointer-events:none;"' : ''} id="warta-start-btn" onclick="startWarta()">⚔️ Rozpocznij wartę</div>
+            </div>
+        `;
+    }
+}
+
+function syncWartaInput(val) {
+    val = Math.max(0, Math.min(12, Number(val)));
+    localStorage.setItem('wartaMinutes', val);
+    const inp = document.getElementById('warta-input');
+    const disp = document.getElementById('warta-display');
+    const btn = document.getElementById('warta-start-btn');
+    const earn = document.querySelector('#warta-content [style*="Zarobek"] b');
+    if (inp) inp.value = val;
+    if (disp) disp.textContent = val + ' minut';
+    if (btn) { btn.style.opacity = val === 0 ? '0.4' : '1'; btn.style.pointerEvents = val === 0 ? 'none' : 'auto'; }
+    if (earn) earn.textContent = (val * 60 * 10) + ' srebrnych';
+}
+
+function syncWartaSlider(val) {
+    val = Math.max(0, Math.min(12, Number(val)));
+    localStorage.setItem('wartaMinutes', val);
+    const slider = document.getElementById('warta-slider');
+    if (slider) slider.value = val;
+    syncWartaInput(val);
+}
+
+function startWarta() {
+    const mins = Number(localStorage.getItem('wartaMinutes') || 0);
+    if (mins <= 0) return;
+    localStorage.setItem('wartaActive', 'true');
+    localStorage.setItem('wartaEndTime', String(Date.now() + mins * 60 * 1000));
+    localStorage.setItem('wartaMins', String(mins));
+    updateWartaTab();
+}
+
+function collectWartaPay() {
+    const mins = Number(localStorage.getItem('wartaMins') || 0);
+    const silver = mins * 60 * 10; // 10 silver per 10s = 60 per minute
+    adjustCurrency('silver', silver);
+    localStorage.setItem('wartaActive', 'false');
+    updateCurrencyDisplay();
+    const div = document.getElementById('warta-content');
+    if (div) {
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(20,40,15,0.7); border:2px solid #44cc66; border-radius:10px; margin-bottom:16px; text-align:center;">
+                <div style="font-size:18px; font-weight:bold; color:#66ff88; margin-bottom:8px;">✅ Warta zakończona!</div>
+                <div style="color:#aaa; font-size:13px;">Kapitan kiwa głową z uznaniem.</div>
+                <div style="font-size:24px; color:#ffcc44; margin:12px 0; font-weight:bold;">+${silver} srebrnych</div>
+                <div class="dialog-button" style="margin-top:8px;" onclick="updateWartaTab()">Kolejna warta</div>
+            </div>
+        `;
+    }
+}
+
+function updateSidebarTabs() {
+    if (isGuardMember()) {
+        const tab = document.getElementById('tab-warta');
+        if (tab) tab.style.display = 'block';
+    }
+}
+
+/* ==============================================
+   REGENERACJA SMOKÓW — 10% HP/MANA/ZMĘCZENIE CO MINUTĘ
+================================================ */
+
+function startDragonRegenLoop() {
+    setInterval(() => {
+        [1, 2, 3].forEach(num => {
+            // Only for hatched dragons
+            const heats = num === 1 ? eggHeats : num === 2 ? secondEggHeats : thirdEggHeats;
+            if (heats < 3) return;
+            const unlocked = num === 1 ? true : num === 2 ? secondDragonUnlocked : thirdDragonUnlocked;
+            if (!unlocked) return;
+
+            const stats = loadDragonStats(num);
+            const vitals = loadDragonVitals(num);
+            const maxHP = getDragonMaxHP(stats);
+            const maxMana = getDragonMaxMana(stats);
+
+            let changed = false;
+            if (vitals.hp < maxHP) {
+                vitals.hp = Math.min(maxHP, Math.round(vitals.hp + maxHP * 0.10));
+                changed = true;
+            }
+            if (vitals.mana < maxMana) {
+                vitals.mana = Math.min(maxMana, Math.round(vitals.mana + maxMana * 0.10));
+                changed = true;
+            }
+            if (vitals.fatigue > 0) {
+                vitals.fatigue = Math.max(0, Math.round(vitals.fatigue - 10));
+                changed = true;
+            }
+            if (changed) saveDragonVitals(num, vitals);
+        });
+    }, 60 * 1000); // every 1 minute
+}
+
+/* ==============================================
+   WALKA NA ARENIE — GRACZ DECYDUJE (INTERAKTYWNA)
+================================================ */
+
+let _pendingCombat = null; // { dragonNum, enemy, dragonHP, mana, stats, equipBonus }
+
+function startInteractiveFight(dragonNum) {
+    const fightsDone = loadArenaFights(dragonNum);
+    if (fightsDone >= 3) { alert('Ten smok walczył już 3 razy dzisiaj.'); return; }
+    const vitals = loadDragonVitals(dragonNum);
+    if (vitals.fatigue >= 80) { alert('Smok jest zbyt zmęczony (zmęczenie ≥80).'); return; }
+    const mission = loadDragonMission(dragonNum);
+    if (mission) { alert('Smok jest na misji.'); return; }
+
+    const stats = loadDragonStats(dragonNum);
+    const equipBonus = getEquipmentStatBonus(dragonNum);
+    const opponent = ARENA_OPPONENTS[Math.min(fightsDone, ARENA_OPPONENTS.length - 1)];
+    const enemyMaxHP = opponent.wytrzymalosc * 10 + 30;
+
+    _pendingCombat = {
+        dragonNum,
+        enemy: { ...opponent, hp: enemyMaxHP, maxHP: enemyMaxHP },
+        dragonHP: vitals.hp,
+        dragonMana: vitals.mana,
+        stats,
+        equipBonus,
+        round: 1,
+    };
+
+    incrementArenaFights(dragonNum);
+    vitals.fatigue = Math.min(100, vitals.fatigue + 10);
+    saveDragonVitals(dragonNum, vitals);
+
+    renderCombatScreen();
+}
+
+function renderCombatScreen() {
+    const box = document.getElementById('location-action-area');
+    if (!box || !_pendingCombat) return;
+    const c = _pendingCombat;
+    const spells = loadDragonSpells(c.dragonNum);
+    const dragonName_local = c.dragonNum === 1 ? dragonName : c.dragonNum === 2 ? secondDragonName : thirdDragonName;
+    const element = c.dragonNum === 1 ? chosenDragon : c.dragonNum === 2 ? secondDragonElement : thirdDragonElement;
+
+    const effectiveSila = (c.stats.sila || 5) + (c.equipBonus.sila || 0);
+    const effectiveWytr = (c.stats.wytrzymalosc || 5) + (c.equipBonus.wytrzymalosc || 0);
+    const dragonMaxHP = getDragonMaxHP(c.stats);
+
+    const elementSpells = DRAGON_SPELLS[element] || [];
+    const knownSpells = elementSpells.filter(s => spells.includes(s.id));
+
+    const hpPct = Math.round((c.dragonHP / dragonMaxHP) * 100);
+    const enemyHpPct = Math.round((c.enemy.hp / c.enemy.maxHP) * 100);
+
+    box.innerHTML = `
+        <div style="background:rgba(10,5,20,0.9); border:1px solid #4a2a6a; border-radius:10px; padding:14px;">
+            <div style="font-size:14px; font-weight:bold; color:#cc99ff; margin-bottom:10px; text-align:center;">⚔️ WALKA — Runda ${c.round}</div>
+            
+            <!-- Dragon HP bar -->
+            <div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#aab; margin-bottom:3px;">
+                    <span>${dragonName_local}</span><span>❤️ ${c.dragonHP}/${dragonMaxHP} | 💧 ${c.dragonMana}</span>
+                </div>
+                <div style="height:8px; background:#1a0a2a; border-radius:4px; overflow:hidden;">
+                    <div style="width:${hpPct}%; height:100%; background:linear-gradient(#cc4488,#ff66aa); transition:0.3s;"></div>
+                </div>
+            </div>
+            
+            <!-- Enemy HP bar -->
+            <div style="margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#aab; margin-bottom:3px;">
+                    <span>${c.enemy.name}</span><span>❤️ ${c.enemy.hp}/${c.enemy.maxHP}</span>
+                </div>
+                <div style="height:8px; background:#1a0a2a; border-radius:4px; overflow:hidden;">
+                    <div style="width:${enemyHpPct}%; height:100%; background:linear-gradient(#cc2200,#ff4422); transition:0.3s;"></div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div style="font-size:12px; color:#8090aa; margin-bottom:8px;">Co robi ${dragonName_local}?</div>
+            <div class="dialog-button" onclick="combatAction('claw')">🐾 Atak Pazurami (${Math.floor(effectiveSila * 2 + effectiveWytr * 0.5)} - ${Math.floor(effectiveSila * 3 + effectiveWytr * 0.5)} obrażeń)</div>
+            ${knownSpells.length > 0 ? knownSpells.map(sp => `
+                <div class="dialog-button" ${c.dragonMana < sp.manaCost ? 'style="opacity:0.5;pointer-events:none;"' : ''} onclick="combatAction('spell','${sp.id}')">
+                    ✨ ${sp.name} (mana: ${sp.manaCost}) ${c.dragonMana < sp.manaCost ? '— brak many' : ''}
+                </div>
+            `).join('') : ''}
+            <div class="dialog-button" style="border-color:#cc4422;color:#ff8866;" onclick="combatAction('flee')">🏃 Uciekaj</div>
+        </div>
+    `;
+}
+
+function combatAction(action, spellId) {
+    if (!_pendingCombat) return;
+    const c = _pendingCombat;
+    const effectiveSila = (c.stats.sila || 5) + (c.equipBonus.sila || 0);
+    const effectiveWytr = (c.stats.wytrzymalosc || 5) + (c.equipBonus.wytrzymalosc || 0);
+    const effectiveZrec = (c.stats.zrecznosc || 5) + (c.equipBonus.zrecznosc || 0);
+
+    let dmgToEnemy = 0;
+    let dmgToDragon = 0;
+    let actionLog = '';
+
+    if (action === 'flee') {
+        _pendingCombat = null;
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:12px; color:#ffaa44; font-style:italic;">Smok ucieka z areny. Brak nagrody.</div>
+            <div class="dialog-button" onclick="renderArenaContent('smocza')">← Wróć do Areny</div>
+        `;
+        updateHomeTab();
+        return;
+    }
+
+    if (action === 'claw') {
+        dmgToEnemy = Math.floor(effectiveSila * (1.5 + Math.random()) + effectiveWytr * 0.3);
+        dmgToDragon = Math.floor(c.enemy.sila * (0.8 + Math.random() * 0.5));
+        actionLog = `Smok atakuje pazurami! Zadaje ${dmgToEnemy} obrażeń.`;
+    } else if (action === 'spell') {
+        const element = c.dragonNum === 1 ? chosenDragon : c.dragonNum === 2 ? secondDragonElement : thirdDragonElement;
+        const elementSpells = DRAGON_SPELLS[element] || [];
+        const spell = elementSpells.find(s => s.id === spellId);
+        if (spell && c.dragonMana >= spell.manaCost) {
+            c.dragonMana -= spell.manaCost;
+            dmgToEnemy = Math.floor((c.stats.inteligencja || 5) * 3 + (Math.random() * 10));
+            dmgToDragon = Math.floor(c.enemy.sila * (0.5 + Math.random() * 0.3));
+            actionLog = `${spell.name}! Zadaje ${dmgToEnemy} obrażeń magicznych.`;
+        }
+    }
+
+    // Apply dodge from zrecznosc
+    const dodgeChance = Math.min(0.3, effectiveZrec * 0.02);
+    if (Math.random() < dodgeChance) {
+        dmgToDragon = 0;
+        actionLog += ' Smok unika kontrataku!';
+    }
+
+    c.enemy.hp = Math.max(0, c.enemy.hp - dmgToEnemy);
+    c.dragonHP = Math.max(0, c.dragonHP - dmgToDragon);
+    c.round++;
+
+    // Check end conditions
+    if (c.enemy.hp <= 0) {
+        // Victory
+        const stats = loadDragonStats(c.dragonNum);
+        const raisableStat = ['sila','wytrzymalosc','zrecznosc','inteligencja','sila_woli'][Math.floor(Math.random() * 5)];
+        stats[raisableStat]++;
+        saveDragonStats(c.dragonNum, stats);
+        adjustCurrency('silver', 1);
+
+        // Update dragon vitals
+        const vitals = loadDragonVitals(c.dragonNum);
+        vitals.hp = Math.max(1, c.dragonHP);
+        vitals.mana = c.dragonMana;
+        saveDragonVitals(c.dragonNum, vitals);
+
+        _pendingCombat = null;
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:14px; background:rgba(20,40,15,0.8); border:1px solid #44cc66; border-radius:8px; color:#99ffaa; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                <b style="color:#66ff88; font-size:15px;">🏆 ZWYCIĘSTWO!</b><br>
+                ${actionLog}<br>
+                Smok pokonał ${c.enemy.name}!<br>
+                +1 srebro | +1 ${STAT_LABELS[raisableStat]}
+            </div>
+            <div class="dialog-button" onclick="renderArenaContent('smocza')">← Wróć do Areny</div>
+        `;
+        updateHomeTab();
+        return;
+    }
+
+    if (c.dragonHP <= 0) {
+        // Defeat
+        const vitals = loadDragonVitals(c.dragonNum);
+        vitals.hp = 1;
+        vitals.mana = c.dragonMana;
+        saveDragonVitals(c.dragonNum, vitals);
+        _pendingCombat = null;
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:14px; background:rgba(40,10,10,0.8); border:1px solid #cc2200; border-radius:8px; color:#ff8866; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                <b style="color:#ff4422; font-size:15px;">💀 PORAŻKA</b><br>
+                Smok pada. ${c.enemy.name} wygrał. Brak nagrody.
+            </div>
+            <div class="dialog-button" onclick="renderArenaContent('smocza')">← Wróć do Areny</div>
+        `;
+        updateHomeTab();
+        return;
+    }
+
+    // Continue combat
+    _pendingCombat = c;
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        // Show round log then re-render
+        const logDiv = document.createElement('div');
+        logDiv.style.cssText = 'padding:8px 12px; background:rgba(20,10,40,0.6); border-left:3px solid #9966cc; border-radius:4px; color:#cc99ff; font-size:13px; margin-bottom:8px; font-style:italic;';
+        logDiv.textContent = `Runda ${c.round-1}: ${actionLog} Wróg zadał ${dmgToDragon} obrażeń.`;
+        renderCombatScreen();
+        const actionArea = document.getElementById('location-action-area');
+        if (actionArea) actionArea.insertBefore(logDiv, actionArea.firstChild);
+    }
+}
+
+/* ==============================================
+   TOOLTIP CECH SMOKA Z EKWIPUNKIEM
+================================================ */
+
+function renderStatWithBonus(statKey, baseValue, equipBonus) {
+    const bonus = equipBonus[statKey] || 0;
+    const total = baseValue + bonus;
+    const label = STAT_LABELS[statKey] || statKey;
+
+    if (bonus === 0) {
+        return `<span style="color:#8090aa;">${label}: <b>${total}</b></span>`;
+    }
+
+    // Build tooltip content
+    const tooltipId = `tooltip-${statKey}-${Date.now().toString(36)}`;
+    const tooltipContent = `${label}: ${baseValue} bazowe + ${bonus} z ekwipunku = ${total}`;
+
+    return `<span style="color:#55ee88; cursor:help; position:relative;"
+        onmouseenter="showStatTooltip(this, '${statKey}', ${baseValue})"
+        onmouseleave="hideStatTooltip()"
+        onclick="toggleStatTooltip(this, '${statKey}', ${baseValue})"
+    >${label}: <b style="color:#66ff99;">${total}</b> <span style="font-size:11px; color:#44bb66;">+${bonus}</span></span>`;
+}
+
+let _tooltipEl = null;
+let _tooltipLocked = false;
+
+function showStatTooltip(el, statKey, baseValue) {
+    if (_tooltipLocked) return;
+    _createTooltip(el, statKey, baseValue);
+}
+
+function hideStatTooltip() {
+    if (_tooltipLocked) return;
+    if (_tooltipEl) { _tooltipEl.remove(); _tooltipEl = null; }
+}
+
+function toggleStatTooltip(el, statKey, baseValue) {
+    if (_tooltipLocked && _tooltipEl) {
+        _tooltipEl.remove(); _tooltipEl = null; _tooltipLocked = false;
+    } else {
+        _tooltipLocked = true;
+        _createTooltip(el, statKey, baseValue);
+    }
+}
+
+function _createTooltip(el, statKey, baseValue) {
+    if (_tooltipEl) { _tooltipEl.remove(); }
+    const tooltip = document.createElement('div');
+    tooltip.id = 'stat-tooltip';
+    tooltip.style.cssText = `
+        position: fixed; z-index: 9999; background: rgba(5,10,25,0.97);
+        border: 1px solid #44cc88; border-radius: 8px; padding: 10px 14px;
+        font-size: 12px; color: #c0e0c0; min-width: 200px; box-shadow: 0 4px 20px rgba(0,100,50,0.4);
+        pointer-events: none;
+    `;
+
+    // Find dragonNum from context (crude but works)
+    let dragonNum = 1;
+    let parent = el.parentElement;
+    for (let i = 0; i < 10; i++) {
+        if (!parent) break;
+        const onclick = parent.getAttribute && parent.getAttribute('onclick');
+        if (onclick && onclick.includes('handleUnequip(2')) { dragonNum = 2; break; }
+        if (onclick && onclick.includes('handleUnequip(3')) { dragonNum = 3; break; }
+        parent = parent.parentElement;
+    }
+
+    const equipment = loadDragonEquipment(dragonNum);
+    const label = STAT_LABELS[statKey] || statKey;
+    let rows = `<div style="font-weight:bold; color:#66ff99; margin-bottom:6px; border-bottom:1px solid #1a3a2a; padding-bottom:4px;">${label}</div>`;
+    rows += `<div style="display:flex; justify-content:space-between; gap:16px; margin:2px 0;"><span>Bazowa:</span><span style="color:#c0e0c0;">${baseValue}</span></div>`;
+
+    let totalBonus = 0;
+    Object.values(equipment).forEach(item => {
+        if (!item || !item.stats || !item.stats[statKey]) return;
+        const val = item.stats[statKey];
+        totalBonus += val;
+        rows += `<div style="display:flex; justify-content:space-between; gap:16px; margin:2px 0;"><span style="color:#9ab;">${item.name}:</span><span style="color:#66ff99;">+${val}</span></div>`;
+    });
+
+    rows += `<div style="display:flex; justify-content:space-between; gap:16px; margin-top:6px; border-top:1px solid #1a3a2a; padding-top:4px; font-weight:bold;"><span>Łącznie:</span><span style="color:#66ff99;">${baseValue + totalBonus}</span></div>`;
+    tooltip.innerHTML = rows;
+
+    const rect = el.getBoundingClientRect();
+    tooltip.style.left = Math.min(rect.right + 8, window.innerWidth - 220) + 'px';
+    tooltip.style.top = Math.max(8, rect.top - 10) + 'px';
+    document.body.appendChild(tooltip);
+    _tooltipEl = tooltip;
+
+    if (_tooltipLocked) {
+        // Click outside closes it
+        setTimeout(() => {
+            document.addEventListener('click', function closeTooltip(e) {
+                if (!e.target.closest('#stat-tooltip') && !e.target.closest('[onmouseenter*="showStatTooltip"]')) {
+                    if (_tooltipEl) { _tooltipEl.remove(); _tooltipEl = null; }
+                    _tooltipLocked = false;
+                    document.removeEventListener('click', closeTooltip);
+                }
+            });
+        }, 10);
+    }
 }
 
 
@@ -2283,6 +2939,7 @@ function openLocation(regionKey, locationId) {
             <div class="dialog-text" style="white-space:pre-line;">${loc.desc}</div>
             ${extraContent}
             <div id="location-action-area">
+                ${renderCourierSearchButton(regionKey, locationId)}
                 ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
                 ${renderLocationActions(regionKey, locationId, loc.actions)}
             </div>
@@ -3260,6 +3917,8 @@ function startGame() {
     updateMerchantTab();
     updateWorkTab();
     updateWorldTab();
+    startDragonRegenLoop();
+    updateSidebarTabs();
 }
 
 function updateCurrencyDisplay() {
@@ -3751,6 +4410,7 @@ function openTab(name) {
     if (name === "work") updateWorkTab();
     if (name === "inventory") updateInventoryTabFull();
     if (name === "merchant") updateMerchantTab();
+    if (name === "warta") updateWartaTab();
 }
 
 /* -----------------------------------------
