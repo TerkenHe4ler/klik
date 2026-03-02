@@ -477,7 +477,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
 
             <!-- Statystyki życiowe -->
             <div style="margin:8px 0; font-size:13px; color:#aab;">
-                ❤️ HP: ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 Mana: ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 Zmęczenie: ${vitals.fatigue}/100
+                ${renderVitalsLine(vitals, maxHP, maxMana)}
             </div>
             <div style="margin:4px 0 10px 0; font-size:12px;">
                 ${Object.entries(stats).map(([k,v]) => renderStatWithBonus(k, v, getEquipmentStatBonus(num))).join(' <span style="color:#445;">|</span> ')}
@@ -486,7 +486,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             ${missionHtml}
 
             ${!isOnMission ? `
-                <details style="margin:6px 0;"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🍖 Nakarm smoka</summary>
+                <details style="margin:6px 0;" open id="feed-details-${num}"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🍖 Nakarm smoka</summary>
                 <div style="margin-top:6px;">
                     ${(foodItems.mięso||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'mięso')">🥩 Mięso (${foodItems.mięso}) — +Siła, +5 poz.</div>` : ''}
                     ${(foodItems.jagody||0) > 0 ? `<div class="dialog-button" style="font-size:13px;" onclick="feedDragonFood(${num},'jagody')">🫐 Jagody (${foodItems.jagody}) — +Inteligencja, +5 poz.</div>` : ''}
@@ -1039,7 +1039,7 @@ function handleDeliverRunes() {
     localStorage.setItem('inventory', JSON.stringify(inventory));
     localStorage.setItem('runeQuestProgress', 'delivered');
     // Close library for 4 hours (real time)
-    const closeUntil = Date.now() + 4 * 60 * 60 * 1000;
+    const closeUntil = Date.now() + 1 * 60 * 1000; // 1 minute
     localStorage.setItem('libClosedUntil', String(closeUntil));
     updateInventoryTabFull();
     renderLibrarianRuneOptions();
@@ -1752,11 +1752,14 @@ function searchForFragment(num) {
 
 // All locations where courier button can appear
 const COURIER_SEARCH_LOCATIONS = [
-    { region: 'miasto', loc: 'karczma', label: 'Karczma Pod Smokiem' },
-    { region: 'miasto', loc: 'plac',    label: 'Miejski Plac' },
-    { region: 'miasto', loc: 'port',    label: 'Port Astorveil' },
-    { region: 'las',    loc: 'polana',  label: 'Polana Urodzaju' },
-    { region: 'miasto', loc: 'tablica', label: 'Tablica Ogłoszeń' },
+    { region: 'miasto', loc: 'karczma',          label: 'Karczma Pod Smokiem' },
+    { region: 'miasto', loc: 'plac',              label: 'Miejski Plac' },
+    { region: 'miasto', loc: 'port',              label: 'Port Astorveil' },
+    { region: 'miasto', loc: 'tablica',           label: 'Tablica Ogłoszeń' },
+    { region: 'miasto', loc: 'handlarz_zywnosci', label: 'Stragan Handlarki Żywności' },
+    { region: 'miasto', loc: 'kowal',             label: 'Kuźnia Braga' },
+    { region: 'miasto', loc: 'swiatynia',         label: 'Świątynia Astora' },
+    { region: 'miasto', loc: 'biblioteka',        label: 'Biblioteka' },
 ];
 
 function getGuardState() {
@@ -1828,10 +1831,11 @@ function renderGuardMission() {
         if (remaining > 0) {
             box.innerHTML = `
                 <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #9966cc; border-radius:6px; color:#c0aae0; line-height:1.7; margin-bottom:12px; font-style:italic;">
-                    Masz rysopis kuriera w kieszeni. Szukasz. Podpowiedź wskazuje okolice:<br><b>${loc.label}</b><br><br>
-                    Kolejna szansa za: <b id="courier-timer" style="color:#ffcc44;">...</b>
+                    Kapitan Mira przekazała ci rysopis kuriera i zaznaczyła na planie ostatnie miejsca gdzie go widziano. Jej ludzie obserwują miasto — gdy coś wypatrzą, dadzą znać.<br><br>
+                    Nowy ślad pojawi się za: <b id="courier-timer" style="color:#ffcc44;">...</b><br>
+                    Wskazany rejon: <b style="color:#ffcc44;">${loc.label}</b>
                 </div>
-                <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Szukaj w mieście</div>
+                <div class="dialog-button" onclick="openRegion('miasto')">Wróć do Astorveil</div>
             `;
             const tick = () => {
                 const el = document.getElementById('courier-timer');
@@ -1934,18 +1938,55 @@ function guardReadDocs() {
 }
 
 // Called from location rendering when courier location matches
+
+function courierLocTimerTick() {
+    const el = document.getElementById('loc-courier-timer');
+    if (!el) return;
+    const gs = getGuardState();
+    const rem = (gs.nextSearchUnlock || 0) - Date.now();
+    if (rem <= 0) {
+        // Refresh the location view
+        const gs2 = getGuardState();
+        if (gs2.currentLocIndex !== undefined) {
+            const loc = COURIER_SEARCH_LOCATIONS[gs2.currentLocIndex];
+            if (loc) openLocation(loc.region, loc.loc);
+        }
+        return;
+    }
+    const m = Math.floor(rem / 60000);
+    const s = Math.floor((rem % 60000) / 1000);
+    el.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+    setTimeout(courierLocTimerTick, 1000);
+}
+
 function renderCourierSearchButton(regionKey, locationId) {
     const gs = getGuardState();
     if (gs.stage !== 'searching') return '';
     const locIdx = Number(localStorage.getItem('courierSearchLoc') ?? -1);
     const loc = COURIER_SEARCH_LOCATIONS[locIdx];
-    if (!loc || loc.region !== regionKey || loc.loc !== locationId) return '';
+    if (!loc) return '';
+
     const now = Date.now();
-    if (gs.nextSearchUnlock && now < gs.nextSearchUnlock) return '';
+    const isCorrectLoc = loc.region === regionKey && loc.loc === locationId;
+
+    // If timer still running — show countdown in the indicated location
+    if (gs.nextSearchUnlock && now < gs.nextSearchUnlock) {
+        if (!isCorrectLoc) return '';
+        const remaining = gs.nextSearchUnlock - now;
+        setTimeout(courierLocTimerTick, 100);
+    return `<div style="margin:10px 0; padding:12px; background:rgba(30,20,50,0.7); border:2px solid #9966cc; border-radius:8px; animation:worldFadeIn 0.5s;">
+            <b style="color:#cc99ff;">🔍 Ślad kuriera wiedzie tutaj</b>
+            <p style="color:#c0aae0; font-size:13px; margin:6px 0 6px;">Kapitan Miry obserwują okolicę. Szukanie możliwe za:</p>
+            <div style="font-size:22px; font-weight:bold; color:#ffcc44;" id="loc-courier-timer">...</div>
+<!-- timer started by courierLocTimerTick() -->
+        </div>`;
+    }
+
+    if (!isCorrectLoc) return '';
 
     return `<div style="margin:10px 0; padding:12px; background:rgba(30,50,20,0.7); border:2px solid #66cc44; border-radius:8px; animation:worldFadeIn 0.5s;">
         <b style="color:#aaff66;">🔍 Szukaj kuriera tutaj</b>
-        <p style="color:#c0e0a0; font-size:13px; margin:6px 0 10px;">Masz rysopis. Może jest właśnie gdzieś tutaj...</p>
+        <p style="color:#c0e0a0; font-size:13px; margin:6px 0 10px;">Ślad prowadzi właśnie tutaj. Masz rysopis — rozejrzyj się uważnie.</p>
         <div class="dialog-button" style="border-color:#66cc44;color:#aaff66;" onclick="attemptCourierSearch()">Szukaj</div>
     </div>`;
 }
@@ -2199,10 +2240,47 @@ function updateSidebarTabs() {
    REGENERACJA SMOKÓW — 10% HP/MANA/ZMĘCZENIE CO MINUTĘ
 ================================================ */
 
+
+function calcRegenETA(current, max, regenPctPerMin) {
+    if (current >= max) return null;
+    const missing = max - current;
+    const perMin = Math.max(1, Math.round(max * regenPctPerMin));
+    const minsNeeded = Math.ceil(missing / perMin);
+    const eta = new Date(Date.now() + minsNeeded * 60 * 1000);
+    const h = eta.getHours().toString().padStart(2, '0');
+    const m = eta.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+function renderVitalsLine(vitals, maxHP, maxMana) {
+    const hpFull = vitals.hp >= maxHP;
+    const manaFull = vitals.mana >= maxMana;
+    const fatigueDone = vitals.fatigue <= 0;
+
+    const hpETA = calcRegenETA(vitals.hp, maxHP, 0.10);
+    const manaETA = calcRegenETA(vitals.mana, maxMana, 0.10);
+    // Fatigue: loses 10/min
+    const fatigueETA = vitals.fatigue > 0 ? (() => {
+        const minsNeeded = Math.ceil(vitals.fatigue / 10);
+        const eta = new Date(Date.now() + minsNeeded * 60 * 1000);
+        return eta.getHours().toString().padStart(2,'0') + ':' + eta.getMinutes().toString().padStart(2,'0');
+    })() : null;
+
+    const hpColor = hpFull ? '#aab' : '#ff6699';
+    const manaColor = manaFull ? '#aab' : '#6699ff';
+    const fatigueColor = fatigueDone ? '#aab' : '#ffaa44';
+
+    return `<span style="color:${hpColor};">❤️ ${vitals.hp}/${maxHP}${hpETA ? ` <span style="font-size:11px; color:#ff99bb;">(pełne o ${hpETA})</span>` : ''}</span>
+        &nbsp;|&nbsp;
+        <span style="color:${manaColor};">💧 ${vitals.mana}/${maxMana}${manaETA ? ` <span style="font-size:11px; color:#99bbff;">(pełna o ${manaETA})</span>` : ''}</span>
+        &nbsp;|&nbsp;
+        <span style="color:${fatigueColor};">😴 ${vitals.fatigue}/100${fatigueETA ? ` <span style="font-size:11px; color:#ffcc88;">(0 o ${fatigueETA})</span>` : ''}</span>`;
+}
+
 function startDragonRegenLoop() {
+    // Regen loop: 1 minute
     setInterval(() => {
         [1, 2, 3].forEach(num => {
-            // Only for hatched dragons
             const heats = num === 1 ? eggHeats : num === 2 ? secondEggHeats : thirdEggHeats;
             if (heats < 3) return;
             const unlocked = num === 1 ? true : num === 2 ? secondDragonUnlocked : thirdDragonUnlocked;
@@ -2228,7 +2306,41 @@ function startDragonRegenLoop() {
             }
             if (changed) saveDragonVitals(num, vitals);
         });
-    }, 60 * 1000); // every 1 minute
+    }, 60 * 1000);
+
+    // Home tab auto-refresh every 5 seconds
+    setInterval(() => {
+        const homeTab = document.getElementById('home');
+        if (homeTab && homeTab.style.display !== 'none') {
+            updateHomeTab();
+        }
+        // Check if any mission completed while away from home tab
+        checkMissionCompleteNotification();
+    }, 5000);
+}
+
+function checkMissionCompleteNotification() {
+    let anyComplete = false;
+    [1, 2, 3].forEach(num => {
+        const mission = loadDragonMission(num);
+        if (mission && Date.now() >= mission.endTime) {
+            anyComplete = true;
+        }
+    });
+    const homeTabBtn = document.querySelector('[onclick*="openTab"][onclick*="home"]');
+    if (homeTabBtn) {
+        if (anyComplete) {
+            homeTabBtn.style.background = 'linear-gradient(#2a4a1a, #1a3a0a)';
+            homeTabBtn.style.borderColor = '#66cc44';
+            homeTabBtn.style.color = '#99ff66';
+            homeTabBtn.setAttribute('data-mission-complete', 'true');
+        } else if (homeTabBtn.getAttribute('data-mission-complete') === 'true') {
+            homeTabBtn.style.background = '';
+            homeTabBtn.style.borderColor = '';
+            homeTabBtn.style.color = '';
+            homeTabBtn.removeAttribute('data-mission-complete');
+        }
+    }
 }
 
 /* ==============================================
@@ -2635,7 +2747,7 @@ const worldData = {
                 actions: [
                     { label: "Zgłoś problem", action: "reportIssue", desc: "Straż chętnie przyjmuje zgłoszenia od mieszkańców." },
                     { label: "Sprawdź listy gończe", action: "wantedList", desc: "Może ktoś znajomy jest na liście?" },
-                    { label: "🗡️ Podjij misję dla Straży", action: "offerHelp", desc: "Kapitan ma zlecenie specjalne — może nie wygodne, ale intratne." },
+                    { label: "❓ Zapytaj o pracę", action: "offerHelp", desc: "Może Straż potrzebuje kogoś do pomocy?" },
                     { label: "Zawróć", action: "back" }
                 ]
             },
@@ -3463,6 +3575,35 @@ let merchantGreetingShown = localStorage.getItem("merchantGreetingShown") === "t
 
 // praca i waluty
 let workUnlocked = localStorage.getItem("workUnlocked") === "true";
+// First-time starter pack: 100 gold + 5 of each item
+if (!localStorage.getItem("starterGiven")) {
+    localStorage.setItem("copper", "0");
+    localStorage.setItem("silver", "0");
+    localStorage.setItem("gold", "100");
+    // Give 5 of each food type
+    const starterFood = { mięso: 5, jagody: 5 };
+    localStorage.setItem("foodItems", JSON.stringify(starterFood));
+    // Give 5 of each inventory item
+    const starterInv = {
+        'Świeża ryba': 5, 'Chleb': 5, 'Górski ser': 5,
+        'Zioła lecznicze': 5, 'Stary miecz': 5, 'Torba złota': 5,
+        'Kryształ krwi': 5, 'Nocny płaszcz': 5, 'Fragment golemowego kamienia': 5,
+        'Ruda żelaza': 5, 'Piracka mapa': 5, 'Tajemnicza notatka': 1,
+        'Szkicownik': 1,
+    };
+    localStorage.setItem("inventory", JSON.stringify(starterInv));
+    // Give 1 of each gear from smith (to gearInventory)
+    const starterGear = [];
+    const allGear = [
+        {id:'zelazny_helm',slot:'helm',name:'Żelazny Hełm',stats:{wytrzymalosc:2},source:'starter'},
+        {id:'skorzany_pancerz',slot:'chest',name:'Skórzany Pancerz',stats:{wytrzymalosc:3},source:'starter'},
+        {id:'skrzydla_skorzane',slot:'wings',name:'Skórzana Osłona Skrzydeł',stats:{wytrzymalosc:2,zrecznosc:1},source:'starter'},
+        {id:'ogon_zelazny',slot:'tail',name:'Żelazna Osłona Ogona',stats:{sila:2,wytrzymalosc:1},source:'starter'},
+    ];
+    allGear.forEach((g,i) => { g.instanceId = Date.now() + i; starterGear.push(g); });
+    localStorage.setItem("gearInventory", JSON.stringify(starterGear));
+    localStorage.setItem("starterGiven", "true");
+}
 let copper = Number(localStorage.getItem("copper")) || 0;
 let silver = Number(localStorage.getItem("silver")) || 0;
 let gold = Number(localStorage.getItem("gold")) || 0;
