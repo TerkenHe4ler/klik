@@ -133,7 +133,17 @@ const DRAGON_SPELLS = {
         { id: 'uderzenie_cienia', name: 'Uderzenie Cienia',   desc: 'Smok uderza z mroku — cios trudny do przewidzenia, celuje w słabe punkty.', manaCost: 5,  dmgMult: [1.8, 2.8] },
         { id: 'mroczna_pustka',   name: 'Mroczna Pustka',    desc: 'Cień pochłania wroga, drenaż energii i obrażenia z dystansu.',             manaCost: 8,  dmgMult: [2.0, 3.5], drain: true },
         { id: 'krok_nicosci',     name: 'Krok w Nicość',     desc: 'Smok znika na chwilę w cieniu — unika ataku i kontratakuje znienacka.',   manaCost: 10, dmgMult: [2.5, 4.5], dodge: true }
-    ]
+    ],
+    lod: [
+        { id: 'lodowe_uderzenie',  name: 'Lodowe Uderzenie',   desc: 'Kryształ lodu wystrzelony z siłą rozbija cel na kawałki.',                manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'zamroczenie',       name: 'Zamroczenie',         desc: 'Smok owija wroga lodową mgłą — spowalnia i zadaje obrażenia w czasie.',   manaCost: 8,  dmgMult: [1.8, 3.0], drain: true },
+        { id: 'lodowy_pancerz',    name: 'Lodowy Pancerz',      desc: 'Ciało smoka pokrywa lód — leczy i odbija następny cios.',                 manaCost: 10, heal: [15, 30], shield: true, isHeal: true }
+    ],
+    magma: [
+        { id: 'magmowy_wybuch',    name: 'Magmowy Wybuch',      desc: 'Strumień roztopionej skały uderza w cel z druzgocącą siłą.',             manaCost: 5,  dmgMult: [1.8, 2.8] },
+        { id: 'erupcja',           name: 'Erupcja',              desc: 'Smok uderza w ziemię — fontanna lawy razi wszystkich wokół.',            manaCost: 8,  dmgMult: [2.5, 4.0] },
+        { id: 'ognista_skora',     name: 'Ognista Skóra',        desc: 'Skóra smoka twardnieje jak lawa — leczy i parzy każdego kto go uderzy.', manaCost: 10, heal: [20, 35], isHeal: true }
+    ],
 };
 
 function loadDragonSpells(num) {
@@ -445,6 +455,20 @@ function getDragonHomeDesc() {
                 `Świeca na stole zgasła. ${d.name} siedzi obok i patrzy na ciebie z czymś co wygląda jak zadowolenie.`,
                 `${d.name} krąży cicho po pokoju — nie słyszysz jego kroków. Dopiero gdy staje tuż za tobą, zdajesz sobie sprawę, że tu jest.`,
                 `Zastajesz ${d.name} siedzącego w oknie, odwróconego do ciemnej ulicy. Kiedy wchodzisz, obraca się powoli. W jego oczach odbija się coś czego nie ma w pokoju.`,
+            ],
+            lod: [
+                `${d.name} siedzi nieruchomo przy oknie, wpatrując się w zewnętrzny krajobraz. Na szybie od jego oddechu osiadł szron w piękne wzory.`,
+                `Dom jest wyraźnie chłodniejszy niż na zewnątrz. ${d.name} śpi pod oknem, a wokół niego podłoga lśni cienką warstwą szronu.`,
+                `Zastajesz ${d.name} oblizującego sopel lodu, który sam stworzył z pary wodnej w powietrzu. Patrzy na ciebie z czymś w rodzaju dumy.`,
+                `${d.name} leży rozciągnięty na środku pokoju — chłodny w dotyku jak kamień. Kiedy go głaszczesz, mruczy, a z nozdrzy wydobywa się lekka mgielka.`,
+                `Miska z wodą zamarzła na kamień. ${d.name} siedzi obok i wpatruje się w nią jak w dzieło sztuki. Może tak właśnie to traktuje.`,
+            ],
+            magma: [
+                `Dom jest gorący jak piekarnia. ${d.name} leży przy kominku i wyraźnie dogrzewa go oddechem. Kamień pod jego łapami jest ciemnoczerwony.`,
+                `Zastajesz ${d.name} śpiącego na żelaznej blasze przy palenisku — jedyne miejsce w domu, które wytrzymuje jego temperaturę.`,
+                `${d.name} siedzi na środku pokoju z oczami żarzącymi się jak węgle. Kiedy wchodzisz, wybucha krótkimi iskrami — to jego powitanie.`,
+                `Dywan przy kominku ma kilka nowych przypalonych śladów. ${d.name} siedzi obok z miną kogoś, kto absolutnie nic nie wie o żadnych dywanikach.`,
+                `${d.name} przynosi kawałek skały i liże ją metodycznie. Skała topi się w jego pysku jak lód w słońcu. Smok wygląda na usatysfakcjonowanego.`,
             ],
         };
         const arr = descs[d.element] || [`${d.name} czeka spokojnie.`];
@@ -931,7 +955,7 @@ function updateDragonsTab() {
         }
         const activeMission = loadDragonMission(d.num);
         const equipBonus = getEquipmentStatBonus(d.num);
-        const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff' };
+        const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
         const elColor = elColors[d.element] || '#aab';
 
         html += `
@@ -3409,6 +3433,8 @@ function lasQuestMarkLightVisit(place) {
             powietrze: `Smok krąży nad jeziorem, a skrzydła muskają powierzchnię wody — niemal, lecz nie dotykają. Woda reaguje na każdy ruch skrzydeł, formując małe fale, które wyglądają jak litery nieznanego języka.\n\nPotem smok siada przy brzegu i składa skrzydła. Woda uspokaja się. Sojusz zawarty.`,
             swiatlo: `Gdy smok podchodzi, jezioro rozbłyska od środka — jakby pod powierzchnią ktoś zapalił tysiąc świec. Ciemna woda staje się na chwilę przezroczysta. Widać dno. Widać coś jeszcze — coś, co porusza się w głębi i patrzy.\n\nSmok pochyla głowę. Błysk gaśnie. Jezioro zapamięta.`,
             cien: `Smok nie podchodzi do brzegu — zatrzymuje się w cieniu drzew i patrzy. Jezioro jakby to czuje — na powierzchni pojawiają się kręgi bez żadnej przyczyny, odpowiadając na obecność smoka.\n\nZ wody dobiegają szepczące dźwięki, których nie możesz rozróżnić. Smok je słyszy. Odwraca się do ciebie i kiwa głową powoli.\n\nSojusz zawarty — po cichu, jak wszystko co dotyczy cienia.`,
+            lod: `Twój lodowy smok podchodzi do brzegu i zatrzymuje się. Jezioro Snu i smok patrzą na siebie — dwie zimne natury, każda po swojemu spokojna.\n\nPotocznie temperatura przy brzegu spada o kilka stopni. Na powierzchni wody formuje się cienka, piękna sieć szronu — i znika. Jezioro przemówiło.\n\nSojusz zawarty — między lodem a głębią.`,
+            magma: `Smok magmowy staje przy brzegu i patrzy w czarną wodę. Jezioro Snu widzi żar smoka i nie ucieka — zamiast tego woda przy brzegu zaczyna parować delikatnie.\n\nGorące i zimne — przez chwilę tańczą razem. Smok prychnie iskrami, woda pochłania je spokojnie.\n\nSojusz zawarty — ogień i głębia znalazły wspólny język.`,
         };
         const narration = lakeNarrations[primaryEl] || lakeNarrations['ogien'];
         box.innerHTML = `
@@ -3429,6 +3455,8 @@ function lasQuestMarkLightVisit(place) {
             powietrze: `Leśny Strażnik spada z gniazda i leci w kierunku twojego smoka z rozpostartymi skrzydłami — nie agresywnie, tylko... sprawdzająco.\n\nSmok odpowiada własnym rozpostarciem skrzydeł. Oboje zawisają w miejscu przez chwilę, skrzydło przy skrzydle, wiatr między nimi.\n\nPotem Strażnik zawraca i wraca na gałąź. Wiesz, że to koniec testu i że go zdałeś.`,
             swiatlo: `Gdy twój smok zbliża się do gniazda, Leśny Strażnik wybucha krótkim, przenikliwym krzykiem. Ale nie odlatuje.\n\nSmok świetlisty siedzi spokojnie. Z jego skóry sączy się delikatny blask. Strażnik nachyla głowę — raz, drugi — jakby chciał zobaczyć źródło światła.\n\nPotem milknie. I siedzi razem z wami w ciszy, która nie jest już wrogością.`,
             cien: `Leśny Strażnik znika z gałęzi gdy tylko twój smok się zbliża. Widzisz go potem — wysoko, między koronami, obserwujący.\n\nTwój smok nie próbuje go przywołać. Siada pod drzewem i czeka.\n\nPo długiej chwili Strażnik zlatuje cicho i siada kilka metrów od smoka. Razem patrzą w las. To wystarczy.`,
+            lod: `Leśny Strażnik siada wysoko i obserwuje twojego lodowego smoka z zainteresowaniem. Smok stoi nieruchomo jak posąg z lodu — spokojny, pewny.\n\nStrażnik schodzi coraz niżej. W końcu siada na gałęzi na wysokości głowy smoka i patrzy mu prosto w oczy.\n\nZimno i dzikość — rozumieją się nawzajem. Sojusz zawarty bez słów.`,
+            magma: `Leśny Strażnik wzlatuje gdy czuje żar twojego smoka magmowego. Krąży wyżej, obserwując.\n\nSmok siada i wydaje niski, spokojny pomruk. Nie groźba — zaproszenie.\n\nStrażnik powoli opada. Gorąco i dzikie — dwie siły bez obawy przed sobą. Sojusz zawarty w ogniu.`,
         };
         const narration = nestNarrations[primaryEl] || nestNarrations['ogien'];
         box.innerHTML = `
@@ -3506,6 +3534,340 @@ function lasQuestShadowEnding() {
 }
 
 /* ── Dodatkowa zawartość questowa wstrzykiwana w lokacje ─── */
+/* ═══════════════════════════════════════════════════════════
+   QUEST: DUCH HALYAZ — PUSTYNIA HALYAZ
+   Etapy: none → offered → stage2 (znaki) → stage3_choice
+          → stage4_trials → stage5_finale → done_ochrona / done_przemiana
+═══════════════════════════════════════════════════════════ */
+
+const HALYAZ_QUEST_KEY = 'halyazQuest';
+
+function getHalyazQuestState() {
+    const s = localStorage.getItem(HALYAZ_QUEST_KEY);
+    return s ? JSON.parse(s) : { stage: 'none' };
+}
+
+function setHalyazQuestState(obj) {
+    localStorage.setItem(HALYAZ_QUEST_KEY, JSON.stringify(obj));
+}
+
+function halyazQuestStage() {
+    return getHalyazQuestState().stage || 'none';
+}
+
+function isHalyazQuestActive() {
+    const s = halyazQuestStage();
+    return s !== 'none' && !s.startsWith('done_');
+}
+
+function halyazQuestTrigger() {
+    setHalyazQuestState({ stage: 'offered' });
+    renderHalyazQuest();
+}
+
+function renderHalyazQuest() {
+    const qs = getHalyazQuestState();
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    /* ETAP 1 — oferowanie questa */
+    if (qs.stage === 'offered') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid #cc8833;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">📜 Etap 1 z 5 — Głos Pustyni</div>
+            <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:12px;">
+                Strażniczka odkłada swoje narzędzie i patrzy na ciebie długo.<br><br>
+                <em style="color:#ffdd88;">— Halyaz kiedyś żyło — mówi w końcu. — Nie jak miasto żyje. Jak istota. Oddychało piaskiem, myślało przez runy, czuło przez słońce. Potem coś się stało. Zasnęło.<br><br>
+                Twój smok go poczuł — inaczej niż ty. Zwierzęta wiedzą więcej od ludzi w takich sprawach.<br><br>
+                Mogę cię poprowadzić. Ale musisz chcieć iść. Czy chcesz poznać tajemnicę Halyaz?</em>
+            </div>
+            <div class="dialog-button" style="border-color:#cc8833;color:#ffcc66;" onclick="halyazQuestAccept()">„Tak. Chcę wiedzieć."</div>
+            <div class="dialog-button" style="border-color:#665533;color:#aa8855;margin-top:6px;" onclick="openRegion('pustynia')">← Nie, może później</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 2 — szukanie znaków w Ruinach */
+    if (qs.stage === 'stage2') {
+        const signs = qs.signsFound || 0;
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid #cc8833;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">🔍 Etap 2 z 5 — Trzy Znaki</div>
+            <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:12px;">
+                Strażniczka podaje ci kawałek węgla drzewnego.<br><br>
+                <em style="color:#ffdd88;">— W Ruinach Halyaz są wyryte trzy znaki. Musisz je wszystkie znaleźć i przerysować. Twój smok je rozpozna — śledź jego reakcje.</em>
+            </div>
+            <div style="padding:10px 12px;background:rgba(20,10,5,0.6);border-radius:8px;margin-bottom:12px;font-size:13px;line-height:2.0;">
+                <span style="${signs>=1 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${signs>=1 ? '✅' : '⬜'} Znak Słońca — ${signs>=1 ? '<b>znaleziony</b>' : 'szukaj w ruinach'}</span><br>
+                <span style="${signs>=2 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${signs>=2 ? '✅' : '⬜'} Znak Wiatru — ${signs>=2 ? '<b>znaleziony</b>' : 'szukaj głębiej'}</span><br>
+                <span style="${signs>=3 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${signs>=3 ? '✅' : '⬜'} Znak Ognia — ${signs>=3 ? '<b>znaleziony</b>' : 'szukaj pod kolumnami'}</span>
+            </div>
+            ${signs >= 3
+                ? `<div class="dialog-button" style="border-color:#cc8833;color:#ffcc66;" onclick="halyazSignsDone()">🌅 Wróć do Strażniczki ze znaleziskami</div>`
+                : `<div class="dialog-button" style="opacity:0.45;border-color:#554;color:#776;pointer-events:none;">Znajdź wszystkie trzy znaki...</div>`
+            }
+            <div class="dialog-button" style="border-color:#665533;color:#aa8855;margin-top:6px;" onclick="openLocation('pustynia','ruiny_halyaz')">📍 Idź do Ruin Halyaz</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 3 — wybór ścieżki */
+    if (qs.stage === 'stage3_choice') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid #cc8833;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">⚖️ Etap 3 z 5 — Wybór</div>
+            <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Strażniczka bierze trzy narysowane znaki i układa je na ołtarzu. Reagują na siebie — tworzą wzór.<br><br>
+                <em style="color:#ffdd88;">— Halyaz może się obudzić na dwa sposoby. Droga Ochrony — przywrócimy je takim jakim było, strażnikiem równowagi. Droga Przemiany — Halyaz obudzi się inne, silniejsze, ale zmienione na zawsze.<br><br>
+                Obydwie są prawdziwe. Obydwie mają cenę.</em>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                <div style="padding:12px;background:rgba(20,40,20,0.6);border:1px solid #44aa66;border-radius:8px;">
+                    <div style="color:#66ff88;font-weight:bold;margin-bottom:6px;">☀️ Droga Ochrony</div>
+                    <div style="color:#90c0a0;font-size:12px;line-height:1.6;">Halyaz budzi się jako strażnik. Las, pustynia i góry pozostają w równowadze. Spokojniejsza droga.</div>
+                </div>
+                <div style="padding:12px;background:rgba(40,15,10,0.6);border:1px solid #cc4422;border-radius:8px;">
+                    <div style="color:#ff6644;font-weight:bold;margin-bottom:6px;">🔥 Droga Przemiany</div>
+                    <div style="color:#c09080;font-size:12px;line-height:1.6;">Halyaz budzi się przemienione — potężniejsze, ale nieprzewidywalne. Większa nagroda, większe ryzyko.</div>
+                </div>
+            </div>
+            <div class="dialog-button" style="border-color:#44aa66;color:#66ff88;" onclick="halyazChooseOchrona()">☀️ Droga Ochrony</div>
+            <div class="dialog-button" style="border-color:#cc4422;color:#ff6644;margin-top:6px;" onclick="halyazChoosePrzemiana()">🔥 Droga Przemiany</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 4 — próby */
+    if (qs.stage === 'stage4_trials') {
+        const path = qs.path || 'ochrona';
+        const t1 = qs.trialSands || false;
+        const t2 = qs.trialOasis || false;
+        const t3 = qs.trialCaravan || false;
+        const allDone = t1 && t2 && t3;
+        const pathColor = path === 'ochrona' ? '#44aa66' : '#cc4422';
+        const pathName  = path === 'ochrona' ? '☀️ Droga Ochrony' : '🔥 Droga Przemiany';
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid ${pathColor};border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">🏺 Etap 4 z 5 — Trzy Próby (${pathName})</div>
+            <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:12px;">
+                <em style="color:#ffdd88;">— Halyaz musi przetestować czy jesteś gotowy — mówi Strażniczka. — Trzy próby czekają w trzech miejscach pustyni. Idź tam, gdzie cię wezwie.</em>
+            </div>
+            <div style="padding:10px 12px;background:rgba(20,10,5,0.6);border-radius:8px;margin-bottom:12px;font-size:13px;line-height:2.0;">
+                <span style="${t1 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${t1 ? '✅' : '⬜'} Próba Pieśni Piasku — ${t1 ? '<b>ukończona</b>' : 'Pieśń Piasku'}</span><br>
+                <span style="${t2 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${t2 ? '✅' : '⬜'} Próba Oazy — ${t2 ? '<b>ukończona</b>' : 'Oaza Halim'}</span><br>
+                <span style="${t3 ? 'color:#ffaa44;' : 'color:#5a4030;'}">${t3 ? '✅' : '⬜'} Próba Karawany — ${t3 ? '<b>ukończona</b>' : 'Obóz Karawany'}</span>
+            </div>
+            ${allDone
+                ? `<div class="dialog-button" style="border-color:${pathColor};color:#ffcc66;" onclick="halyazTrialsDone()">🌅 Wszystkie próby pokonane — wróć do Strażniczki</div>`
+                : `<div class="dialog-button" style="opacity:0.45;border-color:#554;color:#776;pointer-events:none;">Ukończ wszystkie trzy próby...</div>`
+            }
+            <div class="dialog-button" style="border-color:#665533;color:#aa8855;margin-top:6px;" onclick="openRegion('pustynia')">← Pustynia Halyaz</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 5 — finał */
+    if (qs.stage === 'stage5_finale') {
+        const path = qs.path || 'ochrona';
+        const isOchrona = path === 'ochrona';
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid #ffaa44;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">✨ Etap 5 z 5 — Przebudzenie</div>
+            <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Ołtarz pulsuje mocniej niż kiedykolwiek. Gorący kamień wibruje — w powietrzu unosi się coś niewidzialnego.<br><br>
+                <em style="color:#ffdd88;">— Czas. — Strażniczka cofa się o krok. — To ty musisz to dokończyć. Połóż dłoń na kamieniu. Twój smok wie co robić.</em><br><br>
+                ${isOchrona
+                    ? 'Czujesz spokojne ciepło emanujące z kamienia. Coś starożytnego — i życzliwego.'
+                    : 'Kamień jest gorętszy niż normalnie. Coś tam wrze — niecierpliwe, silne, nieprzewidywalne.'}
+            </div>
+            <div class="dialog-button" style="border-color:#ffaa44;color:#ffcc66;" onclick="halyazFinale()">🌅 Połóż dłoń na kamieniu</div>
+        </div>`;
+        return;
+    }
+
+    /* DONE */
+    if (qs.stage && qs.stage.startsWith('done_')) {
+        const isOchrona = qs.stage === 'done_ochrona';
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,25,10,0.85);border:2px solid ${isOchrona ? '#44aa66' : '#cc4422'};border-radius:10px;margin-bottom:14px;">
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:8px;">${isOchrona ? '☀️ Halyaz Ochronione' : '🔥 Halyaz Przemienione'}</div>
+            <div style="color:#e0c080;font-style:italic;line-height:1.7;">
+                ${isOchrona
+                    ? 'Pustynia żyje spokojnym rytmem jak dawniej. Coś starożytnego odetchnęło — i jest ci za to wdzięczne.'
+                    : 'Pustynia jest inna. Ciemniejsza, gorąca, nieprzewidywalna — ale żywa. Halyaz przemienione patrzy na cię jak na część siebie.'}
+            </div>
+        </div>`;
+        return;
+    }
+}
+
+function halyazQuestAccept() {
+    setHalyazQuestState({ stage: 'stage2', signsFound: 0 });
+    const box = document.getElementById('location-action-area');
+    if (box) box.innerHTML = `
+        <div style="padding:12px;background:rgba(40,25,10,0.75);border-left:3px solid #cc8833;border-radius:6px;color:#e0c080;line-height:1.7;margin-bottom:12px;font-style:italic;">
+            Strażniczka kiwa głową z powagą.<br><br>
+            — Dobrze. Zacznij od Ruin. Trzy znaki — słońce, wiatr i ogień. Twój smok je rozpozna. Gdy je znajdziesz, wróć.
+            <div class="dialog-button" style="margin-top:10px;border-color:#cc8833;color:#ffcc66;" onclick="openLocation('pustynia','ruiny_halyaz')">📍 Idź do Ruin Halyaz</div>
+        </div>`;
+}
+
+function halyazSearchSign() {
+    const qs = getHalyazQuestState();
+    if (qs.stage !== 'stage2') return;
+    const signs = qs.signsFound || 0;
+    if (signs >= 3) return;
+
+    const elements = getHatchedDragonElements();
+    const primaryEl = elements[0] || 'ogien';
+
+    const dragonReactions = {
+        ogien:    ['Smok nagle zatrzymuje się przy kolumnie i wdycha powietrze z przejęciem — coś tu go przyciąga. Widzisz znak.', 'Smok uderza łapą w kamień i wrzeszczy — nie z bólu, z triumfu. Pod warstwą pyłu — znak.', 'Smok siada przy ruinie i wpatruje się w jedno miejsce. Gdy podchodzisz, widzisz wyryty symbol.'],
+        woda:     ['Smok węszy przy ścianie i liże kamień. Ślina na symbolu — znak staje się widoczny.', 'Smok zatrzymuje się i zaczyna wydawać niski dźwięk. Drżenie powietrza ujawnia ukryty symbol.', 'Smok kręci się w kółko przy kolumnie aż w końcu siada. Pod jego łapą — znak.'],
+        ziemia:   ['Smok grzebie łapą w piasku i nagle zatrzymuje się. Spod piasku wyłania się kamienny fragment ze znakiem.', 'Smok opiera się o kolumnę i nieruchomieje. Po chwili uderza ogonem w ziemię — grunt pęka, odsłaniając znak.', 'Smok wchodzi głęboko między ruiny i nie daje się ruszyć. Gdy za nim idzie, widzisz znak.'],
+        powietrze:['Smok wzlatuje i krąży nad jednym miejscem. Gdzie patrzy — tam jest znak.', 'Podmuch skrzydeł smoka zdmuchuje piasek z kolumny. Pod nim — symbol.', 'Smok siada na szczycie ruiny i wskazuje dziobem. Tam jest znak.'],
+        swiatlo:  ['Smok obraca się tak, że jego łuski załamują słońce wprost na jeden punkt ściany. Symbol lśni.', 'Smok mruczy i jego oczy rozświetlają się — wskazując miejsce na ścianie.', 'Smok idzie prosto do jednej kolumny i siada. Kiedy słońce pada na odpowiednim kącie, znak staje się widoczny.'],
+        cien:     ['Smok znika w cieniu ruin i po chwili słyszysz głuche stuknięcie. Idąc za nim, widzisz odkryty znak.', 'Smok staje w cieniu kolumny i patrzy na jeden punkt — jakby widział przez kamień. Tam jest znak.', 'Smok podchodzi do miejsca które wyglądało na puste i siada. Pod pyłem — symbol.'],
+        lod:      ['Smok chuchnie na kamień — skroplona wilgoć zamraża w symbol. Znak odkryty.', 'Smok dotyka kamienia łapą — szron rysuje kontur ukrytego znaku jak kredą.', 'Smok staje spokojnie i patrzy. Temperatura w jednym miejscu spada — tam jest znak.'],
+        magma:    ['Smok uderza ogonem w ziemię — kamienie pękają, odsłaniając wyrytą płaskorzeźbę.', 'Smok liże powierzchnię skały. Ciepło jego języka stopi piasek zalepiony w ryty — znak widoczny.', 'Smok siada na ruinie z rozmachem. Kurz opada — i widzisz symbol.'],
+    };
+
+    const reactions = dragonReactions[primaryEl] || dragonReactions['ogien'];
+    const reaction = reactions[signs];
+
+    const signNames = ['Znak Słońca', 'Znak Wiatru', 'Znak Ognia'];
+    qs.signsFound = signs + 1;
+    setHalyazQuestState(qs);
+
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        box.innerHTML = `
+            <div style="padding:14px;background:rgba(40,25,10,0.8);border-left:3px solid #ffaa44;border-radius:8px;color:#e0c080;line-height:1.8;margin-bottom:12px;font-style:italic;">
+                🔍 <b style="font-style:normal;color:#ffcc66;">${signNames[signs]} — odnaleziony!</b><br><br>${reaction}
+            </div>
+            <div style="padding:8px 14px;background:rgba(20,10,5,0.6);border-left:3px solid #cc8833;border-radius:6px;color:#ffaa44;font-size:13px;margin-bottom:12px;">
+                ✅ Znaki: ${qs.signsFound}/3
+            </div>
+            <div class="dialog-button" onclick="openLocation('pustynia','ruiny_halyaz')">Szukaj dalej w ruinach</div>
+        `;
+    }
+}
+
+function halyazSignsDone() {
+    const qs = getHalyazQuestState();
+    qs.stage = 'stage3_choice';
+    setHalyazQuestState(qs);
+    renderHalyazQuest();
+}
+
+function halyazChooseOchrona() {
+    const qs = getHalyazQuestState();
+    qs.stage = 'stage4_trials';
+    qs.path = 'ochrona';
+    qs.trialSands = false;
+    qs.trialOasis = false;
+    qs.trialCaravan = false;
+    qs.trialsComplete = 0;
+    setHalyazQuestState(qs);
+    renderHalyazQuest();
+}
+
+function halyazChoosePrzemiana() {
+    const qs = getHalyazQuestState();
+    qs.stage = 'stage4_trials';
+    qs.path = 'przemiana';
+    qs.trialSands = false;
+    qs.trialOasis = false;
+    qs.trialCaravan = false;
+    qs.trialsComplete = 0;
+    setHalyazQuestState(qs);
+    renderHalyazQuest();
+}
+
+function halyazCompleteTrial(trialKey) {
+    const qs = getHalyazQuestState();
+    if (qs.stage !== 'stage4_trials') return;
+    qs[trialKey] = true;
+    qs.trialsComplete = [qs.trialSands, qs.trialOasis, qs.trialCaravan].filter(Boolean).length;
+    setHalyazQuestState(qs);
+}
+
+function halyazTrialsDone() {
+    const qs = getHalyazQuestState();
+    qs.stage = 'stage5_finale';
+    setHalyazQuestState(qs);
+    renderHalyazQuest();
+}
+
+function halyazFinale() {
+    const qs = getHalyazQuestState();
+    const path = qs.path || 'ochrona';
+    const isOchrona = path === 'ochrona';
+
+    qs.stage = isOchrona ? 'done_ochrona' : 'done_przemiana';
+    setHalyazQuestState(qs);
+
+    // Rewards
+    if (isOchrona) {
+        adjustCurrency('gold', 4);
+        inventory['Kamień Halyaz'] = (inventory['Kamień Halyaz'] || 0) + 1;
+        inventory['Amulet Pustyni'] = (inventory['Amulet Pustyni'] || 0) + 1;
+    } else {
+        adjustCurrency('gold', 5);
+        inventory['Kamień Przemiany'] = (inventory['Kamień Przemiany'] || 0) + 1;
+        inventory['Łuska Magmy'] = (inventory['Łuska Magmy'] || 0) + 1;
+    }
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateInventoryTabFull();
+    updateCurrencyDisplay();
+
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    const elements = getHatchedDragonElements();
+    const primaryEl = elements[0] || 'ogien';
+
+    const ochronaScenes = {
+        ogien:    'Twój smok ryczy — nie z agresji, z triumfu. Płomień wybucha z jego pysk, ale zamiast parzyć, tańczy wokół ołtarza jak złota korona. Kamień gaśnie spokojnie, jakby zadanie było wykonane.',
+        woda:    'Smok nisko pochyla głowę nad ołtarzem. Z kamienia wydobywa się ciepła para — spokojna, łagodna. Gdy opada, kamień jest zimniejszy. Halyaz oddycha.',
+        ziemia:   'Ziemia pod stopami drży przez chwilę — i ustaje. Smok kładzie łapę na kamieniu bez lęku. Pulsowanie kamienia zwalnia do spokojnego rytmu.',
+        powietrze:'Podmuch wiatru gasi żar wokół ołtarza na moment. Potem wraca — słabszy, łagodniejszy. Twój smok tańczy na skrzydłach wokół świątyni.',
+        swiatlo:  'Kamień rozbłyska tak jasno, że przez chwilę nic nie widać. Gdy blask opada, całe niebo nad pustynią ma złotą poświatę. Halyaz przebudziło się w spokoju.',
+        cien:     'Cień smoka pada na ołtarz i połyka blask kamienia. Przez moment jest ciemno jak w środku nocy. Potem — spokojny, żółty brzask. Halyaz oddycha.',
+        lod:      'Smok chuchnął na kamień — gorąco i zimno zderzają się przez chwilę. Para. Potem kamień styg nie do martwoty, lecz do spokoju. Jak jezioro przed świtem.',
+        magma:    'Magmowy smok dotyka kamienia z szacunkiem. Żar z żarem — ale tu nie ma walki. Dwa gorące oddechy zlewają się w jeden rytm. Halyaz przebudzone.',
+    };
+
+    const przemianaScenes = {
+        ogien:    'Kamień eksploduje płomieniem — twój smok rzuca się w sam środek i pochłania go. Gdy wychodzi, jest wyraźnie silniejszy. Halyaz przemienione.',
+        woda:     'Smok liże kamień długim strumieniem wody. Kamień syczą jak rozpalone żelazo. Gdy para opada, kamień jest ciemny jak obsydian — i żywy.',
+        ziemia:   'Kamień pęka pod dotknięciem smoka — z pęknięcia wydobywa się ogień i skała stopiona razem. Halyaz wyzwolone, nieprzewidywalne.',
+        powietrze:'Smok tworzy wir nad ołtarzem. Kamień unosi się i przez chwilę wiruje — potem opada inny. Ciemniejszy. Mocniejszy.',
+        swiatlo:  'Blask kamienia i blask smoka zderzają się — cały horyzont pustyni płonie przez sekundę pomarańczem. Halyaz przemienione przez światło.',
+        cien:     'Cień smoka pochłania kamień bez reszty. Przez długą chwilę na ołtarzu jest tylko ciemność. Potem — coś wraca. Inne. Ciemniejsze. Silne.',
+        lod:      'Smok przykrywa kamień lodem — na chwilę. Lód stopi się od środka, a kamień stygnie do obsydianu. Halyaz przemienione w coś zimnego i twardego jak wieczność.',
+        magma:    'Smok wybucha — lawa zalewa ołtarz. Gdy styg, kamień zniknął, zastąpiony przez skałę wulkaniczną w kolorze krwi. Halyaz przemienione w ogień.',
+    };
+
+    const scene = isOchrona
+        ? (ochronaScenes[primaryEl] || ochronaScenes['ogien'])
+        : (przemianaScenes[primaryEl] || przemianaScenes['ogien']);
+
+    const color  = isOchrona ? '#44aa66' : '#cc4422';
+    const title  = isOchrona ? '☀️ Zakończenie: Droga Ochrony' : '🔥 Zakończenie: Droga Przemiany';
+    const reward = isOchrona ? '+4 złoto, +Kamień Halyaz, +Amulet Pustyni' : '+5 złoto, +Kamień Przemiany, +Łuska Magmy';
+
+    box.innerHTML = `
+        <div style="padding:16px;background:rgba(30,15,5,0.9);border:2px solid ${color};border-radius:10px;animation:worldFadeIn 0.5s;">
+            <div style="font-size:17px;font-weight:bold;color:#ffcc66;margin-bottom:12px;">${title}</div>
+            <div style="color:#e0c080;line-height:1.9;font-style:italic;margin-bottom:14px;">${scene}</div>
+            <div style="padding:10px 14px;background:rgba(20,10,5,0.7);border-left:3px solid ${color};border-radius:6px;color:#ffaa44;font-size:13px;margin-bottom:12px;">
+                🎁 Nagroda: ${reward}
+            </div>
+            <div class="dialog-button" style="border-color:${color};color:#ffcc66;" onclick="openRegion('pustynia')">← Pustynia Halyaz</div>
+        </div>`;
+}
+
 function getLasQuestInjection(locationId) {
     const qs = getLasQuestState();
     const stage = qs.stage;
@@ -4729,6 +5091,78 @@ const worldData = {
                 ]
             }
         ]
+    },
+
+    pustynia: {
+        name: 'Pustynia Halyaz',
+        icon: '🏜️',
+        desc: 'Rozległa, spalona słońcem pustynia rozciągająca się na południe od gór Sarak. Halyaz skrywa ruiny starożytnej cywilizacji, która podobno potrafiła okiełznać same żywioły. Piasek tu jest czerwony — mówią, że to krew dawnych wojen.',
+        locations: [
+            {
+                id: 'oboz_karawany',
+                label: 'Obóz Karawany',
+                icon: '⛺',
+                desc: `Pośród wydm stoi niewielki obóz — kilka namiotów z grubego, barwionego płótna, stajnia z wielbłądami i ognisko. Kupcy karawany pochodzą z różnych stron — ich języki mieszają się z dymem i zapachem przypraw.\n\nPrzywódca karawany, stary mężczyzna o wypalonym słońcem obliczu, siada właśnie przy ogniu i wpatruje się w horyzont.`,
+                actions: [
+                    { label: 'Porozmawiaj z przywódcą', action: 'talkCaravanLeader' },
+                    { label: 'Handluj z kupcami', action: 'tradeCaravan' },
+                    { label: 'Odpoczni przy ognisku', action: 'restFire' },
+                    { label: 'Zapytaj o pustynię', action: 'askDesert' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'ruiny_halyaz',
+                label: 'Ruiny Halyaz',
+                icon: '🏛️',
+                desc: `Sterczące z piasku kolumny i połamane łuki — wszystko, co zostało z niegdyś wielkiego miasta. Kamienie mają dziwne zabarwienie, jakby przez wieki absorbowały żar. Wiatr w ruinach wydaje dźwięk przypominający głosy.\n\nNa jednej z ocalałych ścian widać wyrytą wielką mapę — ale połowa jest zakryta piaskiem.`,
+                actions: [
+                    { label: 'Zbadaj wyrytą mapę', action: 'studyMap' },
+                    { label: 'Szukaj artefaktów', action: 'searchRuins' },
+                    { label: 'Wejdź do podziemnego przejścia', action: 'enterPassage' },
+                    { label: 'Posłuchaj wiatru w kolumnach', action: 'listenWind' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'oaza_halyaz',
+                label: 'Oaza Halim',
+                icon: '🌴',
+                desc: `Zielona wyspa pośrodku czerwonego morza piasku. Palmy rzucają cień na małe jeziorko o wodzie tak przejrzystej, że widać dno — mozaikę kamieni w kolorach bursztynu i bieli. Przy brzegu siedzą kilka osób — pielgrzymi i wędrowcy.\n\nSzepczą, że oaza posiada moc — woda uzdrawia, ale tylko tych, którzy naprawdę potrzebują.`,
+                actions: [
+                    { label: 'Napij się wody', action: 'drinkOasis' },
+                    { label: 'Porozmawiaj z pielgrzymami', action: 'talkPilgrims' },
+                    { label: 'Odpoczni w cieniu', action: 'restOasis' },
+                    { label: 'Szukaj skarbów pod wodą', action: 'searchOasis' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'pieklo_piasku',
+                label: 'Pieśń Piasku',
+                icon: '🌀',
+                desc: `Ogromne pole wydm w sercu pustyni, gdzie piasek wieje przez cały czas — nawet gdy indziej jest zupełny bezwiatr. Tutejszy wiatr niesie dźwięki: melodie, szepty, rzadko — wyraźne słowa.\n\nMówią, że duchy dawnych mieszkańców Halyaz wciąż wędruję po tym miejscu, szukając drogi do spokoju.`,
+                actions: [
+                    { label: 'Wsłuchaj się w szepty', action: 'listenSands' },
+                    { label: 'Próbuj odczytać dźwięki', action: 'decodeSands' },
+                    { label: 'Idź dalej w wir', action: 'enterSandStorm' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'swiatynia_slonca',
+                label: 'Świątynia Słońca',
+                icon: '☀️',
+                desc: `Na szczycie najwyższej wydmy stoi świątynia — pół zakopana, ale wciąż stojąca. Dach dawno runął, ale centralny ołtarz z kamienia przetrwał tysiąclecia. Na ołtarzu leży kamień tak gorący, że świeci nawet w dzień.\n\nStrażnik świątyni — stara kobieta o srebrnych oczach — siedzi przy wejściu i rzeźbi coś w piasku.`,
+                actions: [
+                    { label: 'Porozmawiaj ze Strażniczką', action: 'talkSunGuardian' },
+                    { label: 'Dotknij gorącego kamienia', action: 'touchSunStone' },
+                    { label: 'Złóż ofiarę na ołtarzu', action: 'makeOffering' },
+                    { label: '❓ Zapytaj o tajemnicę pustyni', action: 'startHalyazQuest' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            }
+        ]
     }
 };
 
@@ -5155,6 +5589,168 @@ function getDynamicLocationData(regionKey, locationId) {
         }
     }
 
+    // PUSTYNIA HALYAZ
+    if (regionKey === 'pustynia') {
+        const hqs = getHalyazQuestState();
+        const hs = hqs.stage || 'none';
+
+        if (locationId === 'swiatynia_slonca') {
+            if (hs === 'none') {
+                const hasDragon = hasAnyHatchedDragon();
+                return {
+                    desc: `Na szczycie najwyższej wydmy stoi świątynia — pół zakopana, ale wciąż stojąca. Centralny ołtarz z kamienia promieniuje żarem. Strażniczka o srebrnych oczach siedzi przy wejściu i rzeźbi w piasku.\n\nUnosi głowę gdy podchodzisz — i patrzy nie na ciebie, lecz na twojego smoka.`,
+                    actions: [
+                        { label: 'Porozmawiaj ze Strażniczką', action: 'talkSunGuardian' },
+                        { label: 'Dotknij gorącego kamienia', action: 'touchSunStone' },
+                        { label: 'Złóż ofiarę na ołtarzu', action: 'makeOffering' },
+                        ...(hasDragon ? [{ label: '❓ Zapytaj o tajemnicę pustyni', action: 'startHalyazQuest' }] : []),
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'offered') {
+                return {
+                    desc: `Strażniczka wstaje gdy cię widzi. W jej dłoni — kawałek bursztynowego kamienia.\n\n— Wróciłeś. Znaczy to, że pustynia cię przyjęła. Czy jesteś gotów dowiedzieć się co skrywa Halyaz?`,
+                    actions: [
+                        { label: '📜 Odpowiedz Strażniczce (Quest)', action: 'startHalyazQuest' },
+                        { label: 'Dotknij gorącego kamienia', action: 'touchSunStone' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'stage2') {
+                return {
+                    desc: `Strażniczka kiwa głową gdy wracasz.\n\n— Ruiny przemawiają do tych, którzy umieją słuchać. Czy odnalazłeś trzy znaki na ścianach?`,
+                    actions: [
+                        { label: '📋 Sprawdź postęp questa', action: 'startHalyazQuest' },
+                        { label: 'Dotknij gorącego kamienia', action: 'touchSunStone' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'stage3_choice') {
+                return {
+                    desc: `Strażniczka siedzi przy ołtarzu i czeka. Gdy wchodzisz, wstaje.\n\n— Przyszedł czas wyboru. Halyaz może mieć tylko jednego gospodarza — ogień który buduje, lub ogień który pochłania.`,
+                    actions: [
+                        { label: '🔆 Dokonaj wyboru (Quest)', action: 'startHalyazQuest' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'stage4_trials') {
+                const t = hqs.trialsComplete || 0;
+                return {
+                    desc: `Strażniczka liczy palcami próby, które minąłeś.\n\n— ${t}/3 prób za tobą. Halyaz obserwuje każdy twój krok.`,
+                    actions: [
+                        { label: '📋 Sprawdź próby (Quest)', action: 'startHalyazQuest' },
+                        { label: 'Dotknij gorącego kamienia', action: 'touchSunStone' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'stage5_finale') {
+                return {
+                    desc: `Ołtarz świeci intensywnie — gorący kamień pulsuje rytmicznie jak serce. Strażniczka stoi z boku.\n\n— Halyaz czeka na twój ostatni krok.`,
+                    actions: [
+                        { label: '✨ Wypełnij rytuał (Quest)', action: 'startHalyazQuest' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'done_ochrona') {
+                return {
+                    desc: `Świątynia lśni bursztynowym blaskiem. Gorący kamień na ołtarzu świeci spokojniej — jakby oddychał.\n\nStrażniczka patrzy na ciebie z uznaniem.\n\n— Halyaz będzie żył. Dzięki tobie.`,
+                    actions: [
+                        { label: 'Porozmawiaj ze Strażniczką', action: 'talkSunGuardianDone' },
+                        { label: 'Medytuj przy ołtarzu', action: 'meditateAltar' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs === 'done_przemiana') {
+                return {
+                    desc: `Ołtarz jest inny niż przedtem — kamień zmienił kolor na głęboki karmazyn, ciemniejszy i zimniejszy niż wcześniej.\n\nStrażniczka siedzi z boku z oczami przymkniętymi.\n\n— Halyaz przemieniony. Nie ma powrotu — ale nowe Halyaz jest równie prawdziwe.`,
+                    actions: [
+                        { label: 'Porozmawiaj ze Strażniczką', action: 'talkSunGuardianDone' },
+                        { label: 'Medytuj przy ołtarzu', action: 'meditateAltar' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        if (locationId === 'ruiny_halyaz') {
+            if (hs === 'stage2') {
+                const signs = hqs.signsFound || 0;
+                return {
+                    desc: `Sterczące kolumny kryją więcej niż widać na pierwszy rzut oka. Na ścianach, na kamieniach, wyryte symbole — trzy z nich szczególnie się wyróżniają.\n\nOdnalazłeś już ${signs}/3 znaków Halyaz.`,
+                    actions: [
+                        { label: '🔍 Szukaj kolejnego znaku (Quest)', action: 'searchHalyazSign' },
+                        { label: 'Zbadaj wyrytą mapę', action: 'studyMap' },
+                        { label: 'Wejdź do podziemnego przejścia', action: 'enterPassage' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (hs !== 'none' && hs !== 'offered') {
+                return {
+                    desc: `Ruiny kryją wiele tajemnic — ale znaki Halyaz są już za tobą. Teraz jest tu spokojniej. Kolumny nie szumią już tak złowrogo.`,
+                    actions: [
+                        { label: 'Zbadaj wyrytą mapę', action: 'studyMap' },
+                        { label: 'Szukaj artefaktów', action: 'searchRuins' },
+                        { label: 'Wejdź do podziemnego przejścia', action: 'enterPassage' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        if (locationId === 'pieklo_piasku') {
+            if (hs === 'stage4_trials') {
+                const t = hqs.trialsComplete || 0;
+                const trialDone = hqs.trialSands || false;
+                return {
+                    desc: `Wir piasku jest intensywniejszy niż zwykle — jakby wiedział, że tu jesteś. Duchy Halyaz obserwują cię z każdej strony.\n\n${trialDone ? '✅ Próba Pieśni Piasku — ukończona.' : '⬜ Próba Pieśni Piasku czeka — musisz wsłuchać się w głos pustyni.'}`,
+                    actions: [
+                        ...(!trialDone ? [{ label: '🌀 Staw czoła Próbie Piasku (Quest)', action: 'trialSands' }] : []),
+                        { label: 'Wsłuchaj się w szepty', action: 'listenSands' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        if (locationId === 'oaza_halyaz') {
+            if (hs === 'stage4_trials') {
+                const trialDone = hqs.trialOasis || false;
+                return {
+                    desc: `Woda w oazie jest dziś niesamowicie spokojna — lustro. Odbija nie tylko niebo, ale też coś głębszego.\n\n${trialDone ? '✅ Próba Oazy — ukończona.' : '⬜ Próba Oazy czeka — musisz zajrzeć w swoje odbicie bez lęku.'}`,
+                    actions: [
+                        ...(!trialDone ? [{ label: '💧 Staw czoła Próbie Oazy (Quest)', action: 'trialOasis' }] : []),
+                        { label: 'Napij się wody', action: 'drinkOasis' },
+                        { label: 'Porozmawiaj z pielgrzymami', action: 'talkPilgrims' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        if (locationId === 'oboz_karawany') {
+            if (hs === 'stage4_trials') {
+                const trialDone = hqs.trialCaravan || false;
+                return {
+                    desc: `Kupcy karawany są niespokojni. Przywódca patrzy na ciebie dziwnie — jakby wiedział, że tu nie chodzi tylko o handel.\n\n${trialDone ? '✅ Próba Karawany — ukończona.' : '⬜ Próba Karawany czeka — musisz udowodnić, że znasz cenę pustyni.'}`,
+                    actions: [
+                        ...(!trialDone ? [{ label: '⛺ Staw czoła Próbie Karawany (Quest)', action: 'trialCaravan' }] : []),
+                        { label: 'Porozmawiaj z przywódcą', action: 'talkCaravanLeader' },
+                        { label: 'Handluj z kupcami', action: 'tradeCaravan' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+    }
+
     return null; // no override — use static data
 }
 
@@ -5554,6 +6150,225 @@ const locationResponses = {
         lasQuestMarkLightVisit('visitedNest');
         return null;
     },
+    allianceNest: () => {
+        lasQuestMarkLightVisit('visitedNest');
+        return null;
+    },
+
+    // ─── PUSTYNIA HALYAZ ──────────────────────────────────────
+    startHalyazQuest: () => {
+        if (!hasAnyHatchedDragon()) {
+            const box = document.getElementById('location-action-area');
+            if (box) box.innerHTML = `
+                <div style="padding:12px 16px;background:rgba(40,20,5,0.75);border-left:3px solid #664422;border-radius:6px;color:#c09060;line-height:1.8;font-style:italic;margin-bottom:10px;">
+                    Strażniczka patrzy na ciebie, potem na twoje puste ręce.<br><br>
+                    — Halyaz mówi przez żywioły — mówi powoli. — Potrzebujesz smoka, żeby go słyszeć. Wróć gdy go będziesz miał.
+                </div>
+                <div class="dialog-button" style="border-color:#664422;color:#cc8844;" onclick="openRegion('pustynia')">← Wróć na pustynię</div>`;
+            return null;
+        }
+        const stage = halyazQuestStage();
+        if (stage === 'none') halyazQuestTrigger();
+        else renderHalyazQuest();
+        return null;
+    },
+    searchHalyazSign: () => { halyazSearchSign(); return null; },
+    trialSands: () => {
+        const qs = getHalyazQuestState();
+        const path = qs.path || 'ochrona';
+        const isOchrona = path === 'ochrona';
+        const elements = getHatchedDragonElements();
+        const el = elements[0] || 'ogien';
+
+        const scenes = {
+            ogien:     isOchrona ? 'Smok ryczy pośrodku wiru — i wiatr go słucha. Szepty milkną jeden po drugim, uspokajane ogniem.' : 'Smok podpala sam wir. Duchy krzyczą i gasną. Wicher się wzmaga — i Halyaz budzi się w ogniu.',
+            woda:      isOchrona ? 'Smok wzywaa deszcz w środku pustyni. Pada przez chwilę — duchy uciszają się, uspokojone wilgocią.' : 'Smok pochłania szepty jak woda pochłania kamień — po cichu, bez śladu.',
+            ziemia:    isOchrona ? 'Smok tupie w piasek — grunt drży. Duchy rozumieją: tu jest gospodarz. Wycofują się z szacunkiem.' : 'Smok wbija się w ziemię i duchy wchłaniane są w głąb. Spokojna przemoc.',
+            powietrze: isOchrona ? 'Smok wzlatuje w sam wir i krąży razem z piaskiem. Duchy czują, że rozumiesz ich naturę. Odpoczywają.' : 'Smok kradnie wir — przejmuje go dla siebie. Duchy gubią się w nowym wichurze i milkną.',
+            swiatlo:   isOchrona ? 'Blask smoka rozświetla wirujący piasek. Duchy widzą drogę. Jeden po drugim idą dalej.' : 'Smok wybucha blaskiem tak silnym, że cień ginie. Duchy uciekają przed światłem.',
+            cien:      isOchrona ? 'Smok wchodzi w cień między ziarnami piasku. Rozumie duchy — rozmawia z nimi w ich języku. Usypiają.' : 'Smok pożera cień i razem z nim — duchy. Cisza.',
+            lod:       isOchrona ? 'Smok zamarza wir piasku na chwilę. Wszystko staje. Duchy, uśpione zimnem, spokojnie odpływają.' : 'Lodowy podmuch niszczy strukturę wiru. Duchy rozlatują się w piasek bez powrotu.',
+            magma:     isOchrona ? 'Smok wgrzewa się w wirujący piasek — piasek topi się w szkło. Duchy widzą siebie i idą dalej.' : 'Smok topi piasek w lawę. Duchy krzyczą i gasną w żarze.',
+        };
+        const msg = scenes[el] || scenes['ogien'];
+        halyazCompleteTrial('trialSands');
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:14px;background:rgba(40,25,10,0.8);border-left:3px solid #ffaa44;border-radius:8px;color:#e0c080;line-height:1.8;margin-bottom:12px;font-style:italic;">
+                🌀 <b style="font-style:normal;color:#ffcc66;">Próba Pieśni Piasku — ukończona</b><br><br>${msg}
+            </div>
+            <div style="padding:8px 14px;background:rgba(20,10,5,0.6);border-left:3px solid #cc8833;border-radius:6px;color:#ffaa44;font-size:13px;margin-bottom:12px;">✅ Próba zaliczona</div>
+            <div class="dialog-button" onclick="openLocation('pustynia','swiatynia_slonca')">📍 Sprawdź postęp u Strażniczki</div>`;
+        return null;
+    },
+    trialOasis: () => {
+        const qs = getHalyazQuestState();
+        const path = qs.path || 'ochrona';
+        const isOchrona = path === 'ochrona';
+        const elements = getHatchedDragonElements();
+        const el = elements[0] || 'ogien';
+
+        const scenes = {
+            ogien:     isOchrona ? 'Smok pochyla się nad wodą. Jego odbicie w oazie jest spokojne — nie agresywne. Woda uznaje jego ogień.' : 'Smok patrzy w wodę bez lęku. Odbicie płonie. Oaza akceptuje to nowe, inne oblicze.',
+            woda:      isOchrona ? 'Smok wchodzi do oazy i staje się z nią jednym. Woda i smok — jedno odbicie.' : 'Smok pochłania część oazy. Woda jest teraz jego częścią — oaza zmieniona.',
+            ziemia:    isOchrona ? 'Smok kładzie łapę na dnie oazy. Woda staje się spokojniejsza — czuje ziemię pod sobą.' : 'Smok rozbija dno oazy łapą. Woda ucieka — i wraca inna, ze skałą w środku.',
+            powietrze: isOchrona ? 'Smok lata tuż nad oazą — skrzydła muskają powierzchnię. Fale wyglądają jak liście.' : 'Smok tworzy wir nad oazą — woda wznosi się i opada. Oaza przemieniona.',
+            swiatlo:   isOchrona ? 'Smok lśni nad oazą — odbicie jest podwójnie jasne. Coś w wodzie przyjmuje to spokojnie.' : 'Blask smoka wchodzi w wodę i zmienia jej kolor na złoty. Oaza przemieniona w lustro słońca.',
+            cien:      isOchrona ? 'Smok kładzie się w cieniu przy oazie. Ciemność i woda — odbicie spokojne jak śmierć.' : 'Smok pochłania swoje odbicie. Woda staje się nieprzejrzysta, ciemna jak noc.',
+            lod:       isOchrona ? 'Smok delikatnie zamarza powierzchnię oazy — na kryształ. W środku kryształu — twoje odbicie, spokojne.' : 'Oaza zamraża się do dna. Odbicie uwięzione w lodzie — permanentne, inne.',
+            magma:     isOchrona ? 'Smok ogrzewa oazę oddechem — woda paruje lekko. Para formuje twoje odbicie w powietrzu.' : 'Smok topi krawędź oazy. Woda gotuje się na brzegu — oaza przemieniona w gorące źródło.',
+        };
+        const msg = scenes[el] || scenes['ogien'];
+        halyazCompleteTrial('trialOasis');
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:14px;background:rgba(40,25,10,0.8);border-left:3px solid #ffaa44;border-radius:8px;color:#e0c080;line-height:1.8;margin-bottom:12px;font-style:italic;">
+                💧 <b style="font-style:normal;color:#ffcc66;">Próba Oazy — ukończona</b><br><br>${msg}
+            </div>
+            <div style="padding:8px 14px;background:rgba(20,10,5,0.6);border-left:3px solid #cc8833;border-radius:6px;color:#ffaa44;font-size:13px;margin-bottom:12px;">✅ Próba zaliczona</div>
+            <div class="dialog-button" onclick="openLocation('pustynia','swiatynia_slonca')">📍 Sprawdź postęp u Strażniczki</div>`;
+        return null;
+    },
+    trialCaravan: () => {
+        const qs = getHalyazQuestState();
+        const path = qs.path || 'ochrona';
+        const isOchrona = path === 'ochrona';
+        const elements = getHatchedDragonElements();
+        const el = elements[0] || 'ogien';
+
+        const scenes = {
+            ogien:     isOchrona ? 'Przywódca karawany wstaje gdy widzisz twojego smoka. — Widziałem dużo smoków — mówi — ale ten niesie ogień bez złości. Zdajesz próbę.' : 'Smok siada przy ognisku i... przywódca kiwa głową. — Ogień, który płonie swobodnie — odpowiada na pytanie Halyaz.',
+            woda:      isOchrona ? 'Smok przynosi wodę z oazy i stawia przy ognisku karawany. Przywódca patrzy i rozumie.' : 'Smok pije ze studni karawany bez pozwolenia. Przywódca śmieje się — Halyaz musi być silne.',
+            ziemia:    isOchrona ? 'Smok kładzie się między namiotami jak część ziemi. Wielbłądy nie uciekają. Przywódca mówi: — Zdał.' : 'Smok uderza łapą w ziemię. Kurz unosi się i opada — i na ziemi widać znak Halyaz.',
+            powietrze: isOchrona ? 'Smok kręci się wśród karawany jak wiatr wśród namiotów — nie szkodząc, bawiąc. Przywódca kiwa głową.' : 'Smok podrywa namiot do góry. Kupcy krzyczą, potem się śmieją. Próba zdana.',
+            swiatlo:   isOchrona ? 'Smok lśni nad obozem — wszyscy widzą. Przywódca klęka — znak uznania.' : 'Smok oświetla całą karawanę. Kupcy widzą siebie nawzajem wyraźniej niż kiedykolwiek.',
+            cien:      isOchrona ? 'Smok chowa się w cieniu namiotu i czeka cierpliwie. Przywódca siada obok — też w cieniu. Rozumie.' : 'Smok kradnie cień przywódcy na chwilę. Przywódca śmieje się — próba zdana.',
+            lod:       isOchrona ? 'Smok chłodzi powietrze w obozie. Upał pustyni odpuszcza. Kupcy dziękują. Próba zdana.' : 'Smok zamarza połowę zapasów wody — ale na dłużej. Kupcy w końcu rozumieją wartość tego gestu.',
+            magma:     isOchrona ? 'Smok rozgrzewa ognisko gdy prawie gasło. Noc pustyni jest cieplejsza. Przywódca kiwa głową.' : 'Smok wchodzi między kupców i staje jak kolumna lawy — nikt nie ucieka. Halyaz zadowolone.',
+        };
+        const msg = scenes[el] || scenes['ogien'];
+        halyazCompleteTrial('trialCaravan');
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:14px;background:rgba(40,25,10,0.8);border-left:3px solid #ffaa44;border-radius:8px;color:#e0c080;line-height:1.8;margin-bottom:12px;font-style:italic;">
+                ⛺ <b style="font-style:normal;color:#ffcc66;">Próba Karawany — ukończona</b><br><br>${msg}
+            </div>
+            <div style="padding:8px 14px;background:rgba(20,10,5,0.6);border-left:3px solid #cc8833;border-radius:6px;color:#ffaa44;font-size:13px;margin-bottom:12px;">✅ Próba zaliczona</div>
+            <div class="dialog-button" onclick="openLocation('pustynia','swiatynia_slonca')">📍 Sprawdź postęp u Strażniczki</div>`;
+        return null;
+    },
+
+    // ogólne akcje pustyni
+    talkCaravanLeader: () => {
+        const tales = [
+            '— Halyaz jest stara jak czas — mówi powoli, nie patrząc na ciebie. — Byłem tu trzy razy. Za każdym razem czuję, że pustynia mnie obserwuje. I za każdym razem wychodzę z czymś, czego nie miałem.',
+            '— Nie wchódź w wir piasku bez smoka — mówi i wskazuje na pole wydm. — Widziałem ludzi którzy weszli i wyszli zmienieni. Nie wiem czy lepiej.',
+            '— Oaza Halim ma wodę uzdrawiającą — mówi. — Ale nie każdego. Raz leczyła mojego towarzysza. Raz zabiła konia. Halyaz daje i bierze.',
+        ];
+        return tales[Math.floor(Math.random() * tales.length)];
+    },
+    tradeCaravan: () => {
+        if (!canAfford(10)) return '— Mamy przyprawy, pigmenty i stare mapy — mówi kupiec. — Wszystko po dziesięć miedzi. Wróć gdy będziesz miał.';
+        spendCurrency(10);
+        const items = ['Przyprawy Halyaz', 'Mapa pustyni', 'Pigment czerwony', 'Kość wielblądzia'];
+        const got = items[Math.floor(Math.random() * items.length)];
+        inventory[got] = (inventory[got] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTabFull();
+        return `Kupiec wygrzebuje z sakwy przedmiot. — Dobry wybór — mówi. — Halyaz szczodra dla tych co umieją handlować. +1 ${got}.`;
+    },
+    restFire: () => 'Siadasz przy ognisku. Kupcy nieśpiesznie gadają w swoim języku. Gwiazdy nad pustynią są wyraźniejsze niż gdziekolwiek indziej. Przez chwilę nic się nie dzieje — i jest to bardzo przyjemne.',
+    askDesert: () => {
+        const tips = [
+            '— Nie idź na zachód po zmroku — mówi stary kupiec. — Tam jest Pieśń Piasku. Duchy nie śpią.',
+            '— Ruiny mają dwa poziomy — mówi jeden z wędrowców. — Jeden na wierzchu. Jeden pod piaskiem. Nikt nie schodził głębiej i nie wrócił normalny.',
+            '— Oaza Halim była tu zanim zbudowano Halyaz — mówi kobieta przy ogniu. — Ludzie jej pilnowali. Potem zniknęli. Oaza została.',
+        ];
+        return tips[Math.floor(Math.random() * tips.length)];
+    },
+    studyMap: () => 'Na wyrytej mapie widać szkic całej pustyni — ale coś się nie zgadza. Kilka lokacji jest zaznaczonych w miejscach które teraz wyglądają inaczej. Kopiujesz wzrok na kawałku papieru.',
+    searchRuins: () => {
+        const found = ['Kawałek mozaiki', 'Stara moneta', 'Fragment kolumny', 'Gliniany amulet'];
+        if (Math.random() < 0.5) {
+            const item = found[Math.floor(Math.random() * found.length)];
+            inventory[item] = (inventory[item] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTabFull();
+            return `Wśród kamieni i piasku — coś błyska. Grzebiesz i wyciągasz ${item}. +1 ${item}.`;
+        }
+        return 'Szukasz wszędzie. Piasek jest głęboki — może za głęboki. Tym razem nic.';
+    },
+    enterPassage: () => 'Schody prowadzą w dół, ale po kilku metrach są zasypane. Powietrze z dołu jest dziwne — chłodniejsze i cięższe niż powinno być. Coś tam jest. Ale nie teraz.',
+    listenWind: () => {
+        const sounds = [
+            'Wiatr w kolumnach tworzy dziwną melodię — nie przypadkową. Jakby ktoś zaprojektował ten instrument z kamienia.',
+            'Słyszysz coś w wietrze — może słowo, może nie. Brzmienie jest starożytne i nieznane.',
+            'Kolumny grają jak flety gdy wiatr jest odpowiedni. Stoisz przez chwilę i słuchasz. Coś w tym śpiewie jest smutne.',
+        ];
+        return sounds[Math.floor(Math.random() * sounds.length)];
+    },
+    drinkOasis: () => {
+        if (Math.random() < 0.5) {
+            return 'Woda jest chłodna i słodka — nic podobnego w całej pustyni. Czujesz się lepiej. Dużo lepiej.';
+        }
+        return 'Woda jest czysta, ale zwykła. Może nie byłeś wystarczająco spragniony — albo oaza oceniła, że nie potrzebujesz niczego więcej.';
+    },
+    talkPilgrims: () => {
+        const tales = [
+            '— Przyszłam tu żeby zapomnieć — mówi kobieta, nie patrząc na ciebie. — Oaza dała mi pamięć zamiast. Nie wiem co z nią zrobić.',
+            '— Trzecia pielgrzymka — mówi starszy mężczyzna. — Za pierwszym razem oaza mnie wyleczyła. Za drugim — pokazała mi moją śmierć. Za trzecim... chcę sprawdzić co tym razem.',
+            '— Mój smok jest chory — mówi młoda kobieta i wskazuje na mały, blade jajo przy jej boku. — Słyszałam że oaza leczy. Mam nadzieję.',
+        ];
+        return tales[Math.floor(Math.random() * tales.length)];
+    },
+    restOasis: () => 'Siadasz w cieniu palmy. Powietrze jest przyjemnie chłodne przy wodzie. Twój smok zwija się obok i zasypia prawie natychmiast. Siedzisz przez chwilę i słuchasz szumu liści.',
+    searchOasis: () => {
+        if (Math.random() < 0.35) {
+            inventory['Bursztyn oazy'] = (inventory['Bursztyn oazy'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTabFull();
+            return 'Na dnie oazy, między kamieniami, błyszczy kawałek bursztynu — głębokożółty, ciepły w dotyku. +1 Bursztyn oazy.';
+        }
+        return 'Woda jest przejrzysta jak szkło — widać każdy kamień. Tym razem nic cennego. Ale warto było spróbować.';
+    },
+    listenSands: () => {
+        const whispers = [
+            'Przez chwilę słyszysz coś wyraźnego: „— Wróciłeś." Potem wiatr zmienia kierunek i melodia znika.',
+            'Szepty brzmią jak wiele głosów naraz — nie możesz wyróżnić żadnego. Ale jedno słowo powtarza się: „Halyaz".',
+            'Cisza. A potem — jedno bardzo wyraźne słowo, po którym wiatr milknie: „— Czekamy."',
+        ];
+        return whispers[Math.floor(Math.random() * whispers.length)];
+    },
+    decodeSands: () => 'Próbujesz analizować dźwięki — zapisujesz fragmenty na kawałku papieru. Wzorzec istnieje — ale jest zbyt złożony by odczytać go bez klucza.',
+    enterSandStorm: () => {
+        if (Math.random() < 0.4) return 'Wchodzisz w wir. Przez chwilę nic nie widzisz — piasek jest wszędzie. Potem wychodzisz po drugiej stronie. Masz wrażenie, że straciłeś pięć minut albo pięć lat.';
+        return 'Wchodzisz w wir i wylatuje szybko. Piasek jest zbyt gęsty — twój smok wyciąga cię z powrotem.';
+    },
+    talkSunGuardian: () => {
+        const tales = [
+            '— Kamień na ołtarzu to serce Halyaz — mówi strażniczka. — Nie dosłownie. Ale prawie.',
+            '— Rzeźbię w piasku bo piasek znika — mówi, nie przerywając pracy. — Tylko rzeźba która znika ma znaczenie. Pozostałe — tylko dekoracja.',
+            '— Byłam tu zanim zbudowano tę świątynię — mówi spokojnie. — I będę tu gdy ją znowu pochłonie pustynia. Halyaz jest cierpliwe.',
+        ];
+        return tales[Math.floor(Math.random() * tales.length)];
+    },
+    talkSunGuardianDone: () => '— Zrobiłeś co powinieneś — mówi strażniczka spokojnie. — Halyaz pamięta. I ja też.',
+    touchSunStone: () => {
+        if (Math.random() < 0.5) return 'Kładziesz rękę na kamieniu. Jest gorący — ale nie parzy. Czujesz wibrację, jakby coś głęboko pod pustynią odpowiadało na twój dotyk.';
+        return 'Kamień jest dziś spokojniejszy niż zwykle. Ciepły jak chleb po wypiekach. Strażniczka zerka na ciebie kątem oka.';
+    },
+    makeOffering: () => {
+        const options = [
+            { item: 'Złoto', key: 'gold', amount: 1 },
+            { item: 'Moneta', key: 'copper', amount: 50 },
+        ];
+        if (canAfford(50)) {
+            spendCurrency(50);
+            return 'Kładziesz monety na ołtarzu. Kamień na chwilę świeci jaśniej — a potem wraca do normalnego blasku. Strażniczka kiwa głową.';
+        }
+        return 'Chciałbyś złożyć ofiarę — ale twoje kieszenie są puste. Strażniczka nie komentuje.';
+    },
+    meditateAltar: () => 'Siadasz przy ołtarzu i zamykasz oczy. Ciepło kamienia otacza cię jak koc. Przez chwilę nie myślisz o niczym — a to uczucie jest bardziej wartościowe niż złoto.',
     sitLake: () => "Siedzisz przy brzegu przez długi czas. Woda jest nieruchoma. Niebieski kwiat obok ciebie otwiera się, choć słońca prawie nie ma. Czujesz się spokojniejszy — i trochę nieswojo z tym spokojem.",
     pickFlowers: () => {
         inventory['Niebieski kwiat'] = (inventory['Niebieski kwiat'] || 0) + 1;
@@ -5755,7 +6570,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest', 'performLakeAlliance', 'performNestAlliance', 'allianceLake', 'allianceNest'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest', 'performLakeAlliance', 'performNestAlliance', 'allianceLake', 'allianceNest', 'startHalyazQuest', 'searchHalyazSign', 'trialSands', 'trialOasis', 'trialCaravan'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -6175,7 +6990,9 @@ const questions = [
             { text: "Wsłuchuję się w ziemię.", element: "ziemia" },
             { text: "Podążam za wiatrem.", element: "powietrze" },
             { text: "Patrzę czy coś świeci w oddali — może sygnał, może magia.", element: "swiatlo" },
-            { text: "Czekam aż zapadnie noc i zbliżam się po cichu.", element: "cien" }
+            { text: "Czekam aż zapadnie noc i zbliżam się po cichu.", element: "cien" },
+            { text: "Oglądam obóz powoli — szukam śladów mrozu, lodu albo skrzynienia zimna.", element: "lod" },
+            { text: "Kucam i dotykam ziemi — szukam śladu ciepła, gorących popiołów lub stopionej skały.", element: "magma" }
         ]
     },
     {
@@ -6186,7 +7003,9 @@ const questions = [
             { text: "Dotykam kamieni — historia zapisana w kamieniu.", element: "ziemia" },
             { text: "Słucham echa — wiatr mówi więcej niż oczy.", element: "powietrze" },
             { text: "Zapalam pochodnię i wchodzę — ciemność mnie nie zatrzyma.", element: "swiatlo" },
-            { text: "Gaszę pochodnię i wchodzę w mroku. Tak mam przewagę.", element: "cien" }
+            { text: "Gaszę pochodnię i wchodzę w mroku. Tak mam przewagę.", element: "cien" },
+            { text: "Zatrzymuję się przy wejściu — odczuwam chłód wydobywający się ze środka. To moje terytorium.", element: "lod" },
+            { text: "Przykładam dłoń do kamienia — szukam wibracji ciepła z głębi.", element: "magma" }
         ]
     },
     {
@@ -6197,13 +7016,15 @@ const questions = [
             { text: "Słucham historii — każdy wędrowiec coś niesie.", element: "ziemia" },
             { text: "Idę za intuicją — coś czuję w tym spotkaniu.", element: "powietrze" },
             { text: "Uśmiecham się otwarcie i proponuję wspólną drogę.", element: "swiatlo" },
-            { text: "Obserwuję z dystansu zanim zacznę mówić.", element: "cien" }
+            { text: "Obserwuję z dystansu zanim zacznę mówić.", element: "cien" },
+            { text: "Stoję spokojnie — moje zimne spojrzenie wystarczy.", element: "lod" },
+            { text: "Podchodzę pewnie — płomień w środku daje mi odwagę.", element: "magma" }
         ]
     }
 ];
 
 let currentQuestion = 0;
-let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
+let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0, lod: 0, magma: 0 };
 
 /* -----------------------------------------
    EKRAN POWITALNY
@@ -6225,7 +7046,7 @@ function showQuestion() {
 
     setTimeout(() => {
         currentQuestion = 0;
-        elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
+        elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0, lod: 0, magma: 0 };
         showNextStartQuestion();
     }, 5000);
 }
@@ -6275,7 +7096,9 @@ function finalizeDragon() {
         ziemia: "stabilne, kojące ciepło skał.",
         powietrze: "delikatne pulsowanie przypominające powiew wiatru.",
         swiatlo: "łagodne, złociste ciepło — jak promień słońca przebijający się przez chmury.",
-        cien: "dziwne chłodne drżenie, jakby jajo pochłaniało otaczające je światło."
+        cien: "dziwne chłodne drżenie, jakby jajo pochłaniało otaczające je światło.",
+        lod: "intensywne zimno — jajo jest lodowate, a mimo to czujesz w nim żywy puls.",
+        magma: "nieznośne gorąco przeplecione z rytmicznym drganiem — jak serce wulkanu."
     };
 
     intro.innerHTML = `
@@ -6439,7 +7262,9 @@ const merchantQuestions = [
             { text: "Badam skały i szukam śladów — ziemia pamięta wszystko.", element: "ziemia" },
             { text: "Nasłuchuję echa — powietrze przenosi ślady dawnych głosów.", element: "powietrze" },
             { text: "Dotykam najjaśniejszej runy — blask przyciąga mnie instynktownie.", element: "swiatlo" },
-            { text: "Gaszę pochodnię i wchodzę głębiej — w ciemności runy świecą wyraźniej.", element: "cien" }
+            { text: "Gaszę pochodnię i wchodzę głębiej — w ciemności runy świecą wyraźniej.", element: "cien" },
+            { text: "Szukam śladów zamrożenia na ścianach — lód konserwuje starożytne sekrety.", element: "lod" },
+            { text: "Dotykam najcieplejszego miejsca ściany — magma zostawia ślad nawet po tysiącleci.", element: "magma" }
         ]
     },
     {
@@ -6450,7 +7275,9 @@ const merchantQuestions = [
             { text: "Dotykam ziemi, by poczuć drgania — ziemia wie co się kryje w środku.", element: "ziemia" },
             { text: "Pozwalam wiatrowi mnie poprowadzić — idę tam gdzie wieje.", element: "powietrze" },
             { text: "Patrzę czy w centrum wiruje coś jasnego — światło zawsze wskazuje cel.", element: "swiatlo" },
-            { text: "Czekam aż ciemność odsłoni co jest w środku — pośpiech to błąd.", element: "cien" }
+            { text: "Czekam aż ciemność odsłoni co jest w środku — pośpiech to błąd.", element: "cien" },
+            { text: "Zatrzymuję się — wir mroźnego powietrza mówi mi co kryje w sobie.", element: "lod" },
+            { text: "Wchodzę — coś wrze wewnątrz i czuję to w kościach.", element: "magma" }
         ]
     },
     {
@@ -6461,7 +7288,9 @@ const merchantQuestions = [
             { text: "Kłaniam się i czekam — ziemia uczy pokory.", element: "ziemia" },
             { text: "Pozwalam mu przejść przez siebie — powietrze nie stawia oporu.", element: "powietrze" },
             { text: "Patrzę w miejsce skąd bije światło wokół niego.", element: "swiatlo" },
-            { text: "Chowam się w jego cieniu i obserwuję zanim przemówię.", element: "cien" }
+            { text: "Chowam się w jego cieniu i obserwuję zanim przemówię.", element: "cien" },
+            { text: "Staje nieruchomo — zimna obecność promieniuje ze mnie spokój starszy niż czas.", element: "lod" },
+            { text: "Wyciągam dłoń — chcę poczuć czy jest gorący jak ja.", element: "magma" }
         ]
     },
     {
@@ -6472,7 +7301,9 @@ const merchantQuestions = [
             { text: "Siadam na ziemi i czekam na świt — nocna cisza koi.", element: "ziemia" },
             { text: "Słucham — noc niesie dźwięki których w dzień nie słychać.", element: "powietrze" },
             { text: "Patrzę w gwiazdy — każda jest małym słońcem.", element: "swiatlo" },
-            { text: "Ciemność jest znajoma — jak drugi dom.", element: "cien" }
+            { text: "Ciemność jest znajoma — jak drugi dom.", element: "cien" },
+            { text: "Noc jest moja — im zimniej, tym wyraźniej myślę.", element: "lod" },
+            { text: "Siedzę przy żarze — żywy ogień jest moim towarzyszem.", element: "magma" }
         ]
     }
 ];
@@ -6526,7 +7357,7 @@ const merchantThirdQuestions = [
 
 function startThirdMerchant() {
     merchantThirdStep = 0;
-    merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
+    merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0, lod: 0, magma: 0 };
     const box = document.getElementById("merchant-content");
     box.innerHTML = `
         <div class="dialog-window">
@@ -6557,7 +7388,7 @@ function merchantThirdNext() {
     const chosen = Object.entries(merchantThirdScores).sort((a,b)=>b[1]-a[1])[0][0];
     const elementName = {
         ogien: "ognistego", woda: "wodnego", ziemia: "ziemnego",
-        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego"
+        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego", lod: "lodowego", magma: "magmowego"
     }[chosen];
     box.innerHTML = `
         <div class="dialog-window">
@@ -6590,7 +7421,7 @@ function merchantContinueGreeting() {
 
 
 let merchantStep = 0;
-let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
+let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0, lod: 0, magma: 0 };
 
 // trzecia seria pytań
 let merchantThirdStep = 0;
@@ -6737,7 +7568,7 @@ function updateMerchantTab() {
 
     // jezeli wracamy z NIE - resetuj zmienne
     merchantStep = 0;
-    merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
+    merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0, lod: 0, magma: 0 };
 
     box.innerHTML = `
         <div class="dialog-window">
@@ -6771,7 +7602,7 @@ function merchantNext() {
     const chosen = Object.entries(merchantScores).sort((a,b)=>b[1]-a[1])[0][0];
     const elementName = {
         ogien: "ognistego", woda: "wodnego", ziemia: "ziemnego",
-        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego"
+        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego", lod: "lodowego", magma: "magmowego"
     }[chosen];
 
     box.innerHTML = `
