@@ -2928,26 +2928,39 @@ function renderGuardEnding(ending) {
         A: {
             color: '#ffcc66', border: '#cc9900',
             title: '⚔️ Zakończenie: Droga Straży',
-            text: `Wracasz do Kapitan z dokumentami. Mira bierze je bez słowa, nie otwierając.\n\n— Dobrze — mówi. — Jak obiecałam.\n\nKłade na biurku 2 złote monety.\n\n— I jeszcze jedno. — Unosi głowę. — Mamy wakat na nocnej warcie. Jeśli cię to interesuje, daj znać. Dobra robota.`,
+            text: `Wracasz do Kapitan z dokumentami. Mira bierze je bez słowa, nie otwierając.<br><br>— Dobrze — mówi. — Jak obiecałam.<br><br>Kładzie na biurku 2 złote monety.<br><br>— I jeszcze jedno. — Unosi głowę. — Mamy wakat na nocnej warcie. Jeśli cię to interesuje, daj znać. Dobra robota.`,
             reward: () => adjustCurrency('gold', 2),
-            showJoin: true,
+            unlockHint: 'Wstąp do Straży Miejskiej i odblokuj zakładkę <b>⚔️ Warta</b>.',
+            joinLabel: '⚔️ Wstąp do Straży Miejskiej',
+            joinFn: 'joinGuard',
+            alreadyLabel: '✅ Jesteś już członkiem Straży Miejskiej.',
+            alreadyCheck: 'isGuardMember',
         },
         B: {
-            color: '#ff9966', border: '#cc4422',
-            title: '🔥 Zakończenie: Droga Sprawiedliwości',
-            text: `Paliasz dokumenty. Kurier odchodzi bez słowa.\n\nWracasz do Kapitan z pustymi rękami.\n\n— Gdzie są? — pyta twardo.\n— Spłonęły.\n\nMilczenie trwa długo.\n\n— Nie możemy ci zapłacić za to czego nie ma. Nie melduj się tu przez jakiś czas.`,
+            color: '#88ccff', border: '#4488bb',
+            title: '🛡️ Zakończenie: Droga Ochrony',
+            text: `Palisz dokumenty. Kurier odchodzi w milczeniu.<br><br>Wracasz do Kapitan z pustymi rękami.<br><br>— Gdzie są? — pyta twardo.<br>— Spłonęły.<br><br>Milczenie trwa długo. Mira w końcu kiwa głową — nie z uznaniem, ale bez złości.<br><br>— Nie zapłacę ci za to. Ale... wiem, że robiłeś co uważałeś za słuszne.<br><br>Kilka dni później w karczmie karczmarz dyskretnie wsuwa ci kartkę pod kufel. <em>Ktoś potrzebuje ochroniarza do prywatnych spraw. Stawki lepsze niż na warcie.</em>`,
             reward: () => {
+                adjustCurrency('silver', 10);
                 inventory['Tajemnicza notatka'] = (inventory['Tajemnicza notatka'] || 0) + 1;
                 localStorage.setItem('inventory', JSON.stringify(inventory));
             },
-            showJoin: false,
+            unlockHint: 'Odblokuj zakładkę <b>🛡️ Ochrona</b> — prywatna służba dla tych, którzy nie pytają za dużo.',
+            joinLabel: '🛡️ Podejmij pracę jako ochroniarz',
+            joinFn: 'joinOchrona',
+            alreadyLabel: '✅ Pracujesz już jako ochroniarz.',
+            alreadyCheck: 'isOchronaMember',
         },
         C: {
             color: '#cc88ff', border: '#9944cc',
             title: '🌑 Zakończenie: Droga Cienia',
-            text: `Dokumenty trafiają w inne ręce.\n\nKilka dni później anonimowa paczka: złota moneta i kartka.\n\n"Dobra robota. Będziemy w kontakcie."`,
+            text: `Dokumenty trafiają w inne ręce. Kurier znika w zaułkach Astorveil.<br><br>Kilka dni później anonimowa paczka przy drzwiach — złota moneta i złożona kartka.<br><br><em>„Dobra robota. Mamy dla ciebie więcej zadań. Jeśli chcesz wiedzieć co się naprawdę dzieje w tym mieście — znajdź nas."</em><br><br>Na kartce adres. Nikt nie wie, że tam idziesz.`,
             reward: () => { adjustCurrency('gold', 1); localStorage.setItem('shadowContact', 'true'); },
-            showJoin: false,
+            unlockHint: 'Odblokuj zakładkę <b>🌑 Szpiegowanie</b> — praca w cieniu dla nieznanych mocodawców.',
+            joinLabel: '🌑 Nawiąż kontakt z Siecią Cienia',
+            joinFn: 'joinSzpiegowanie',
+            alreadyLabel: '✅ Jesteś już agentem Sieci Cienia.',
+            alreadyCheck: 'isSzpiegMember',
         },
     };
 
@@ -2956,27 +2969,315 @@ function renderGuardEnding(ending) {
     e.reward();
     updateInventoryTabFull();
 
+    const alreadyJoined = window[e.alreadyCheck] ? window[e.alreadyCheck]() : false;
     box.innerHTML = `
-        <div style="padding:14px; background:rgba(10,20,40,0.8); border:1px solid ${e.border}; border-radius:8px; color:${e.color}; line-height:1.8; white-space:pre-line; font-style:italic; margin-bottom:12px;">
+        <div style="padding:14px; background:rgba(10,20,40,0.8); border:1px solid ${e.border}; border-radius:8px; color:${e.color}; line-height:1.8; font-style:italic; margin-bottom:12px;">
             <div style="font-weight:bold; font-size:15px; margin-bottom:10px;">${e.title}</div>
             ${e.text}
         </div>
-        ${e.showJoin && !isGuardMember() ? `<div class="dialog-button" style="border-color:#cc9900;color:#ffcc66;" onclick="joinGuard()">⚔️ Wstąp do Straży</div>` : ''}
-        ${isGuardMember() ? `<div style="color:#66cc88; margin:8px 0; font-size:13px; font-style:italic;">✅ Jesteś już członkiem Straży Miejskiej.</div>` : ''}
-        <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
+        ${!alreadyJoined ? `
+            <div style="padding:10px 12px; background:rgba(10,20,40,0.6); border-left:3px solid ${e.border}; border-radius:6px; color:#b0bbd0; font-size:13px; margin-bottom:10px;">
+                ${e.unlockHint}
+            </div>
+            <div class="dialog-button" style="border-color:${e.border};color:${e.color};" onclick="${e.joinFn}()">${e.joinLabel}</div>
+        ` : `<div style="color:#66cc88; margin:8px 0; font-size:13px; font-style:italic;">${e.alreadyLabel}</div>`}
+        <div class="dialog-button" style="border-color:#778;color:#aab;margin-top:6px;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>
     `;
 }
 
-function isGuardMember() {
-    return localStorage.getItem('guardMember') === 'true';
-}
+function isGuardMember()    { return localStorage.getItem('guardMember')    === 'true'; }
+function isOchronaMember()  { return localStorage.getItem('ochronaMember')  === 'true'; }
+function isSzpiegMember()   { return localStorage.getItem('szpiegMember')   === 'true'; }
 
 function joinGuard() {
     localStorage.setItem('guardMember', 'true');
     unlockWartaTab();
-    alert('Zostałeś przyjęty do Straży Miejskiej Astorveil!\n\nNowa zakładka "Warta" jest teraz dostępna. Możesz zarobić pełniąc służbę.');
+    alert('Zostałeś przyjęty do Straży Miejskiej Astorveil!\n\nNowa zakładka "⚔️ Warta" jest teraz dostępna.');
     renderGuardEnding('A');
     updateSidebarTabs();
+}
+
+function joinOchrona() {
+    localStorage.setItem('ochronaMember', 'true');
+    unlockOchronaTab();
+    alert('Nawiązałeś kontakt z siecią ochroniarzy.\n\nNowa zakładka "🛡️ Ochrona" jest dostępna — znajdziesz ją też w karczmie.');
+    renderGuardEnding('B');
+    updateSidebarTabs();
+}
+
+function joinSzpiegowanie() {
+    localStorage.setItem('szpiegMember', 'true');
+    unlockSzpiegowanieTab();
+    alert('Wszedłeś w kontakt z Siecią Cienia.\n\nNowa zakładka "🌑 Szpiegowanie" jest teraz dostępna.');
+    renderGuardEnding('C');
+    updateSidebarTabs();
+}
+
+
+/* ==========================================================
+   ZAKŁADKA OCHRONA
+========================================================== */
+
+function openOchronaFromTavern() {
+    if (!isOchronaMember()) {
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #4488bb; border-radius:6px; color:#c0cce0; line-height:1.7; margin-bottom:10px; font-style:italic;">
+                Karczmarz wzrusza ramionami.<br><br>— Mam tu kartkę dla pewnego... ochroniarza. Ale nie wygląda mi na to, żebyś był tym kimś. Wróć jak będziesz miał odpowiednie rekomendacje.
+            </div>
+            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="openRegion('miasto')">← Wróć</div>
+        `;
+        return;
+    }
+    openTab('ochrona');
+}
+
+const OCHRONA_JOBS = [
+    {
+        id: 'ochro_kupiec',
+        name: 'Eskorta kupca',
+        client: 'Anonimowy kupiec',
+        desc: 'Pewien kupiec chce dyskretnej eskorty przez Dzielnicę Portową. Nie pyta się po co — i ty nie pytaj.',
+        duration: 3 * 60 * 1000,
+        reward: { silver: 25 },
+        risk: 'Niskie',
+    },
+    {
+        id: 'ochro_magazyn',
+        name: 'Pilnowanie magazynu',
+        client: 'Nieznany zleceniodawca',
+        desc: 'Nocna warta przy zamkniętym magazynie przy porcie. Masz nie wpuszczać nikogo. Nikt nie mówi co jest w środku.',
+        duration: 8 * 60 * 1000,
+        reward: { silver: 60 },
+        risk: 'Średnie',
+    },
+    {
+        id: 'ochro_dom',
+        name: 'Ochrona prywatnego domostwa',
+        client: 'Zamożna rodzina',
+        desc: 'Bogata rodzina prosi o dyskretną ochronę przez kilka dni. Mają wrogów — nie mówią, ilu.',
+        duration: 15 * 60 * 1000,
+        reward: { silver: 120, gold: 1 },
+        risk: 'Wysokie',
+    },
+    {
+        id: 'ochro_spotkanie',
+        name: 'Zabezpieczenie tajnego spotkania',
+        client: 'Nieznana organizacja',
+        desc: 'Dwóch ważnych ludzi spotka się w piwnicy gospody. Twoja rola: pilnuj drzwi i reaguj jeśli coś pójdzie nie tak.',
+        duration: 6 * 60 * 1000,
+        reward: { silver: 45 },
+        risk: 'Średnie',
+    },
+];
+
+function updateOchronaTab() {
+    const div = document.getElementById('ochrona-content');
+    if (!div) return;
+    if (!isOchronaMember()) {
+        div.innerHTML = `<p style="color:#7080a0; font-style:italic;">Ta zakładka jest zablokowana. Ukończ misję kuriera wybierając Drogę Ochrony, a następnie podejmij pracę jako ochroniarz.</p>`;
+        return;
+    }
+    const active = localStorage.getItem('ochronaActive') === 'true';
+    const endTime = Number(localStorage.getItem('ochronaEndTime') || 0);
+    const now = Date.now();
+    if (active && endTime > now) {
+        const jobId = localStorage.getItem('ochronaJobId');
+        const job = OCHRONA_JOBS.find(j => j.id === jobId) || OCHRONA_JOBS[0];
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(10,25,45,0.7); border:2px solid #4488bb; border-radius:10px; margin-bottom:16px; text-align:center;">
+                <div style="font-size:17px; font-weight:bold; color:#88bbff; margin-bottom:6px;">🛡️ ${job.name}</div>
+                <div style="color:#8090aa; font-size:13px; font-style:italic; margin-bottom:12px;">${job.desc}</div>
+                <div style="font-size:30px; font-weight:bold; color:#ffcc44;" id="ochrona-countdown">...</div>
+                <div style="color:#6070a0; font-size:12px; margin-top:4px;">pozostały czas zlecenia</div>
+            </div>
+        `;
+        const tick = () => {
+            const el = document.getElementById('ochrona-countdown');
+            if (!el) return;
+            const rem = Number(localStorage.getItem('ochronaEndTime') || 0) - Date.now();
+            if (rem <= 0) { collectOchronaPay(); return; }
+            el.textContent = formatTime(rem);
+            setTimeout(tick, 1000);
+        };
+        tick();
+        return;
+    }
+    if (active && endTime <= now) { collectOchronaPay(); return; }
+    // Job selection
+    let html = `
+        <div style="padding:12px; background:rgba(10,20,40,0.6); border:1px solid #3a4a6a; border-radius:8px; margin-bottom:14px;">
+            <p style="color:#88aacc; font-size:13px; font-style:italic; margin:0;">Sieć ochroniarzy działa w cieniu. Zlecenia trafiają przez pośredników — bez nazwisk, bez pytań. Wykonujesz robotę, dostajesz zapłatę.</p>
+        </div>
+    `;
+    OCHRONA_JOBS.forEach(job => {
+        const rewardStr = Object.entries(job.reward).map(([t,a]) => `${a} ${t}`).join(', ');
+        const riskColor = job.risk === 'Niskie' ? '#66cc88' : job.risk === 'Średnie' ? '#ffcc44' : '#ff6644';
+        html += `
+            <div style="margin:8px 0; padding:12px; background:rgba(15,25,45,0.6); border:1px solid #3a4a7a; border-radius:8px;">
+                <div style="font-weight:bold; color:#c0d0ff; margin-bottom:4px;">${job.name}</div>
+                <div style="color:#6070a0; font-size:11px; margin-bottom:4px;">Zleceniodawca: <em>${job.client}</em></div>
+                <div style="color:#8090aa; font-size:12px; margin-bottom:6px; line-height:1.5;">${job.desc}</div>
+                <div style="font-size:12px; color:#7080aa;">
+                    ⏱ ${formatTime(job.duration)} &nbsp;|&nbsp; 💰 ${rewardStr} &nbsp;|&nbsp; ⚠️ Ryzyko: <span style="color:${riskColor};">${job.risk}</span>
+                </div>
+                <div class="dialog-button" style="margin-top:8px; font-size:13px;" onclick="startOchronaJob('${job.id}')">Podejmij zlecenie</div>
+            </div>
+        `;
+    });
+    div.innerHTML = html;
+}
+
+function startOchronaJob(jobId) {
+    const job = OCHRONA_JOBS.find(j => j.id === jobId);
+    if (!job) return;
+    localStorage.setItem('ochronaActive', 'true');
+    localStorage.setItem('ochronaEndTime', String(Date.now() + job.duration));
+    localStorage.setItem('ochronaJobId', jobId);
+    updateOchronaTab();
+}
+
+function collectOchronaPay() {
+    const jobId = localStorage.getItem('ochronaJobId');
+    const job = OCHRONA_JOBS.find(j => j.id === jobId) || OCHRONA_JOBS[0];
+    Object.entries(job.reward).forEach(([t,a]) => adjustCurrency(t, a));
+    localStorage.setItem('ochronaActive', 'false');
+    updateCurrencyDisplay();
+    const div = document.getElementById('ochrona-content');
+    if (div) {
+        const rewardStr = Object.entries(job.reward).map(([t,a]) => `+${a} ${t}`).join(', ');
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(15,40,20,0.7); border:2px solid #44aa66; border-radius:10px; text-align:center;">
+                <div style="font-size:17px; font-weight:bold; color:#66ff88; margin-bottom:8px;">✅ Zlecenie wykonane!</div>
+                <div style="color:#8090aa; font-size:13px; font-style:italic;">Koperta z zapłatą czeka na ciebie u pośrednika.</div>
+                <div style="font-size:22px; color:#ffcc44; margin:12px 0; font-weight:bold;">${rewardStr}</div>
+                <div class="dialog-button" style="margin-top:8px;" onclick="updateOchronaTab()">Następne zlecenie</div>
+            </div>
+        `;
+    }
+}
+
+/* ==========================================================
+   ZAKŁADKA SZPIEGOWANIE
+========================================================== */
+
+const SZPIEG_MISSIONS = [
+    {
+        id: 'szp_obserwacja',
+        name: 'Obserwacja celu',
+        briefing: 'Masz śledzić pewnego urzędnika przez kilka godzin i sporządzić raport o jego kontaktach. Nie możesz dać się zauważyć.',
+        duration: 5 * 60 * 1000,
+        reward: { silver: 30 },
+        difficulty: '★☆☆',
+    },
+    {
+        id: 'szp_paczka',
+        name: 'Dostawa bez pytań',
+        briefing: 'Paczka ma trafić pod wskazany adres. Zawartość: nieznana. Jeśli pytasz — nie nadajesz się do tej roboty.',
+        duration: 4 * 60 * 1000,
+        reward: { silver: 20, copper: 50 },
+        difficulty: '★☆☆',
+    },
+    {
+        id: 'szp_infiltracja',
+        name: 'Wejście na bankiet',
+        briefing: 'Masz wejść na prywatny bankiet w Dzielnicy Honorowej pod fałszywą tożsamością i poznać nazwiska gości. Strój zapewniamy.',
+        duration: 10 * 60 * 1000,
+        reward: { silver: 80 },
+        difficulty: '★★☆',
+    },
+    {
+        id: 'szp_przeciek',
+        name: 'Przeciek informacji',
+        briefing: 'Jesteś blisko kogoś kto pracuje dla Straży. Masz zdobyć jeden dokument — bez śladu, bez wpadki. To test lojalności.',
+        duration: 20 * 60 * 1000,
+        reward: { gold: 2 },
+        difficulty: '★★★',
+    },
+];
+
+function updateSzpiegowanieTab() {
+    const div = document.getElementById('szpiegowanie-content');
+    if (!div) return;
+    if (!isSzpiegMember()) {
+        div.innerHTML = `<p style="color:#7080a0; font-style:italic;">Ta zakładka jest zablokowana. Ukończ misję kuriera wybierając Drogę Cienia, a następnie nawiąż kontakt z Siecią.</p>`;
+        return;
+    }
+    const active = localStorage.getItem('szpiegActive') === 'true';
+    const endTime = Number(localStorage.getItem('szpiegEndTime') || 0);
+    const now = Date.now();
+    if (active && endTime > now) {
+        const jobId = localStorage.getItem('szpiegJobId');
+        const job = SZPIEG_MISSIONS.find(j => j.id === jobId) || SZPIEG_MISSIONS[0];
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(20,10,40,0.8); border:2px solid #9944cc; border-radius:10px; text-align:center; margin-bottom:16px;">
+                <div style="font-size:17px; font-weight:bold; color:#cc88ff; margin-bottom:6px;">🌑 ${job.name}</div>
+                <div style="color:#7060a0; font-size:13px; font-style:italic; margin-bottom:12px;">${job.briefing}</div>
+                <div style="font-size:30px; font-weight:bold; color:#aa66ff;" id="szpieg-countdown">...</div>
+                <div style="color:#5a4a70; font-size:12px; margin-top:4px;">pozostały czas misji</div>
+            </div>
+        `;
+        const tick = () => {
+            const el = document.getElementById('szpieg-countdown');
+            if (!el) return;
+            const rem = Number(localStorage.getItem('szpiegEndTime') || 0) - Date.now();
+            if (rem <= 0) { collectSzpiegPay(); return; }
+            el.textContent = formatTime(rem);
+            setTimeout(tick, 1000);
+        };
+        tick();
+        return;
+    }
+    if (active && endTime <= now) { collectSzpiegPay(); return; }
+    let html = `
+        <div style="padding:12px; background:rgba(20,10,35,0.6); border:1px solid #4a2a6a; border-radius:8px; margin-bottom:14px;">
+            <p style="color:#9970cc; font-size:13px; font-style:italic; margin:0;">Rozkazy przychodzą w kopertach bez nadawcy. Wykonujesz. Milczysz. Zarabiasz. Nikt nie pyta jak — ty też nie pytasz dlaczego.</p>
+        </div>
+    `;
+    SZPIEG_MISSIONS.forEach(job => {
+        const rewardStr = Object.entries(job.reward).map(([t,a]) => `${a} ${t}`).join(', ');
+        html += `
+            <div style="margin:8px 0; padding:12px; background:rgba(20,10,40,0.5); border:1px solid #4a2a6a; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-weight:bold; color:#c0a0ff;">${job.name}</span>
+                    <span style="color:#7060a0; font-size:13px;">${job.difficulty}</span>
+                </div>
+                <div style="color:#7060a0; font-size:12px; margin-bottom:6px; line-height:1.5; font-style:italic;">${job.briefing}</div>
+                <div style="font-size:12px; color:#6050a0;">⏱ ${formatTime(job.duration)} &nbsp;|&nbsp; 💰 ${rewardStr}</div>
+                <div class="dialog-button" style="margin-top:8px; font-size:13px; border-color:#7744bb; color:#cc88ff;" onclick="startSzpiegJob('${job.id}')">Przyjmij misję</div>
+            </div>
+        `;
+    });
+    div.innerHTML = html;
+}
+
+function startSzpiegJob(jobId) {
+    const job = SZPIEG_MISSIONS.find(j => j.id === jobId);
+    if (!job) return;
+    localStorage.setItem('szpiegActive', 'true');
+    localStorage.setItem('szpiegEndTime', String(Date.now() + job.duration));
+    localStorage.setItem('szpiegJobId', jobId);
+    updateSzpiegowanieTab();
+}
+
+function collectSzpiegPay() {
+    const jobId = localStorage.getItem('szpiegJobId');
+    const job = SZPIEG_MISSIONS.find(j => j.id === jobId) || SZPIEG_MISSIONS[0];
+    Object.entries(job.reward).forEach(([t,a]) => adjustCurrency(t, a));
+    localStorage.setItem('szpiegActive', 'false');
+    updateCurrencyDisplay();
+    const div = document.getElementById('szpiegowanie-content');
+    if (div) {
+        const rewardStr = Object.entries(job.reward).map(([t,a]) => `+${a} ${t}`).join(', ');
+        div.innerHTML = `
+            <div style="padding:16px; background:rgba(20,10,40,0.8); border:2px solid #7744bb; border-radius:10px; text-align:center;">
+                <div style="font-size:17px; font-weight:bold; color:#cc88ff; margin-bottom:8px;">✅ Misja zakończona</div>
+                <div style="color:#7060a0; font-size:13px; font-style:italic;">Koperta z zapłatą czeka w umówionym miejscu.</div>
+                <div style="font-size:22px; color:#aa66ff; margin:12px 0; font-weight:bold;">${rewardStr}</div>
+                <div class="dialog-button" style="margin-top:8px; border-color:#7744bb; color:#cc88ff;" onclick="updateSzpiegowanieTab()">Następna misja</div>
+            </div>
+        `;
+    }
 }
 
 /* ==============================================
@@ -2986,6 +3287,18 @@ function joinGuard() {
 function unlockWartaTab() {
     localStorage.setItem('wartaUnlocked', 'true');
     const tab = document.getElementById('tab-warta');
+    if (tab) tab.style.display = 'block';
+}
+
+function unlockOchronaTab() {
+    localStorage.setItem('ochronaUnlocked', 'true');
+    const tab = document.getElementById('tab-ochrona');
+    if (tab) tab.style.display = 'block';
+}
+
+function unlockSzpiegowanieTab() {
+    localStorage.setItem('szpiegowanieUnlocked', 'true');
+    const tab = document.getElementById('tab-szpiegowanie');
     if (tab) tab.style.display = 'block';
 }
 
@@ -3103,10 +3416,9 @@ function collectWartaPay() {
 }
 
 function updateSidebarTabs() {
-    if (isGuardMember()) {
-        const tab = document.getElementById('tab-warta');
-        if (tab) tab.style.display = 'block';
-    }
+    if (isGuardMember()   || localStorage.getItem('wartaUnlocked')       === 'true') { const t = document.getElementById('tab-warta');         if (t) t.style.display = 'block'; }
+    if (isOchronaMember() || localStorage.getItem('ochronaUnlocked')     === 'true') { const t = document.getElementById('tab-ochrona');        if (t) t.style.display = 'block'; }
+    if (isSzpiegMember()  || localStorage.getItem('szpiegowanieUnlocked') === 'true') { const t = document.getElementById('tab-szpiegowanie');   if (t) t.style.display = 'block'; }
 }
 
 /* ==============================================
@@ -3706,6 +4018,7 @@ const worldData = {
                     { label: "Posłuchaj plotek", action: "listenTavern", desc: "Karczma to skarbnica informacji." },
                     { label: "Zagadaj wędrowca", action: "talkTraveler", desc: "Obcy ludzie przynoszą ciekawe wieści." },
                     { label: "Wynajmij izbę (5 miedzi)", action: "rentRoom", desc: "Odpoczynek w karczmie przynosi siły." },
+                    { label: "🛡️ Zlecenia ochrony", action: "openOchronaFromTavern", desc: "Tablica z prywatnymi zleceniami dla ochroniarzy." },
                     { label: "Zawróć", action: "back" }
                 ]
             }
@@ -4047,6 +4360,7 @@ const locationResponses = {
     browseSmith: () => { renderSmithShopFull(); return null; },
     sellAtFoodMerchant: () => { renderSellPanel('food'); return null; },
     sellAtSmith: () => { renderSellPanel('smith'); return null; },
+    openOchronaFromTavern: () => { openOchronaFromTavern(); return null; },
 
     // ŚWIĄTYNIA
     pray: () => {
@@ -4417,7 +4731,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -5498,6 +5812,8 @@ function openTab(name) {
     if (name === "inventory") updateInventoryTabFull();
     if (name === "merchant") updateMerchantTab();
     if (name === "warta") updateWartaTab();
+    if (name === "ochrona") updateOchronaTab();
+    if (name === "szpiegowanie") updateSzpiegowanieTab();
 }
 
 /* -----------------------------------------
