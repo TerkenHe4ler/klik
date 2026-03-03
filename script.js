@@ -1837,7 +1837,8 @@ function renderDragonGearPanel(dragonNum, dragonLvl) {
     const equipment = loadDragonEquipment(dragonNum);
     const gearInventory = loadGearInventory();
     
-    let html = `<details style="margin:8px 0;"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🛡️ Ekwipunek smoka</summary><div style="margin-top:8px;">`;
+    const gearOpen = getDetailsState('gear', dragonNum) !== 'closed';
+    let html = `<details style="margin:8px 0;" ${gearOpen ? 'open' : ''} ontoggle="saveDetailsState('gear', ${dragonNum}, this.open)"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🛡️ Ekwipunek smoka</summary><div style="margin-top:8px;">`;
     
     DRAGON_EQUIPMENT_SLOTS.forEach(slot => {
         const equipped = equipment[slot.id];
@@ -1875,11 +1876,13 @@ function renderDragonGearPanel(dragonNum, dragonLvl) {
 }
 
 function handleEquip(dragonNum, instanceId) {
+    saveDetailsState('gear', dragonNum, true);
     const success = equipGear(dragonNum, instanceId);
     if (success) updateHomeTab();
 }
 
 function handleUnequip(dragonNum, slot) {
+    saveDetailsState('gear', dragonNum, true);
     unequipGear(dragonNum, slot);
     updateHomeTab();
 }
@@ -3178,13 +3181,8 @@ function startDragonRegenLoop() {
         });
     }, 60 * 1000);
 
-    // Home tab auto-refresh every 5 seconds
+    // Mission complete check every 5 seconds (no full home re-render)
     setInterval(() => {
-        const homeTab = document.getElementById('home');
-        if (homeTab && homeTab.style.display !== 'none') {
-            updateHomeTab();
-        }
-        // Check if any mission completed while away from home tab
         checkMissionCompleteNotification();
     }, 5000);
 }
@@ -3193,31 +3191,27 @@ function checkMissionCompleteNotification() {
     let anyComplete = false;
     [1, 2, 3].forEach(num => {
         const mission = loadDragonMission(num);
-        if (mission && Date.now() >= mission.endTime) {
-            anyComplete = true;
-        }
+        if (mission && Date.now() >= mission.endTime) anyComplete = true;
     });
-    // Find home tab button by id (added in HTML) or by text content
-    let homeTabBtn = document.getElementById('tab-home-btn');
-    if (!homeTabBtn) {
-        // Fallback: find by text
+    let btn = document.getElementById('tab-dragons-btn');
+    if (!btn) {
         document.querySelectorAll('.tab').forEach(t => {
-            if (t.textContent.trim() === 'Dom') homeTabBtn = t;
+            if (t.textContent.trim() === 'Smoki') btn = t;
         });
     }
-    if (homeTabBtn) {
+    if (btn) {
         if (anyComplete) {
-            homeTabBtn.style.background = 'linear-gradient(#1a4a0a, #0a2a05)';
-            homeTabBtn.style.borderColor = '#66ff44';
-            homeTabBtn.style.color = '#99ff66';
-            homeTabBtn.style.boxShadow = '0 0 8px rgba(100,255,50,0.4)';
-            homeTabBtn.setAttribute('data-mission-complete', 'true');
-        } else if (homeTabBtn.getAttribute('data-mission-complete') === 'true') {
-            homeTabBtn.style.background = '';
-            homeTabBtn.style.borderColor = '';
-            homeTabBtn.style.color = '';
-            homeTabBtn.style.boxShadow = '';
-            homeTabBtn.removeAttribute('data-mission-complete');
+            btn.style.background = 'linear-gradient(#1a4a0a, #0a2a05)';
+            btn.style.borderColor = '#66ff44';
+            btn.style.color = '#99ff66';
+            btn.style.boxShadow = '0 0 8px rgba(100,255,50,0.4)';
+            btn.setAttribute('data-mission-complete', 'true');
+        } else if (btn.getAttribute('data-mission-complete') === 'true') {
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+            btn.style.boxShadow = '';
+            btn.removeAttribute('data-mission-complete');
         }
     }
 }
@@ -5493,19 +5487,13 @@ function openTab(name) {
     document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
     document.getElementById(name).style.display = "block";
     if (name === "world") updateWorldTab();
-    if (name === "dragons") updateDragonsTab();
-    if (name === "home") {
-        updateHomeTab();
-        // Clear mission complete highlight when user opens home tab
-        const btn = document.getElementById('tab-home-btn');
-        if (btn) {
-            btn.style.background = '';
-            btn.style.borderColor = '';
-            btn.style.color = '';
-            btn.style.boxShadow = '';
-            btn.removeAttribute('data-mission-complete');
-        }
+    if (name === "dragons") {
+        updateDragonsTab();
+        let dragBtn = document.getElementById('tab-dragons-btn');
+        if (!dragBtn) document.querySelectorAll('.tab').forEach(t => { if (t.textContent.trim() === 'Smoki') dragBtn = t; });
+        if (dragBtn) { dragBtn.style.background=''; dragBtn.style.borderColor=''; dragBtn.style.color=''; dragBtn.style.boxShadow=''; dragBtn.removeAttribute('data-mission-complete'); }
     }
+    if (name === "home") updateHomeTab();
     if (name === "work") updateWorkTab();
     if (name === "inventory") updateInventoryTabFull();
     if (name === "merchant") updateMerchantTab();
