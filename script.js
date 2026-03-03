@@ -2767,15 +2767,38 @@ function renderGuardMission() {
 
     if (gs.stage === 'found') {
         const approach = gs.approach || 'loyal';
+        const _foundLocId2 = gs.foundAtLoc || '';
+        const _loyalDescs = {
+            karczma:           'Podchodzisz do jego stolika. Unosi glowe — blady, z oczami pelnych rezygnacji. Dokumenty ma za paskiem, pod kurtka. Wyciaga je bez slowa.\n\nPatrzy na ciebie z ulga i przerażeniem jednocześnie.',
+            plac:              'Doganiasz go przy wyjściu z placu. Zatrzymuje sie — wie, ze nie ma sensu dalej biec. Zawiniątko podaje ci drżącymi rekami. W środku — rulon pergaminu.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+            port:              'Wyciągasz go z beczki. Siada na skrzynce i kaszle. Dokumenty miał za paskiem w szczelnej skórzanej tubie. Mokre od potu, ale czytelne.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+            tablica:           'Stoi bez ruchu gdy do niego podchodzisz. Dokumenty sam wyciąga i podaje — jakby czekał właśnie na ten moment.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+            handlarz_zywnosci: 'Złapałeś go przy straganie. Odwraca się powoli i wyjmuje dokumenty z wewnętrznej kieszeni. Handlarka robi krok w tył i udaje, że nic nie widzi.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+            kowal:             'Wychodzi zza stojaka z rezygnacją na twarzy. Dokumenty wyciąga z buta — zwiniety rulon, nieco zgnieciony.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+            biblioteka:        'Powoli się prostuje i podaje ci dokumenty — były ukryte między dwiema grubymi księgami, które trzymał pod pachą.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.',
+        };
+        const _indepDescs = {
+            karczma:           'Podchodzisz. Pochyla się i mówi cicho:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            plac:              'Zatrzymujesz go przy wyjściu. Odwraca się i mówi szybko:\n\n— Te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            port:              'Siada na skrzynce i łapie oddech. Mówi cicho:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            tablica:           'Stoi spokojnie i mówi wprost:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            handlarz_zywnosci: 'Zerka za siebie i szepcze:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            kowal:             'Stoi oparty o stojak i mówi spokojnie:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+            biblioteka:        'Wstaje powoli i mówi szeptem, jakby cisza biblioteki nakazywała ostrożność:\n\n— Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.',
+        };
+        const _defLoyal = 'Odnalazłeś kuriera. Żyje — blady ze strachu. Dokumenty ma przy sobie.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.';
+        const _defIndep = 'Odnalazłeś kuriera. Żyje — dokumenty ma przy sobie.\n\nSzepcze: — Nie wiem kto cię przesłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.';
         if (approach === 'loyal') {
+            const desc = _loyalDescs[_foundLocId2] || _defLoyal;
             box.innerHTML = `
-                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Odnalazłeś kuriera. Żyje — skulony w kącie gospody, blady ze strachu. Dokumenty ma przy sobie — zwinięte w rulon ukryty w bucie.\n\nPatrzy na ciebie z ulgą i przerażeniem jednocześnie.</div>
+                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">${desc}</div>
                 <div class="dialog-button" onclick="finishGuardMission('A')">Weź dokumenty i wróć do Kapitan</div>
                 <div class="dialog-button" onclick="guardReadDocs()">Zapytaj kuriera co to za dokumenty</div>
             `;
         } else {
+            const desc = _indepDescs[_foundLocId2] || _defIndep;
             box.innerHTML = `
-                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Odnalazłeś kuriera. Żyje — skulony w kącie gospody. Dokumenty ma przy sobie.\n\nSzepcze: — Nie wiem kto cię przysłał. Ale te dokumenty są niebezpieczne. Jeśli wrócą do Straży — ludzie skończą w lochu.</div>
+                <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">${desc}</div>
                 <div class="dialog-button" onclick="finishGuardMission('A')">Wróć do Kapitan z dokumentami</div>
                 <div class="dialog-button" onclick="finishGuardMission('B')">Spal dokumenty na miejscu</div>
                 <div class="dialog-button" onclick="finishGuardMission('C')">Daj dokumenty kurierowi — niech ucieka</div>
@@ -2923,6 +2946,7 @@ function attemptCourierSearch() {
         };
         const _foundMsg = _foundMsgs[_foundLocId] || 'Wypatrzyłeś go! Siedzi w kącie, osłaniając twarz kapeluszem. Oczy zdradzają strach.';
         gs.stage = 'found';
+        gs.foundAtLoc = _foundLocId;
         setGuardState(gs);
         localStorage.removeItem('courierSearchLoc');
         // Show found message then render
@@ -3344,12 +3368,81 @@ function lasQuestChooseShadow() {
     renderLasMgielQuest();
 }
 
+function hasAnyHatchedDragon() {
+    const h1 = Number(localStorage.getItem('eggHeats')) || 0;
+    const h2 = Number(localStorage.getItem('secondEggHeats')) || 0;
+    const h3 = Number(localStorage.getItem('thirdEggHeats')) || 0;
+    return h1 >= 3 || h2 >= 3 || h3 >= 3;
+}
+
+function getHatchedDragonElements() {
+    // Returns array of element strings for all hatched dragons
+    const result = [];
+    const h1 = Number(localStorage.getItem('eggHeats')) || 0;
+    if (h1 >= 3) result.push(localStorage.getItem('dragon1Element') || 'ogien');
+    const h2 = Number(localStorage.getItem('secondEggHeats')) || 0;
+    if (h2 >= 3) result.push(localStorage.getItem('dragon2Element') || '');
+    const h3 = Number(localStorage.getItem('thirdEggHeats')) || 0;
+    if (h3 >= 3) result.push(localStorage.getItem('dragon3Element') || '');
+    return result.filter(Boolean);
+}
+
 function lasQuestMarkLightVisit(place) {
     const qs = getLasQuestState();
     if (qs.stage !== 'stage4_light') return;
     qs[place] = true;
     setLasQuestState(qs);
+
+    // Show alliance narration in location-action-area
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    const elements = getHatchedDragonElements();
+    const primaryEl = elements[0] || 'ogien';
+
+    if (place === 'visitedLake') {
+        // Alliance with Jezioro Snu — varies by dragon element
+        const lakeNarrations = {
+            ogien: `Twój smok zbliża się do brzegu ostrożnie — ogień i woda nie lubią się z natury. Ale tu jest inaczej. Kiedy smok dotyka nozdrza powierzchni jeziora, woda nie ucieka. Nie paruje. Zamiast tego delikatnie unosi się i opada — jakby oddychała.\n\nZ głębi wydobywa się ciepłe, niebieskie światło. Smok prychnie, cofa łeb — a potem znowu się pochyla, tym razem bez lęku.\n\nJezioro cię zaakceptowało.`,
+            woda: `Twój smok wchodzi w jezioro bez wahania, jakby wracał do domu. Woda przyjmuje go jak część siebie — kręgi idą na zewnątrz od każdego jego kroku. Z głębi wznosi się powolny, harmonijny puls, który smok powtarza własnym oddechem.\n\nPrzez chwilę — człowiek, smok i jezioro — oddychacie razem.`,
+            ziemia: `Smok siada przy brzegu ciężko i wpatruje się w ciemną powierzchnię jeziora. Długo. Woda jest nieruchoma. On też.\n\nPotem — z samego dna — wzrasta coś jak echo. Jakby ziemia pod jeziorem odpowiedziała na obecność smoka. Kamyczki przy brzegu drżą lekko.\n\nJezioro Snu pamięta kamień. Pamięta teraz i ciebie.`,
+            powietrze: `Smok krąży nad jeziorem, a skrzydła muskają powierzchnię wody — niemal, lecz nie dotykają. Woda reaguje na każdy ruch skrzydeł, formując małe fale, które wyglądają jak litery nieznanego języka.\n\nPotem smok siada przy brzegu i składa skrzydła. Woda uspokaja się. Sojusz zawarty.`,
+            swiatlo: `Gdy smok podchodzi, jezioro rozbłyska od środka — jakby pod powierzchnią ktoś zapalił tysiąc świec. Ciemna woda staje się na chwilę przezroczysta. Widać dno. Widać coś jeszcze — coś, co porusza się w głębi i patrzy.\n\nSmok pochyla głowę. Błysk gaśnie. Jezioro zapamięta.`,
+            cien: `Smok nie podchodzi do brzegu — zatrzymuje się w cieniu drzew i patrzy. Jezioro jakby to czuje — na powierzchni pojawiają się kręgi bez żadnej przyczyny, odpowiadając na obecność smoka.\n\nZ wody dobiegają szepczące dźwięki, których nie możesz rozróżnić. Smok je słyszy. Odwraca się do ciebie i kiwa głową powoli.\n\nSojusz zawarty — po cichu, jak wszystko co dotyczy cienia.`,
+        };
+        const narration = lakeNarrations[primaryEl] || lakeNarrations['ogien'];
+        box.innerHTML = `
+            <div style="padding:14px; background:rgba(10,20,50,0.75); border-left:3px solid #44aaff; border-radius:8px; color:#c0d8ff; line-height:1.8; margin-bottom:14px; white-space:pre-line; font-style:italic;">
+                💧 <b style="font-style:normal; color:#88ccff;">Sojusz z Jeziorem Snu</b><br><br>${narration}
+            </div>
+            <div style="padding:8px 14px; background:rgba(10,30,20,0.6); border-left:3px solid #44ff88; border-radius:6px; color:#66ff88; font-size:13px; margin-bottom:12px;">
+                ✅ Jezioro Snu dołącza do sojuszu Serca Lasu.
+            </div>
+            <div class="dialog-button" onclick="openLocation('las','jezioro_snu')">Wróć do jeziora</div>
+        `;
+    } else if (place === 'visitedNest') {
+        // Alliance with Leśny Strażnik — varies by dragon element
+        const nestNarrations = {
+            ogien: `Leśny Strażnik siada na najwyższej gałęzi i patrzy w dół na twojego smoka. Twój smok patrzy w górę. Żadne z nich się nie rusza.\n\nPotem smok wydaje niski, spokojny dźwięk — coś między mruczeniem a pomrukiem. Strażnik prostuje się. Przez długą chwilę trwa między nimi milcząca rozmowa w języku, którego nie znasz.\n\nW końcu Strażnik opuszcza skrzydła o kilka centymetrów. To wystarczy — wiesz, że cię zaakceptował.`,
+            woda: `Leśny Strażnik wita twojego smoka wodnego z rezerwą — ale bez wrogości. Siada na niskiej gałęzi i przygląda się uważnie.\n\nSmok nurkuje ogonem w pobliskim strumieniu i tryska wodą w górę — delikatna fontanna. Strażnik chwyci kilka kropelek dziobem. Potrząsa głową z czymś w rodzaju zaskoczenia.\n\nZdecydował.`,
+            ziemia: `Leśny Strażnik zlatuje nisko — tak nisko, że niemal dotyka ziemi. Twój smok pochyla głowę, a ziemia pod jego nogami lekko drżeje.\n\nStrażnik spaceruje wokół smoka raz, potem drugi raz. Zatrzymuje się naprzeciwko niego i patrzy. Długo.\n\nW końcu — bez żadnego dźwięku — odlatuje na swoje gniazdo i siada tam plecami do was. To znak, że wam ufa.`,
+            powietrze: `Leśny Strażnik spada z gniazda i leci w kierunku twojego smoka z rozpostartymi skrzydłami — nie agresywnie, tylko... sprawdzająco.\n\nSmok odpowiada własnym rozpostarciem skrzydeł. Oboje zawisają w miejscu przez chwilę, skrzydło przy skrzydle, wiatr między nimi.\n\nPotem Strażnik zawraca i wraca na gałąź. Wiesz, że to koniec testu i że go zdałeś.`,
+            swiatlo: `Gdy twój smok zbliża się do gniazda, Leśny Strażnik wybucha krótkim, przenikliwym krzykiem. Ale nie odlatuje.\n\nSmok świetlisty siedzi spokojnie. Z jego skóry sączy się delikatny blask. Strażnik nachyla głowę — raz, drugi — jakby chciał zobaczyć źródło światła.\n\nPotem milknie. I siedzi razem z wami w ciszy, która nie jest już wrogością.`,
+            cien: `Leśny Strażnik znika z gałęzi gdy tylko twój smok się zbliża. Widzisz go potem — wysoko, między koronami, obserwujący.\n\nTwój smok nie próbuje go przywołać. Siada pod drzewem i czeka.\n\nPo długiej chwili Strażnik zlatuje cicho i siada kilka metrów od smoka. Razem patrzą w las. To wystarczy.`,
+        };
+        const narration = nestNarrations[primaryEl] || nestNarrations['ogien'];
+        box.innerHTML = `
+            <div style="padding:14px; background:rgba(10,30,10,0.75); border-left:3px solid #66cc44; border-radius:8px; color:#c0e0a0; line-height:1.8; margin-bottom:14px; white-space:pre-line; font-style:italic;">
+                🦅 <b style="font-style:normal; color:#aaff66;">Sojusz z Leśnym Strażnikiem</b><br><br>${narration}
+            </div>
+            <div style="padding:8px 14px; background:rgba(10,30,20,0.6); border-left:3px solid #44ff88; border-radius:6px; color:#66ff88; font-size:13px; margin-bottom:12px;">
+                ✅ Leśny Strażnik dołącza do sojuszu Serca Lasu.
+            </div>
+            <div class="dialog-button" onclick="openLocation('las','gniazdo_straznika')">Wróć do gniazda</div>
+        `;
+    }
 }
+
 
 function lasQuestShadowDone() {
     const qs = getLasQuestState();
@@ -3459,44 +3552,9 @@ function getLasQuestInjection(locationId) {
         };
     }
 
-    /* Jezioro Snu — gdy etap 4 Droga Światła */
-    if (locationId === 'jezioro_snu' && stage === 'stage4_light') {
-        const visited = qs.visitedLake || false;
-        if (!visited) {
-            return {
-                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,20,50,0.7);border-left:3px solid #44aaff;border-radius:6px;color:#88ccff;font-style:italic;font-size:13px;">
-                    ☀️ <b>Quest:</b> Serce Lasu prosi cię o kontakt z Jeziorem Snu.
-                </div>`,
-                questActions: [{ label: '💧 Nawiąż kontakt z Jeziorem (Quest)', onclick: "lasQuestMarkLightVisit('visitedLake'); openLocation('las','jezioro_snu');" }]
-            };
-        } else {
-            return {
-                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid #44ff88;border-radius:6px;color:#66ff88;font-size:13px;">
-                    ✅ Sojusz z Jeziorem Snu nawiązany.
-                </div>`,
-                questActions: []
-            };
-        }
-    }
-
-    /* Gniazdo Strażnika — gdy etap 4 Droga Światła */
-    if (locationId === 'gniazdo_straznika' && stage === 'stage4_light') {
-        const visited = qs.visitedNest || false;
-        if (!visited) {
-            return {
-                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,20,50,0.7);border-left:3px solid #44aaff;border-radius:6px;color:#88ccff;font-style:italic;font-size:13px;">
-                    ☀️ <b>Quest:</b> Leśny Strażnik to kluczowy sojusznik.
-                </div>`,
-                questActions: [{ label: '🦅 Nawiąż kontakt ze Strażnikiem (Quest)', onclick: "lasQuestMarkLightVisit('visitedNest'); openLocation('las','gniazdo_straznika');" }]
-            };
-        } else {
-            return {
-                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid #44ff88;border-radius:6px;color:#66ff88;font-size:13px;">
-                    ✅ Sojusz ze Strażnikiem Lasu nawiązany.
-                </div>`,
-                questActions: []
-            };
-        }
+    /* Jezioro Snu i Gniazdo Strażnika — sojusze obsługiwane przez getDynamicLocationData */
+    if (locationId === 'jezioro_snu' || locationId === 'gniazdo_straznika') {
+        return { extra: '', questActions: [] };
     }
 
     /* Serce Lasu — główny hub questowy, etapy 3-5 */
@@ -4820,14 +4878,24 @@ function getDynamicLocationData(regionKey, locationId) {
                 };
             }
             if (lasStage === 'stage4_light') {
+                const allianceDone = lasQS.visitedLake;
                 return {
-                    desc: `Jezioro Snu leży ciche w zagłębieniu lasu. Ale dziś jest coś innego — na powierzchni wody pojawiają się i znikają delikatne kręgi, choć nic jej nie dotyka.\n\nCzujesz, że Serce Lasu chce żebyś tu był. To nie przypadek, że tu trafiłeś.`,
-                    actions: [
-                        { label: '💧 Nawiąż kontakt z jeziorem (Quest)', action: 'drinkLake' },
-                        { label: 'Posiedź w ciszy', action: 'sitLake' },
-                        { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
-                        ...BACK
-                    ]
+                    desc: allianceDone
+                        ? `Jezioro Snu lśni spokojnie. Woda przyjmuje cię jak kogoś znajomego — sojusz jest zawarty i czujesz to.`
+                        : `Jezioro Snu leży ciche w zagłębieniu lasu. Ale dziś jest coś innego — na powierzchni wody pojawiają się i znikają delikatne kręgi, choć nic jej nie dotyka.\n\nCzujesz, że Serce Lasu chce żebyś tu był. To nie przypadek, że tu trafiłeś.`,
+                    actions: allianceDone
+                        ? [
+                            { label: 'Napij się wody', action: 'drinkLake' },
+                            { label: 'Posiedź w ciszy', action: 'sitLake' },
+                            { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
+                            ...BACK
+                          ]
+                        : [
+                            { label: '💧 Nawiąż sojusz z jeziorem (Quest)', action: 'allianceLake' },
+                            { label: 'Posiedź w ciszy', action: 'sitLake' },
+                            { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
+                            ...BACK
+                          ]
                 };
             }
         }
@@ -4928,6 +4996,27 @@ function getDynamicLocationData(regionKey, locationId) {
                         { label: 'Zbierz pióro', action: 'climbTree' },
                         ...BACK
                     ]
+                };
+            }
+            if (lasStage === 'stage4_light') {
+                const allianceDone = lasQS.visitedNest;
+                return {
+                    desc: allianceDone
+                        ? `Gniazdo Strażnika jest spokojne. Leśny Strażnik rozpoznaje twojego smoka i ciebie — sojusz jest zawarty.`
+                        : `Odgłos skrzydeł w koronach jest bliższy niż zwykle. Coś czeka. Serce Lasu wskazało ci to miejsce — Leśny Strażnik może być kluczowym sojusznikiem.`,
+                    actions: allianceDone
+                        ? [
+                            { label: 'Obserwuj Strażnika', action: 'observeNest' },
+                            { label: 'Zostaw pożywienie', action: 'climbTree' },
+                            { label: 'Odejdź spokojnie', action: 'sneakAway' },
+                            ...BACK
+                          ]
+                        : [
+                            { label: '🦅 Nawiąż sojusz ze Strażnikiem (Quest)', action: 'allianceNest' },
+                            { label: 'Zostań w miejscu i obserwuj', action: 'observeNest' },
+                            { label: 'Odejdź cicho', action: 'sneakAway' },
+                            ...BACK
+                          ]
                 };
             }
             if (lasStage !== 'none' && lasStage !== 'offered') {
@@ -5377,12 +5466,34 @@ const locationResponses = {
 
     // LAS - QUEST START
     startLasMgielQuest: () => {
+        if (!hasAnyHatchedDragon()) {
+            const box = document.getElementById('location-action-area');
+            if (box) box.innerHTML = `
+                <div style="padding:12px 16px; background:rgba(20,30,15,0.7); border-left:3px solid #446633; border-radius:6px; color:#99aa88; line-height:1.8; font-style:italic; margin-bottom:10px;">
+                    Leśniczka patrzy na ciebie przez chwilę, potem na twoje ręce — puste.<br><br>
+                    — Widzę, że chcesz pomóc — mówi powoli. — Ale las nie słucha samych ludzi. Potrzeba czegoś więcej — kogoś, kto rozumie zarówno żywioł jak i dziką naturę. Wróć, gdy będziesz miał smoka.
+                </div>
+                <div class="dialog-button" style="border-color:#446633;color:#88aa66;" onclick="openRegion('las')">← Zawróć</div>
+            `;
+            return null;
+        }
         const stage = lasQuestStage();
         if (stage === 'none') {
             lasQuestTrigger();
         } else {
             renderLasMgielQuest();
         }
+        return null;
+    },
+
+    // LAS - SOJUSZE STAGE4
+    performLakeAlliance: () => {
+        lasQuestMarkLightVisit('visitedLake');
+        return null;
+    },
+
+    performNestAlliance: () => {
+        lasQuestMarkLightVisit('visitedNest');
         return null;
     },
 
@@ -5421,6 +5532,14 @@ const locationResponses = {
             "Kamień znika przed dotknięciem wody. Nie słyszysz plusku."
         ];
         return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+    allianceLake: () => {
+        lasQuestMarkLightVisit('visitedLake');
+        return null;
+    },
+    allianceNest: () => {
+        lasQuestMarkLightVisit('visitedNest');
+        return null;
     },
     sitLake: () => "Siedzisz przy brzegu przez długi czas. Woda jest nieruchoma. Niebieski kwiat obok ciebie otwiera się, choć słońca prawie nie ma. Czujesz się spokojniejszy — i trochę nieswojo z tym spokojem.",
     pickFlowers: () => {
@@ -5623,7 +5742,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest', 'performLakeAlliance', 'performNestAlliance', 'allianceLake', 'allianceNest'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
