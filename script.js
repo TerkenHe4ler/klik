@@ -3043,6 +3043,448 @@ function joinSzpiegowanie() {
 }
 
 
+/* ==============================================
+   QUEST: SERCE LASU MGIEŁ
+   5 etapów, rozgałęzienie od etapu 3 (Droga Światła / Droga Cienia)
+================================================ */
+
+const LAS_QUEST_KEY = 'lasMgielQuest';
+
+function getLasQuestState() {
+    const s = localStorage.getItem(LAS_QUEST_KEY);
+    return s ? JSON.parse(s) : { stage: 'none' };
+}
+function setLasQuestState(obj) {
+    localStorage.setItem(LAS_QUEST_KEY, JSON.stringify(obj));
+}
+function isLasQuestActive() {
+    const s = getLasQuestState().stage;
+    return s !== 'none' && !s.startsWith('done_');
+}
+function lasQuestStage() {
+    return getLasQuestState().stage;
+}
+
+/* ── Główna funkcja renderująca quest ──────────────── */
+function renderLasMgielQuest() {
+    const qs = getLasQuestState();
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    /* ETAP 1 — Leśniczka proponuje quest */
+    if (qs.stage === 'offered') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(10,30,20,0.85);border:2px solid #44aa66;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#66ff88;margin-bottom:10px;">📜 Etap 1 z 5 — Cień nad Lasem</div>
+            <div style="color:#a0e0b0;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Leśniczka odkłada cerowanie i patrzy na ciebie poważnie.<br><br>
+                — Od tygodnia coś jest nie tak. Polana milknie, ptaki uciekają, a w nocy przy Ruinach Świątyni pali się fioletowe światło. Bałam się sama sprawdzać. Ale ktoś musi — i widzę, że ty masz smoka. To coś znaczy.<br><br>
+                Czy zajrzysz do Ruin i powiesz mi co tam się dzieje?
+            </div>
+            <div class="dialog-button" style="border-color:#44aa66;color:#66ff88;" onclick="lasQuestAccept()">✅ Zgadzam się — idę sprawdzić Ruiny</div>
+            <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Nie teraz</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 2 — Badanie Ruin */
+    if (qs.stage === 'stage2') {
+        const foundClue = qs.foundClue || false;
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(10,20,45,0.85);border:2px solid #6688cc;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#88aaff;margin-bottom:10px;">🔍 Etap 2 z 5 — Tajemnica Ruin</div>
+            <div style="color:#a0b4e0;line-height:1.8;font-style:italic;margin-bottom:12px;">
+                Mgła jest tu gęstsza niż zwykle — niemal dotykalna. Na ołtarzu dostrzegasz coś, czego wcześniej nie było: mały, ciemny kamień otoczony kręgiem popiołu.<br><br>
+                Kamień drga lekko. W powietrzu unosi się zapach spalonej żywicy i czegoś starszego — jak ziemia po deszczu, tylko głębiej.
+            </div>
+            ${foundClue ? `
+            <div style="padding:8px 12px;background:rgba(20,40,80,0.7);border-left:3px solid #6688cc;border-radius:6px;color:#a0c0ff;font-size:13px;margin-bottom:10px;font-style:italic;">
+                🔎 Trop odnaleziony: Ślady butów prowadzą regularnie do ołtarza. Ktoś tu wraca. Kamień czeka.
+            </div>` : ''}
+            <div class="dialog-button" style="border-color:#6688cc;color:#88aaff;" onclick="lasQuestExamineArtifact()">🔮 Połóż dłoń na kamieniu</div>
+            ${!foundClue ? `<div class="dialog-button" style="border-color:#6688cc;color:#88aaff;margin-top:6px;" onclick="lasQuestSearchArea()">🔎 Przeszukaj okolice ołtarza</div>` : ''}
+            <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Wróć do Lasu</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 3 — Punkt wyboru */
+    if (qs.stage === 'stage3_choice') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(20,10,40,0.9);border:2px solid #9944cc;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#cc88ff;margin-bottom:10px;">⚠️ Etap 3 z 5 — Głos z Serca Lasu</div>
+            <div style="color:#c0a0e8;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Gdy twoje palce dotknęły kamienia — wszystko zamarło. Mgła cofnęła się w sekundę. Kamień rozbłysnął fioletowym światłem i usłyszałeś głos, jakby szeptany z głębi korzeni:<br><br>
+                <em style="color:#e0c8ff;">— Hodowco smoków. Znalazłeś Serce Lasu. Ostatni opiekun zginął sto lat temu i las zaczął chorować. Możesz go uleczyć — albo pochłonąć jego moc dla siebie.</em><br><br>
+                Kamień czeka na decyzję. Obie drogi mają swoją cenę.
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+                <div class="dialog-button" style="flex:1;min-width:200px;border-color:#44aaff;color:#88ccff;text-align:center;padding:14px;" onclick="lasQuestChooseLight()">
+                    ☀️ <b>Droga Światła</b><br>
+                    <span style="font-size:12px;color:#6699cc;display:block;margin-top:4px;">Przywróć las do równowagi.<br>Zostań jego opiekunem.</span>
+                </div>
+                <div class="dialog-button" style="flex:1;min-width:200px;border-color:#9944cc;color:#cc88ff;text-align:center;padding:14px;" onclick="lasQuestChooseShadow()">
+                    🌑 <b>Droga Cienia</b><br>
+                    <span style="font-size:12px;color:#9966cc;display:block;margin-top:4px;">Pochłoń moc Serca.<br>Las stanie się twoim narzędziem.</span>
+                </div>
+            </div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 4 — Droga Światła */
+    if (qs.stage === 'stage4_light') {
+        const vL = qs.visitedLake || false;
+        const vN = qs.visitedNest || false;
+        const allDone = vL && vN;
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(10,25,45,0.9);border:2px solid #44aaff;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#88ccff;margin-bottom:10px;">☀️ Etap 4 z 5 — Sojusznicy Lasu</div>
+            <div style="color:#90b8e0;line-height:1.8;font-style:italic;margin-bottom:12px;">
+                Głos z kamienia szepcze:<br>
+                <em style="color:#aad4ff;">— By uleczyć las, musisz zebrać sojuszników. Odwiedź Jezioro Snu i nawiąż kontakt z Leśnym Strażnikiem przy jego Gnieździe. Dopiero wtedy wróć tutaj.</em>
+            </div>
+            <div style="padding:10px 12px;background:rgba(10,20,40,0.6);border-radius:8px;margin-bottom:12px;font-size:13px;line-height:2.0;">
+                <span style="${vL ? 'color:#66ff88;' : 'color:#5060a0;'}">${vL ? '✅' : '⬜'} Jezioro Snu — ${vL ? '<b>odwiedzono</b>' : 'wymagana wizyta'}</span><br>
+                <span style="${vN ? 'color:#66ff88;' : 'color:#5060a0;'}">${vN ? '✅' : '⬜'} Gniazdo Leśnego Strażnika — ${vN ? '<b>odwiedzono</b>' : 'wymagana wizyta'}</span>
+            </div>
+            ${allDone
+                ? `<div class="dialog-button" style="border-color:#44aaff;color:#88ccff;" onclick="lasQuestLightReady()">🌿 Wróć do Serca Lasu z sojusznikami</div>`
+                : `<div class="dialog-button" style="opacity:0.45;border-color:#334;color:#556;pointer-events:none;cursor:default;">Odwiedź najpierw oba miejsca...</div>`
+            }
+            <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Las Mgieł</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 4 — Droga Cienia */
+    if (qs.stage === 'stage4_shadow') {
+        const shadowEnd = qs.shadowEndTime || 0;
+        const now = Date.now();
+        const rem = shadowEnd - now;
+
+        if (rem > 0) {
+            const mm = Math.floor(rem / 60000);
+            const ss = Math.floor((rem % 60000) / 1000);
+            box.innerHTML = `
+            <div style="padding:14px;background:rgba(20,5,35,0.95);border:2px solid #9944cc;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+                <div style="font-size:16px;font-weight:bold;color:#cc88ff;margin-bottom:10px;">🌑 Etap 4 z 5 — Pochłanianie Serca</div>
+                <div style="color:#a080c8;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                    Kamień pulsuje w twoich dłoniach. Ciemność wsącza się przez palce jak atrament — zimna, stara, głodna.<br>
+                    <em style="color:#cc99ff;">Musisz wytrzymać i nie puścić. Nie zamykaj oczu.</em>
+                </div>
+                <div style="font-size:36px;font-weight:bold;color:#aa66ff;text-align:center;font-variant-numeric:tabular-nums;" id="las-shadow-countdown">${mm}:${ss.toString().padStart(2,'0')}</div>
+                <div style="color:#6050a0;font-size:12px;text-align:center;margin-top:6px;">pozostały czas pochłaniania</div>
+            </div>`;
+            const tick = () => {
+                const el = document.getElementById('las-shadow-countdown');
+                if (!el) return;
+                const r = (getLasQuestState().shadowEndTime || 0) - Date.now();
+                if (r <= 0) { lasQuestShadowDone(); return; }
+                const m2 = Math.floor(r / 60000), s2 = Math.floor((r % 60000) / 1000);
+                el.textContent = m2 + ':' + s2.toString().padStart(2,'0');
+                setTimeout(tick, 1000);
+            };
+            setTimeout(tick, 400);
+        } else {
+            box.innerHTML = `
+            <div style="padding:14px;background:rgba(20,5,35,0.95);border:2px solid #cc44aa;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+                <div style="font-size:16px;font-weight:bold;color:#ff88cc;margin-bottom:10px;">🌑 Etap 4 z 5 — Moc pochłoniętą</div>
+                <div style="color:#e0a0c0;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                    Pochłanianie dobiegło końca. Serce Lasu bije teraz innym rytmem — twoim. Ciemność jest zimna, ale posłuszna.<br><br>
+                    Zostaje jeszcze jedno: Leśny Strażnik wyczuł zmianę. Leci tutaj.
+                </div>
+                <div class="dialog-button" style="border-color:#cc44aa;color:#ff88cc;" onclick="lasQuestShadowReadyConfirm()">💀 Staw czoła Leśnemu Strażnikowi</div>
+                <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Wycofaj się tymczasowo</div>
+            </div>`;
+        }
+        return;
+    }
+
+    /* ETAP 5 — Droga Światła: Rytuał */
+    if (qs.stage === 'stage5_light') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(10,30,30,0.9);border:2px solid #66ccaa;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#88ffcc;margin-bottom:10px;">☀️ Etap 5 z 5 — Rytuał Odnowienia</div>
+            <div style="color:#a0e4cc;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Wracasz do Serca Lasu. Kamień jarzy się miękkim, zielonym blaskiem gdy wkraczasz między kolumny. Leśny Strażnik — ogromny ptak o złotych oczach — siada cicho na ołtarzu, jakby na ciebie czekał.<br><br>
+                Głos szepcze spokojnie:<br>
+                <em style="color:#aaffdd;">— Gotowy? Połóż dłonie na Sercu. To nie jest bitwa. To przymierze.</em>
+            </div>
+            <div class="dialog-button" style="border-color:#66ccaa;color:#88ffcc;" onclick="lasQuestLightEnding()">🌿 Zawrzyj przymierze z Lasem</div>
+            <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Jeszcze nie teraz</div>
+        </div>`;
+        return;
+    }
+
+    /* ETAP 5 — Droga Cienia: Konfrontacja */
+    if (qs.stage === 'stage5_shadow') {
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(25,5,30,0.97);border:2px solid #dd2266;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+            <div style="font-size:16px;font-weight:bold;color:#ff6699;margin-bottom:10px;">🌑 Etap 5 z 5 — Konfrontacja ze Strażnikiem</div>
+            <div style="color:#e0a0b8;line-height:1.8;font-style:italic;margin-bottom:14px;">
+                Leśny Strażnik spada z nieba jak złoty grom. Skrzydła rozpostarte, oczy czerwone z gniewu i bólu.<br><br>
+                — Zdradziłeś las — mówi głosem, który drży korony drzew. — Oddaj Serce albo walcz.<br><br>
+                Czujesz moc w dłoniach. Zimną. Gotową.
+            </div>
+            <div class="dialog-button" style="border-color:#dd2266;color:#ff6699;" onclick="lasQuestShadowEnding()">⚔️ Walcz ze Strażnikiem Lasu</div>
+            <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Ucieknij (możesz wrócić)</div>
+        </div>`;
+        return;
+    }
+
+    /* ZAKOŃCZENIE — Droga Światła */
+    if (qs.stage === 'done_light') {
+        box.innerHTML = `
+        <div style="padding:16px;background:rgba(10,35,20,0.9);border:2px solid #44ff88;border-radius:10px;text-align:center;animation:worldFadeIn 0.4s;">
+            <div style="font-size:19px;font-weight:bold;color:#66ff88;margin-bottom:10px;">✅ Quest Ukończony — Droga Światła</div>
+            <div style="color:#a0e8b8;font-style:italic;margin-bottom:12px;line-height:1.8;">
+                Las Mgieł żyje. Serce zostało uzdrowione.<br>
+                Leśniczka kłania ci się z głębokim szacunkiem, a Strażnik krąży spokojnie nad koronami drzew — strzeże was oboje.<br><br>
+                <em style="color:#88ffaa;">Las pamięta opiekunów. Twoje imię jest teraz wpisane w korzenie.</em>
+            </div>
+            <div style="font-size:20px;color:#ffcc44;margin:10px 0;font-weight:bold;">+3 złoto &nbsp;|&nbsp; 🌿 Amulet Lasu</div>
+            <div class="dialog-button" style="margin-top:10px;" onclick="openRegion('las')">← Wróć do Lasu Mgieł</div>
+        </div>`;
+        return;
+    }
+
+    /* ZAKOŃCZENIE — Droga Cienia */
+    if (qs.stage === 'done_shadow') {
+        box.innerHTML = `
+        <div style="padding:16px;background:rgba(20,5,30,0.95);border:2px solid #9900cc;border-radius:10px;text-align:center;animation:worldFadeIn 0.4s;">
+            <div style="font-size:19px;font-weight:bold;color:#cc66ff;margin-bottom:10px;">⚫ Quest Ukończony — Droga Cienia</div>
+            <div style="color:#c090e0;font-style:italic;margin-bottom:12px;line-height:1.8;">
+                Strażnik leży pokonany. Las jest cichy — inaczej niż wcześniej.<br>
+                Cichy jak grób, nie jak spokój.<br><br>
+                <em style="color:#aa66ff;">Serce Lasu bije teraz w rytm twojego serca. To ma swoją cenę — ale cena zawsze przychodzi później.</em>
+            </div>
+            <div style="font-size:20px;color:#aa66ff;margin:10px 0;font-weight:bold;">+5 złoto &nbsp;|&nbsp; 🌑 Kamień Cienia</div>
+            <div class="dialog-button" style="margin-top:10px;border-color:#9900cc;color:#cc66ff;" onclick="openRegion('las')">← Wróć do Lasu Mgieł</div>
+        </div>`;
+        return;
+    }
+}
+
+/* ── Funkcje przejść między etapami ────────────────────── */
+
+function lasQuestTrigger() {
+    /* Wywołane z Siedziby Leśnika — pokazuje etap 1 */
+    setLasQuestState({ stage: 'offered' });
+    renderLasMgielQuest();
+}
+
+function lasQuestAccept() {
+    setLasQuestState({ stage: 'stage2' });
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    box.innerHTML = `
+        <div style="padding:12px;background:rgba(10,35,20,0.75);border-left:3px solid #44aa66;border-radius:6px;color:#88ffaa;margin-bottom:12px;line-height:1.7;font-style:italic;">
+            Leśniczka kiwa głową z ulgą i podaje ci suchy kawałek ziół.<br>
+            — Dziękuję. Idź do Ruin Leśnej Świątyni — to na wschód od polany. I uważaj na mgłę przy ołtarzu.
+        </div>
+        <div class="dialog-button" onclick="openLocation('las','ruiny_swiatyni')">→ Idź do Ruin Leśnej Świątyni</div>
+        <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Las Mgieł</div>`;
+}
+
+function lasQuestSearchArea() {
+    const qs = getLasQuestState();
+    qs.foundClue = true;
+    setLasQuestState(qs);
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    box.innerHTML = `
+        <div style="padding:12px;background:rgba(10,20,45,0.75);border-left:3px solid #6688cc;border-radius:6px;color:#a0b8f0;margin-bottom:12px;line-height:1.7;font-style:italic;">
+            Przeszukujesz ruiny metodycznie. Między kamieniami znajdziesz coś dziwnego — ślady butów, świeże, regularne. Ktoś tu wraca codziennie. Wszystkie tropy prowadzą do ołtarza.
+        </div>
+        <div class="dialog-button" style="border-color:#6688cc;color:#88aaff;" onclick="lasQuestExamineArtifact()">🔮 Połóż dłoń na kamieniu na ołtarzu</div>`;
+}
+
+function lasQuestExamineArtifact() {
+    setLasQuestState({ stage: 'stage3_choice' });
+    renderLasMgielQuest();
+}
+
+function lasQuestChooseLight() {
+    setLasQuestState({ stage: 'stage4_light', visitedLake: false, visitedNest: false });
+    const box = document.getElementById('location-action-area');
+    if (!box) { return; }
+    box.innerHTML = `
+        <div style="padding:12px;background:rgba(10,25,40,0.8);border-left:3px solid #44aaff;border-radius:6px;color:#a0c8f0;margin-bottom:12px;line-height:1.7;font-style:italic;">
+            Kamień pulsuje ciepłym, błękitnym blaskiem. Głos mówi spokojnie:<br>
+            <em style="color:#88ccff;">— Mądrze. Odwiedź Jezioro Snu i Gniazdo Leśnego Strażnika. Gdy wrócisz — rytuał będzie gotowy.</em>
+        </div>
+        <div class="dialog-button" onclick="openRegion('las')">→ Szukaj sojuszników w Lesie</div>`;
+}
+
+function lasQuestChooseShadow() {
+    setLasQuestState({ stage: 'stage4_shadow', shadowEndTime: Date.now() + 3 * 60 * 1000 });
+    renderLasMgielQuest();
+}
+
+function lasQuestMarkLightVisit(place) {
+    const qs = getLasQuestState();
+    if (qs.stage !== 'stage4_light') return;
+    qs[place] = true;
+    setLasQuestState(qs);
+}
+
+function lasQuestShadowDone() {
+    const qs = getLasQuestState();
+    if (qs.stage !== 'stage4_shadow') return;
+    qs.stage = 'stage5_shadow';
+    setLasQuestState(qs);
+    renderLasMgielQuest();
+}
+
+function lasQuestShadowReadyConfirm() {
+    const qs = getLasQuestState();
+    qs.stage = 'stage5_shadow';
+    setLasQuestState(qs);
+    renderLasMgielQuest();
+}
+
+function lasQuestLightReady() {
+    const qs = getLasQuestState();
+    qs.stage = 'stage5_light';
+    setLasQuestState(qs);
+    renderLasMgielQuest();
+}
+
+function lasQuestLightEnding() {
+    adjustCurrency('gold', 3);
+    inventory['Amulet Lasu'] = (inventory['Amulet Lasu'] || 0) + 1;
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    updateInventoryTabFull();
+    updateCurrencyDisplay();
+    setLasQuestState({ stage: 'done_light' });
+    renderLasMgielQuest();
+}
+
+function lasQuestShadowEnding() {
+    const stats = loadDragonStats(1);
+    const power = (stats.sila || 5) + (stats.sila_woli || 5) + (stats.szczescie || 5);
+    const win = power >= 18 || Math.random() > 0.35;
+
+    if (win) {
+        adjustCurrency('gold', 5);
+        inventory['Kamień Cienia'] = (inventory['Kamień Cienia'] || 0) + 1;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+        updateInventoryTabFull();
+        updateCurrencyDisplay();
+        setLasQuestState({ stage: 'done_shadow' });
+        renderLasMgielQuest();
+    } else {
+        const box = document.getElementById('location-action-area');
+        if (!box) return;
+        if (canAfford(costToCopper(0, 5, 0))) spendCurrency(costToCopper(0, 5, 0));
+        box.innerHTML = `
+        <div style="padding:14px;background:rgba(40,5,20,0.9);border:2px solid #cc2244;border-radius:8px;color:#ff8899;line-height:1.8;margin-bottom:12px;">
+            <b style="color:#ff4466;font-size:15px;">💀 Za słaby na Strażnika</b><br><br>
+            Moc, którą pochłonąłeś, okazała się niewystarczająca. Strażnik zepchnął cię z lasu siłą, od której drżą drzewa.<br>
+            Straciłeś 5 srebrnych monet rozsypanych w ucieczce.<br><br>
+            <em>Rozwiń smoka i spróbuj ponownie gdy będziesz silniejszy.</em>
+        </div>
+        <div class="dialog-button" style="border-color:#dd2266;color:#ff6699;" onclick="lasQuestShadowReadyConfirm()">🔄 Spróbuj ponownie</div>
+        <div class="dialog-button" style="border-color:#556;color:#889;margin-top:6px;" onclick="openRegion('las')">← Wycofaj się</div>`;
+    }
+}
+
+/* ── Dodatkowa zawartość questowa wstrzykiwana w lokacje ─── */
+function getLasQuestInjection(locationId) {
+    const qs = getLasQuestState();
+    const stage = qs.stage;
+    if (stage === 'none') return { extra: '', questActions: [] };
+
+    /* Siedziba Leśnika — pokaż quest jeśli aktywny (ale nie done) */
+    if (locationId === 'siedziba') {
+        if (stage === 'done_light' || stage === 'done_shadow') {
+            const color = stage === 'done_light' ? '#66ff88' : '#cc66ff';
+            const icon  = stage === 'done_light' ? '🌿' : '🌑';
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid ${color};border-radius:6px;color:${color};font-style:italic;font-size:13px;">
+                    ${icon} Quest zakończony. Leśniczka patrzy na ciebie inaczej niż wcześniej.
+                </div>`,
+                questActions: []
+            };
+        }
+        if (stage === 'offered') {
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.65);border-left:3px solid #44aa66;border-radius:6px;color:#88ffaa;font-style:italic;font-size:13px;">
+                    📜 Leśniczka czeka na twoją odpowiedź w sprawie niepokoju w lesie.
+                </div>`,
+                questActions: [{ label: '📜 Odpowiedz Leśniczce (Quest)', onclick: 'renderLasMgielQuest()' }]
+            };
+        }
+        if (isLasQuestActive()) {
+            const label = stage === 'stage2' ? '🔍 Wróć do badania Ruin (Quest aktywny)' : '📋 Sprawdź postęp Questu';
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.65);border-left:3px solid #44aa66;border-radius:6px;color:#66cc88;font-style:italic;font-size:13px;">
+                    🌲 Quest aktywny — <b>Serce Lasu Mgieł</b>
+                </div>`,
+                questActions: [{ label, onclick: 'renderLasMgielQuest()' }]
+            };
+        }
+    }
+
+    /* Ruiny — pokaż sekcję questową gdy gracz jest w etapie 2 */
+    if (locationId === 'ruiny_swiatyni' && stage === 'stage2') {
+        return {
+            extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(20,10,50,0.7);border-left:3px solid #9944cc;border-radius:6px;color:#cc88ff;font-style:italic;font-size:13px;">
+                📜 <b>Quest aktywny:</b> Leśniczka prosiła cię o zbadanie tego miejsca.
+            </div>`,
+            questActions: [{ label: '🔮 Zbadaj Serce Lasu (Quest)', onclick: 'renderLasMgielQuest()' }]
+        };
+    }
+
+    /* Jezioro Snu — gdy etap 4 Droga Światła */
+    if (locationId === 'jezioro_snu' && stage === 'stage4_light') {
+        const visited = qs.visitedLake || false;
+        if (!visited) {
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,20,50,0.7);border-left:3px solid #44aaff;border-radius:6px;color:#88ccff;font-style:italic;font-size:13px;">
+                    ☀️ <b>Quest:</b> Serce Lasu prosi cię o kontakt z Jeziorem Snu.
+                </div>`,
+                questActions: [{ label: '💧 Nawiąż kontakt z Jeziorem (Quest)', onclick: "lasQuestMarkLightVisit('visitedLake'); openLocation('las','jezioro_snu');" }]
+            };
+        } else {
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid #44ff88;border-radius:6px;color:#66ff88;font-size:13px;">
+                    ✅ Sojusz z Jeziorem Snu nawiązany.
+                </div>`,
+                questActions: []
+            };
+        }
+    }
+
+    /* Gniazdo Strażnika — gdy etap 4 Droga Światła */
+    if (locationId === 'gniazdo_straznika' && stage === 'stage4_light') {
+        const visited = qs.visitedNest || false;
+        if (!visited) {
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,20,50,0.7);border-left:3px solid #44aaff;border-radius:6px;color:#88ccff;font-style:italic;font-size:13px;">
+                    ☀️ <b>Quest:</b> Leśny Strażnik to kluczowy sojusznik.
+                </div>`,
+                questActions: [{ label: '🦅 Nawiąż kontakt ze Strażnikiem (Quest)', onclick: "lasQuestMarkLightVisit('visitedNest'); openLocation('las','gniazdo_straznika');" }]
+            };
+        } else {
+            return {
+                extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid #44ff88;border-radius:6px;color:#66ff88;font-size:13px;">
+                    ✅ Sojusz ze Strażnikiem Lasu nawiązany.
+                </div>`,
+                questActions: []
+            };
+        }
+    }
+
+    /* Serce Lasu — główny hub questowy, etapy 3-5 */
+    if (locationId === 'serce_lasu') {
+        return { extra: '', questActions: [] }; // rendered fully by openLocation override
+    }
+
+    return { extra: '', questActions: [] };
+}
+
 /* ==========================================================
    ZAKŁADKA OCHRONA
 ========================================================== */
@@ -4078,6 +4520,7 @@ const worldData = {
                 desc: `Pośród drzew stoi mała chata — solidna, choć omszała. Przy progu suszone zioła i pęki piór. Leśnik — stara kobieta o bystre oczach — siedzi przed domem i ceruje skórzane ubranie. Nie odwraca głowy, ale wie, że jesteś.`,
                 actions: [
                     { label: "Porozmawiaj z Leśniczką", action: "talkForester", desc: "Zna las jak własną kieszeń." },
+                    { label: "❓ Zapytaj o niepokój w lesie", action: "startLasMgielQuest", desc: "Leśniczka wspominała, że coś jest nie tak." },
                     { label: "Zapytaj o ścieżki", action: "askPaths", desc: "Może wskaże bezpieczną drogę przez las." },
                     { label: "Kup zioła (8 miedzi)", action: "buyHerbs", desc: "Leśne zioła mają właściwości lecznicze." },
                     { label: "Zawróć", action: "back" }
@@ -4143,6 +4586,17 @@ const worldData = {
                     { label: "Wspinaj się na drzewo", action: "climbTree", desc: "Może uda się zajrzeć do gniazda." },
                     { label: "Zostań w miejscu i obserwuj", action: "observeNest", desc: "Cierpliwość to cnota." },
                     { label: "Odejdź cicho", action: "sneakAway", desc: "Dyskrecja bywa mądrością." },
+                    { label: "Zawróć", action: "back" }
+                ]
+            },
+            {
+                id: "serce_lasu",
+                label: "Serce Lasu — Mroczna Polana",
+                icon: "🫀",
+                lockedDesc: `Ścieżka między drzewami jest niemal niewidoczna — jakby las nie chciał cię tu przepuszczać. Mgła jest tutaj najgęstsza.\n\nMożesz wejść głębiej, ale nie wiesz po co. Coś tu jest — czujesz to. Ale jeszcze nie wiesz co.\n\nPorozmawiaj z Leśniczką, by dowiedzieć się więcej.`,
+                desc: `Docierasz do miejsca, gdzie las zmienia swój charakter. Drzewa są tu starsze — grubsze, milczące, poprzerastane luminescencyjnym mchem. Mgła formuje się w kształty, które prawie przypominają twarze.\n\nPośrodku polany stoi kamienny ołtarz. Na nim — pulsujący ciemny kamień.\n\nTo jest Serce Lasu.`,
+                requiresQuestStage: 'stage2',
+                actions: [
                     { label: "Zawróć", action: "back" }
                 ]
             }
@@ -4280,6 +4734,25 @@ function openLocation(regionKey, locationId) {
         return;
     }
 
+    // Check quest stage requirement (for serce_lasu)
+    if (loc.requiresQuestStage) {
+        const stage = lasQuestStage();
+        const stageOrder = ['none','offered','stage2','stage3_choice','stage4_light','stage4_shadow','stage5_light','stage5_shadow','done_light','done_shadow'];
+        const reqIdx = stageOrder.indexOf(loc.requiresQuestStage);
+        const curIdx = stageOrder.indexOf(stage);
+        if (curIdx < reqIdx) {
+            const area = document.getElementById("world-content-area");
+            area.innerHTML = `
+                <div class="dialog-window" style="margin-top:20px;">
+                    <div class="dialog-title">${loc.icon} ${loc.label}</div>
+                    <div class="dialog-text" style="white-space:pre-line;">${loc.lockedDesc}</div>
+                    <div class="dialog-button" onclick="openRegion('${regionKey}')">← Zawróć</div>
+                </div>
+            `;
+            return;
+        }
+    }
+
     // Special handling for moon gate
     let extraContent = '';
     let extraQuestActions = [];
@@ -4295,6 +4768,14 @@ function openLocation(regionKey, locationId) {
         extraQuestActions = questContent.questActions;
     }
 
+    // Special handling for Las Mgieł quest locations
+    const lasInject = getLasQuestInjection(locationId);
+    extraContent += lasInject.extra;
+    extraQuestActions = extraQuestActions.concat(lasInject.questActions);
+
+    // Special: serce_lasu renders the full quest interface in location-action-area
+    const isSerceQuest = (locationId === 'serce_lasu');
+
     const area = document.getElementById("world-content-area");
     area.innerHTML = `
         <div class="dialog-window" style="margin-top:20px;">
@@ -4304,10 +4785,15 @@ function openLocation(regionKey, locationId) {
             <div id="location-action-area">
                 ${renderCourierSearchButton(regionKey, locationId)}
                 ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
-                ${renderLocationActions(regionKey, locationId, loc.actions)}
+                ${isSerceQuest ? '' : renderLocationActions(regionKey, locationId, loc.actions)}
             </div>
         </div>
     `;
+
+    // For serce_lasu: render the quest interface directly
+    if (isSerceQuest) {
+        renderLasMgielQuest();
+    }
 }
 
 function renderLocationActions(regionKey, locationId, actions) {
@@ -4532,6 +5018,17 @@ const locationResponses = {
         if (!canAfford(5)) return "— Pięć miedzi za izbę na noc — mówi karczmarz. — Wróć jak będziesz miał.";
         spendCurrency(5);
         return "Karczmarz podaje ci klucz z drewnianą zawieszką. Izba jest mała, ale czysta. Śpisz spokojnie. Rano czujesz się lepiej.";
+    },
+
+    // LAS - QUEST START
+    startLasMgielQuest: () => {
+        const stage = lasQuestStage();
+        if (stage === 'none') {
+            lasQuestTrigger();
+        } else {
+            renderLasMgielQuest();
+        }
+        return null;
     },
 
     // LAS - LEŚNICZKA
@@ -4771,7 +5268,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
