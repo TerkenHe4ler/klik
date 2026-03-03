@@ -804,24 +804,52 @@ function renderMissionPanel(num, isOnMission, mission) {
     }
     const moonOpen = getMoonGateStatus().open;
     const missions = DRAGON_MISSIONS.filter(m => m.id !== 'wyprawa_ksiezycowa' || moonOpen);
+    const selectId = `mission-select-${num}`;
+    const infoId   = `mission-info-${num}`;
+    const optionsHtml = missions.map((m, i) =>
+        `<option value="${m.id}">${m.name}${m.id==='wyprawa_ksiezycowa'?' 🌕':''}</option>`
+    ).join('');
+    // build info for first mission by default
+    const first = missions[0];
+    const firstInfo = first
+        ? `⏱ ${formatTime(first.duration)} &nbsp;|&nbsp; 😴 +${first.fatigue} &nbsp;|&nbsp; 💰 ${Object.entries(first.reward).map(([t,a])=>`${a} ${t}`).join(', ')}`
+        : '';
     return `
-        <details style="margin:8px 0;" ontoggle="if(this.open) this.setAttribute('data-open','1'); else this.removeAttribute('data-open');">
-            <summary style="cursor:pointer; color:#88aadd; padding:5px 0; font-size:13px;">🗺️ Wyślij na wyprawę</summary>
-            <div style="margin-top:6px;">
-                ${missions.map(m => `
-                    <div style="margin:5px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:12px;">
-                        <div style="font-weight:bold; color:#c0cce0;">${m.name} ${m.id==='wyprawa_ksiezycowa'?'🌕':''}</div>
-                        <div style="color:#8090aa; font-size:11px; margin:2px 0;">${m.desc}</div>
-                        <div style="color:#7080aa; font-size:11px;">⏱ ${formatTime(m.duration)} | 😴 +${m.fatigue} | 💰 ${Object.entries(m.reward).map(([t,a])=>`${a} ${t}`).join(', ')}</div>
-                        <div class="dialog-button" style="margin-top:5px; font-size:12px; padding:4px 8px;" onclick="handleStartMissionDragons(${num}, '${m.id}')">Wyślij</div>
-                    </div>
-                `).join('')}
+        <div style="margin:10px 0;">
+            <div style="font-size:12px; color:#8090aa; margin-bottom:5px;">🗺️ Wyprawa</div>
+            <div style="display:flex; gap:8px; align-items:stretch;">
+                <select id="${selectId}"
+                    onchange="updateMissionInfo(${num})"
+                    style="flex:1; background:#0d1525; color:#e0e8ff; border:1px solid #4a5a8a;
+                           border-radius:6px; padding:6px 10px; font-size:13px; cursor:pointer;
+                           appearance:auto; outline:none;">
+                    ${optionsHtml}
+                </select>
+                <div class="dialog-button"
+                     style="margin:0; padding:6px 14px; font-size:13px; white-space:nowrap; align-self:stretch; display:flex; align-items:center;"
+                     onclick="handleStartMissionDragons(${num})">
+                    Wyślij ▶
+                </div>
             </div>
-        </details>
+            <div id="${infoId}" style="margin-top:5px; font-size:11px; color:#7080aa; font-style:italic;">
+                ${firstInfo}
+            </div>
+        </div>
     `;
 }
 
-function handleStartMissionDragons(num, missionId) {
+function updateMissionInfo(num) {
+    const sel = document.getElementById(`mission-select-${num}`);
+    const info = document.getElementById(`mission-info-${num}`);
+    if (!sel || !info) return;
+    const m = DRAGON_MISSIONS.find(m => m.id === sel.value);
+    if (!m) { info.textContent = ''; return; }
+    info.innerHTML = `⏱ ${formatTime(m.duration)} &nbsp;|&nbsp; 😴 +${m.fatigue} &nbsp;|&nbsp; 💰 ${Object.entries(m.reward).map(([t,a])=>`${a} ${t}`).join(', ')}<br><span style="color:#6070a0;">${m.desc}</span>`;
+}
+
+function handleStartMissionDragons(num) {
+    const sel = document.getElementById(`mission-select-${num}`);
+    const missionId = sel ? sel.value : DRAGON_MISSIONS[0].id;
     const result = startDragonMission(num, missionId);
     alert(result.msg);
     if (result.ok) updateDragonsTab();
@@ -1860,6 +1888,64 @@ function handleUnequip(dragonNum, slot) {
    ZAKUP EKWIPUNKU U KOWALA
 ========================================= */
 
+
+/* ==========================================================
+   PANEL SPRZEDAŻY U HANDLARZY
+========================================================== */
+function renderSellPanel(merchantType) {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    // Define what each merchant buys
+    const accepts = {
+        food:  ['Świeża ryba','Chleb','Górski ser','Mięso','Jagody','Zioła lecznicze'],
+        smith: ['Stary miecz','Kryształ krwi','Fragment golemowego kamienia','Obroża smocza',
+                'Zbroja z łusek','Hełm ognisty','Amulet smoczego pazura','Ruda żelaza',
+                'Torba złota','Nocny płaszcz','Piracka mapa'],
+    };
+    const merchantNames = { food: 'Handlarka Żywności', smith: 'Kowal Brag' };
+    const borderColors  = { food: '#aa6622', smith: '#446688' };
+
+    const buyList = accepts[merchantType] || [];
+    const available = buyList.filter(name => (inventory[name] || 0) > 0);
+
+    let html = `
+        <div style="padding:10px; background:rgba(10,20,35,0.7); border-left:3px solid ${borderColors[merchantType]}; border-radius:6px; margin-bottom:10px; color:#c0cce0; font-style:italic;">
+            ${merchantNames[merchantType]} przegląda twój ekwipunek.
+        </div>
+    `;
+
+    if (available.length === 0) {
+        html += `<div style="color:#7080a0; font-style:italic; margin:10px 0;">Nie masz przy sobie niczego co mogę skupić.</div>`;
+    } else {
+        html += `<div style="font-size:12px; color:#8090aa; margin-bottom:8px;">Skupuję następujące przedmioty:</div>`;
+        available.forEach(name => {
+            const qty   = inventory[name] || 0;
+            const val   = getItemValue(name) || 0;
+            const safeN = name.replace(/'/g, "\'");
+            html += `
+                <div style="margin:5px 0; padding:8px 12px; background:rgba(15,25,40,0.6); border-radius:6px; border-left:2px solid #3a5a3a;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="color:#d0e8d0; font-weight:bold; flex:1;">${name}</span>
+                        <span style="color:#aabb66; font-size:11px;">💰 ${formatValue(val)}/szt.</span>
+                        <span style="color:#ffcc44;">×${qty}</span>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                        <div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                             onclick="sellInventoryItem('${safeN}', 1); renderSellPanel('${merchantType}')">Sprzedaj 1</div>
+                        ${qty > 1 ? `<div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                             onclick="sellInventoryItem('${safeN}', ${qty}); renderSellPanel('${merchantType}')">Wszystkie (${qty})</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    const backRegion = merchantType === 'smith' ? 'miasto' : 'miasto';
+    html += `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="openRegion('${backRegion}')">← Wróć</div>`;
+    box.innerHTML = html;
+}
+
 function renderSmithShopFull() {
     const box = document.getElementById("location-action-area");
     if (!box) return;
@@ -2002,6 +2088,71 @@ const ITEM_DESCRIPTIONS = {
     'Amulet smoczego pazura': 'Zawieszka z prawdziwym pazurem smoka. Podobno przynosi szczęście — i odpędza złe duchy.',
 };
 
+// Wartości skupu (w miedziaczkach, 100 = 1 srebro)
+const ITEM_VALUES = {
+    // Jedzenie
+    'Świeża ryba':          10,
+    'Chleb':                 8,
+    'Górski ser':           15,
+    'Mięso':                20,
+    'Jagody':                5,
+    // Księżycowe
+    'Księżycowy Kamień':           300,
+    'Srebrny Pył Zza Bramy':       500,
+    'Strzęp Zasłony Między Światami': 800,
+    'Eter Księżycowy':            1000,
+    // Użytkowe
+    'Zioła lecznicze':      25,
+    'Torba złota':         200,
+    'Ruda żelaza':          40,
+    'Piracka mapa':        150,
+    'Nocny płaszcz':       180,
+    // Łupy
+    'Stary miecz':          60,
+    'Kryształ krwi':       120,
+    'Fragment golemowego kamienia': 90,
+    'Obroża smocza':        75,
+    'Zbroja z łusek':      200,
+    'Hełm ognisty':        160,
+    'Amulet smoczego pazura': 110,
+};
+
+// Grupy których NIE można sprzedać (fabularne)
+const UNSELLABLE_GROUPS = new Set(['fabularne']);
+
+function getItemValue(name) {
+    return ITEM_VALUES[name] || null;
+}
+
+function canSellItem(name) {
+    const group = getItemGroup(name);
+    if (group && UNSELLABLE_GROUPS.has(group.key)) return false;
+    return getItemValue(name) !== null;
+}
+
+function formatValue(copper) {
+    if (copper >= 100) {
+        const s = Math.floor(copper / 100);
+        const c = copper % 100;
+        return c > 0 ? `${s} srebrnych ${c} miedzi` : `${s} srebrnych`;
+    }
+    return `${copper} miedzi`;
+}
+
+function sellInventoryItem(name, qty) {
+    const val = getItemValue(name);
+    if (!val) return;
+    const have = inventory[name] || 0;
+    const selling = Math.min(qty, have);
+    if (selling <= 0) return;
+    inventory[name] -= selling;
+    if (inventory[name] <= 0) delete inventory[name];
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+    adjustCurrency('copper', selling * val);
+    updateCurrencyDisplay();
+    updateInventoryTabFull();
+}
+
 function getItemGroup(itemName) {
     for (const [groupKey, group] of Object.entries(ITEM_GROUPS)) {
         if (group.items.includes(itemName)) return { key: groupKey, ...group };
@@ -2014,14 +2165,26 @@ function getItemDesc(itemName) {
 }
 
 function renderItemCard(name, qty, extra) {
-    const desc = getItemDesc(name);
+    const desc  = getItemDesc(name);
+    const val   = getItemValue(name);
+    const sell  = canSellItem(name);
+    const safeN = name.replace(/'/g, "\\'");
     return `
         <div style="margin:5px 0; padding:9px 12px; background:rgba(15,20,35,0.6); border-radius:6px; border-left:2px solid #3a4a6a;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="color:#d0d8f0; font-weight:bold;">${name}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                <span style="color:#d0d8f0; font-weight:bold; flex:1;">${name}</span>
+                ${val ? `<span style="color:#aabb66; font-size:11px; white-space:nowrap;">💰 ${formatValue(val)}/szt.</span>` : ''}
                 <span style="color:#ffcc44; font-weight:bold; font-size:14px;">×${qty}</span>
             </div>
             ${desc ? `<div style="color:#7080a0; font-size:12px; margin-top:3px; font-style:italic; line-height:1.5;">${desc}</div>` : ''}
+            ${sell ? `
+                <div style="display:flex; gap:6px; margin-top:6px;">
+                    <div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                         onclick="sellInventoryItem('${safeN}', 1)">Sprzedaj 1</div>
+                    ${qty > 1 ? `<div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                         onclick="sellInventoryItem('${safeN}', ${qty})">Sprzedaj wszystkie (${qty})</div>` : ''}
+                </div>
+            ` : ''}
             ${extra || ''}
         </div>
     `;
@@ -3426,6 +3589,7 @@ const worldData = {
                 actions: [
                     { label: "Kup mięso (10 miedzi)", action: "buyMeat", desc: "Surowe mięso, smoki przepadają za nim." },
                     { label: "Kup jagody (5 miedzi)", action: "buyBerries", desc: "Dzikie jagody z Lasu Mgieł, bogate w magię." },
+                    { label: "💰 Sprzedaj zapasy", action: "sellAtFoodMerchant", desc: "Handlarka skupuje nadwyżki jedzenia i ziół." },
                     { label: "Pogadaj o smokach", action: "chatFoodMerchant", desc: "Handlarka zna wiele historii." },
                     { label: "Zawróć", action: "back" }
                 ]
@@ -3439,6 +3603,7 @@ const worldData = {
                     { label: "Zamów obrożę dla smoka", action: "orderCollar", desc: "Obroże pomagają smokowi skupić energię żywiołu." },
                     { label: "Naostrz broń", action: "sharpenWeapon", desc: "Kowal naostrzy twoje narzędzia za niewielką opłatą." },
                     { label: "Obejrzyj wystawę", action: "browseSmith", desc: "Może coś przykuje twój wzrok." },
+                    { label: "💰 Sprzedaj łupy", action: "sellAtSmith", desc: "Brag skupuje rudy, stare bronie i trofea z wypraw." },
                     { label: "Zawróć", action: "back" }
                 ]
             },
@@ -3886,6 +4051,8 @@ const locationResponses = {
         return items[Math.floor(Math.random() * items.length)];
     },
     browseSmith: () => { renderSmithShopFull(); return null; },
+    sellAtFoodMerchant: () => { renderSellPanel('food'); return null; },
+    sellAtSmith: () => { renderSellPanel('smith'); return null; },
 
     // ŚWIĄTYNIA
     pray: () => {
@@ -4256,7 +4423,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
@@ -5057,6 +5224,49 @@ let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 let merchantThirdStep = 0;
 let merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
 
+
+function renderMerchantSellPanel() {
+    const box = document.getElementById('merchant-content');
+    if (!box) return;
+    // The main merchant buys luxury / moon gate items
+    const buyList = [
+        'Księżycowy Kamień','Srebrny Pył Zza Bramy','Strzęp Zasłony Między Światami','Eter Księżycowy',
+        'Kryształ krwi','Torba złota','Amulet smoczego pazura','Zbroja z łusek','Piracka mapa','Nocny płaszcz',
+    ];
+    const available = buyList.filter(name => (inventory[name] || 0) > 0);
+    let html = `
+        <div style="padding:10px; background:rgba(10,20,35,0.7); border-left:3px solid #9966cc; border-radius:6px; margin-bottom:10px; color:#c0aae0; font-style:italic;">
+            Handlarz przegląda twoje rzeczy chłodnym wzrokiem.<br>— Skupuję rzadkie przedmioty. Resztę zabierz do kowala.
+        </div>
+    `;
+    if (available.length === 0) {
+        html += `<div style="color:#7080a0; font-style:italic; margin:10px 0;">Nie masz przy sobie niczego co mnie interesuje.</div>`;
+    } else {
+        available.forEach(name => {
+            const qty   = inventory[name] || 0;
+            const val   = getItemValue(name) || 0;
+            const safeN = name.replace(/'/g, "\'");
+            html += `
+                <div style="margin:5px 0; padding:8px 12px; background:rgba(20,15,40,0.6); border-radius:6px; border-left:2px solid #553377;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <span style="color:#d0c0ff; font-weight:bold; flex:1;">${name}</span>
+                        <span style="color:#aabb66; font-size:11px;">💰 ${formatValue(val)}/szt.</span>
+                        <span style="color:#ffcc44;">×${qty}</span>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-top:6px;">
+                        <div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                             onclick="sellInventoryItem('${safeN}', 1); renderMerchantSellPanel()">Sprzedaj 1</div>
+                        ${qty > 1 ? `<div class="dialog-button" style="flex:1; padding:4px 8px; font-size:12px; border-color:#557733; color:#aacc66;"
+                             onclick="sellInventoryItem('${safeN}', ${qty}); renderMerchantSellPanel()">Wszystkie (${qty})</div>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+    html += `<div class="dialog-button" style="margin-top:12px; border-color:#778; color:#aab;" onclick="updateMerchantTab()">← Wróć</div>`;
+    box.innerHTML = html;
+}
+
 function updateMerchantTab() {
     const box = document.getElementById("merchant-content");
 
@@ -5103,6 +5313,7 @@ function updateMerchantTab() {
                     Widzisz na niej cztery smocze jaja a w nich człowieka. Pokrywający je czerwony X wszystko tłumaczy.
                     Prawo jest prawem, jeżeli ktoś by zobaczył Cię z większą ilością smoków czy jaj, to szybko witalibyśmy się ze śmiercią.
                 </div>
+                <div class="dialog-button" onclick="renderMerchantSellPanel()">💰 Chcę coś sprzedać</div>
             </div>
         `;
         merchantAfterThirdVisit = true;
