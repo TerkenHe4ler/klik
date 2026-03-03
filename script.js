@@ -3528,16 +3528,15 @@ function getLasQuestInjection(locationId) {
                 extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.65);border-left:3px solid #44aa66;border-radius:6px;color:#88ffaa;font-style:italic;font-size:13px;">
                     📜 Leśniczka czeka na twoją odpowiedź w sprawie niepokoju w lesie.
                 </div>`,
-                questActions: [{ label: '📜 Odpowiedz Leśniczce (Quest)', onclick: 'renderLasMgielQuest()' }]
+                questActions: []
             };
         }
         if (isLasQuestActive()) {
-            const label = stage === 'stage2' ? '🔍 Wróć do badania Ruin (Quest aktywny)' : '📋 Sprawdź postęp Questu';
             return {
                 extra: `<div style="margin:10px 0;padding:10px 14px;background:rgba(10,30,20,0.65);border-left:3px solid #44aa66;border-radius:6px;color:#66cc88;font-style:italic;font-size:13px;">
                     🌲 Quest aktywny — <b>Serce Lasu Mgieł</b>
                 </div>`,
-                questActions: [{ label, onclick: 'renderLasMgielQuest()' }]
+                questActions: []
             };
         }
     }
@@ -4832,6 +4831,20 @@ function getDynamicLocationData(regionKey, locationId) {
                     desc: `Leśniczka stoi przy progu zamiast siedzieć. Ręce ma złożone, wzrok niespokojny. Kiedy cię widzi, coś w jej twarzy rozluźnia się — tylko trochę.\n\n— Wróciłeś. Dobrze. Powiedz, co postanowiłeś.`,
                     actions: [
                         { label: '📜 Odpowiedz w sprawie lasu (Quest)', action: 'startLasMgielQuest' },
+                        { label: 'Zapytaj o ścieżki', action: 'askPaths' },
+                        { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
+                        ...BACK
+                    ]
+                };
+            }
+            // stage === 'none': show quest button only if dragon hatched
+            if (lasStage === 'none') {
+                const dragonReady = hasAnyHatchedDragon();
+                return {
+                    desc: `Pośród drzew stoi mała chata — solidna, choć omszała. Przy progu suszone zioła i pęki piór. Leśnik — stara kobieta o bystych oczach — siedzi przed domem i ceruje skórzane ubranie. Nie odwraca głowy, ale wie, że jesteś.`,
+                    actions: [
+                        { label: 'Porozmawiaj z Leśniczką', action: 'talkForester' },
+                        ...(dragonReady ? [{ label: '❓ Zapytaj o niepokój w lesie', action: 'startLasMgielQuest' }] : []),
                         { label: 'Zapytaj o ścieżki', action: 'askPaths' },
                         { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
                         ...BACK
