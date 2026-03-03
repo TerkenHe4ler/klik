@@ -5686,31 +5686,37 @@ const questions = [
             { text: "Szukam śladów walki. Ogień mnie prowadzi.", element: "ogien" },
             { text: "Szukam mokrych śladów. Woda zna drogę.", element: "woda" },
             { text: "Wsłuchuję się w ziemię.", element: "ziemia" },
-            { text: "Podążam za wiatrem.", element: "powietrze" }
+            { text: "Podążam za wiatrem.", element: "powietrze" },
+            { text: "Patrzę czy coś świeci w oddali — może sygnał, może magia.", element: "swiatlo" },
+            { text: "Czekam aż zapadnie noc i zbliżam się po cichu.", element: "cien" }
         ]
     },
     {
         text: "W ruinach świątyni słyszysz dźwięk. Co robisz?",
         answers: [
             { text: "Wchodzę bez wahania.", element: "ogien" },
-            { text: "Szukam wilgoci.", element: "woda" },
-            { text: "Dotykam kamieni.", element: "ziemia" },
-            { text: "Słucham echa.", element: "powietrze" }
+            { text: "Szukam wilgoci — może woda prowadzi do źródła.", element: "woda" },
+            { text: "Dotykam kamieni — historia zapisana w kamieniu.", element: "ziemia" },
+            { text: "Słucham echa — wiatr mówi więcej niż oczy.", element: "powietrze" },
+            { text: "Zapalam pochodnię i wchodzę — ciemność mnie nie zatrzyma.", element: "swiatlo" },
+            { text: "Gaszę pochodnię i wchodzę w mroku. Tak mam przewagę.", element: "cien" }
         ]
     },
     {
         text: "Na rozdrożu spotykasz wędrowca. Co robisz?",
         answers: [
-            { text: "Pytam o drogę.", element: "ogien" },
-            { text: "Płynę z losem.", element: "woda" },
-            { text: "Słucham historii.", element: "ziemia" },
-            { text: "Idę za intuicją.", element: "powietrze" }
+            { text: "Pytam o drogę — prosto do rzeczy.", element: "ogien" },
+            { text: "Płynę z losem — pójdę w stronę, którą on wskaże.", element: "woda" },
+            { text: "Słucham historii — każdy wędrowiec coś niesie.", element: "ziemia" },
+            { text: "Idę za intuicją — coś czuję w tym spotkaniu.", element: "powietrze" },
+            { text: "Uśmiecham się otwarcie i proponuję wspólną drogę.", element: "swiatlo" },
+            { text: "Obserwuję z dystansu zanim zacznę mówić.", element: "cien" }
         ]
     }
 ];
 
 let currentQuestion = 0;
-let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+let elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
 
 /* -----------------------------------------
    EKRAN POWITALNY
@@ -5732,7 +5738,7 @@ function showQuestion() {
 
     setTimeout(() => {
         currentQuestion = 0;
-        elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+        elementScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
         showNextStartQuestion();
     }, 5000);
 }
@@ -5780,7 +5786,9 @@ function finalizeDragon() {
         ogien: "ciepło, które prawie parzy Cię w dłonie.",
         woda: "chłód przypominający dotyk głębin oceanu.",
         ziemia: "stabilne, kojące ciepło skał.",
-        powietrze: "delikatne pulsowanie przypominające powiew wiatru."
+        powietrze: "delikatne pulsowanie przypominające powiew wiatru.",
+        swiatlo: "łagodne, złociste ciepło — jak promień słońca przebijający się przez chmury.",
+        cien: "dziwne chłodne drżenie, jakby jajo pochłaniało otaczające je światło."
     };
 
     intro.innerHTML = `
@@ -5939,37 +5947,45 @@ const merchantQuestions = [
     {
         text: "Wchodzisz do jaskini pełnej starożytnych run. Co robisz?",
         answers: [
-            { text: "Dotykam najjaśniejszej runy — coś jasnego przyciąga mnie.", element: "swiatlo" },
-            { text: "Wchodzę głębiej, gdzie nie sięga światło pochodni.", element: "cien" },
-            { text: "Badam skały i szukam śladów — ziemia.", element: "ziemia" },
-            { text: "Nasłuchuję echa — powietrze.", element: "powietrze" }
+            { text: "Szukam run wypalonych ogniem — moc się czuje.", element: "ogien" },
+            { text: "Sprawdzam czy woda spływa po ścianach — tu może być źródło.", element: "woda" },
+            { text: "Badam skały i szukam śladów — ziemia pamięta wszystko.", element: "ziemia" },
+            { text: "Nasłuchuję echa — powietrze przenosi ślady dawnych głosów.", element: "powietrze" },
+            { text: "Dotykam najjaśniejszej runy — blask przyciąga mnie instynktownie.", element: "swiatlo" },
+            { text: "Gaszę pochodnię i wchodzę głębiej — w ciemności runy świecą wyraźniej.", element: "cien" }
         ]
     },
     {
         text: "Na pustkowiu widzisz wir energii. Co robisz?",
         answers: [
             { text: "Wchodzę w niego — płomień mnie nie zatrzyma.", element: "ogien" },
-            { text: "Obserwuję jego ruch — jak woda.", element: "woda" },
-            { text: "Dotykam ziemi, by poczuć drgania.", element: "ziemia" },
-            { text: "Czekam aż ciemność odsłoni co jest w środku.", element: "cien" }
+            { text: "Obserwuję jego ruch — jak woda, płynie po linii najmniejszego oporu.", element: "woda" },
+            { text: "Dotykam ziemi, by poczuć drgania — ziemia wie co się kryje w środku.", element: "ziemia" },
+            { text: "Pozwalam wiatrowi mnie poprowadzić — idę tam gdzie wieje.", element: "powietrze" },
+            { text: "Patrzę czy w centrum wiruje coś jasnego — światło zawsze wskazuje cel.", element: "swiatlo" },
+            { text: "Czekam aż ciemność odsłoni co jest w środku — pośpiech to błąd.", element: "cien" }
         ]
     },
     {
         text: "Spotykasz ducha starożytnego smoka. Co robisz?",
         answers: [
-            { text: "Patrzę mu prosto w oczy — ogień.", element: "ogien" },
-            { text: "Słucham jego szeptów — woda.", element: "woda" },
+            { text: "Patrzę mu prosto w oczy — ogień dla ognia.", element: "ogien" },
+            { text: "Słucham jego szeptów — woda przepływa przez każdą historię.", element: "woda" },
+            { text: "Kłaniam się i czekam — ziemia uczy pokory.", element: "ziemia" },
+            { text: "Pozwalam mu przejść przez siebie — powietrze nie stawia oporu.", element: "powietrze" },
             { text: "Patrzę w miejsce skąd bije światło wokół niego.", element: "swiatlo" },
-            { text: "Pozwalam mu przejść przez siebie — powietrze.", element: "powietrze" }
+            { text: "Chowam się w jego cieniu i obserwuję zanim przemówię.", element: "cien" }
         ]
     },
     {
         text: "Jesteś sam w nocy. Co czujesz?",
         answers: [
             { text: "Potrzebuję ognia — bez niego nie ma spokoju.", element: "ogien" },
-            { text: "Szukam księżycowego odbicia w wodzie.", element: "woda" },
-            { text: "Ciemność jest znajoma — jak drugi dom.", element: "cien" },
-            { text: "Patrzę w gwiazdy — każda jest małym słońcem.", element: "swiatlo" }
+            { text: "Szukam księżycowego odbicia w wodzie — noc to najlepsza chwila.", element: "woda" },
+            { text: "Siadam na ziemi i czekam na świt — nocna cisza koi.", element: "ziemia" },
+            { text: "Słucham — noc niesie dźwięki których w dzień nie słychać.", element: "powietrze" },
+            { text: "Patrzę w gwiazdy — każda jest małym słońcem.", element: "swiatlo" },
+            { text: "Ciemność jest znajoma — jak drugi dom.", element: "cien" }
         ]
     }
 ];
@@ -5979,27 +5995,33 @@ const merchantThirdQuestions = [
         text: "W starym lesie odnajdujesz zrzucone łuski. Co robisz?",
         answers: [
             { text: "Patrzę czy iskrzą — może żar w nich tkwi.", element: "ogien" },
-            { text: "Sprawdzam, czy są mokre.", element: "woda" },
-            { text: "Trzymam w dłoni — czuję w nich dawne życie.", element: "swiatlo" },
+            { text: "Sprawdzam, czy są mokre — woda zostawia ślady.", element: "woda" },
+            { text: "Zakopuję jedną — ziemia powinna ją mieć z powrotem.", element: "ziemia" },
+            { text: "Podrzucam w górę i patrzę jak wiatr ją niesie.", element: "powietrze" },
+            { text: "Trzymam w dłoni — czuję w nich dawne życie i ciepło.", element: "swiatlo" },
             { text: "Chowam do kieszeni — przyda się w ciemności.", element: "cien" }
         ]
     },
     {
         text: "Na brzegu jeziora widzisz odbicie nieba. Co czujesz?",
         answers: [
-            { text: "Gorąco słońca.", element: "ogien" },
-            { text: "Chłód wody.", element: "woda" },
+            { text: "Gorąco słońca na twarzy — ogień z góry i z dołu.", element: "ogien" },
+            { text: "Chłód wody — chcę wejść do środka.", element: "woda" },
+            { text: "Solidny grunt pod stopami — lustro to złudzenie, ziemia jest prawdziwsza.", element: "ziemia" },
+            { text: "Lekkość — jakby odbicie było wejściem do powietrznego świata.", element: "powietrze" },
             { text: "Blask — coś we mnie budzi się na ten widok.", element: "swiatlo" },
-            { text: "Zastanawiam się co kryje się pod powierzchnią.", element: "cien" }
+            { text: "Ciekawość co kryje się pod powierzchnią w głębinie.", element: "cien" }
         ]
     },
     {
-        text: "Usłyszysz w oddali śpiew smoczych duchów. Jak reagujesz?",
+        text: "Słyszysz w oddali śpiew smoczych duchów. Jak reagujesz?",
         answers: [
-            { text: "Odpowiadam ogniem.", element: "ogien" },
-            { text: "Odpływam w wodzie.", element: "woda" },
+            { text: "Odpowiadam ogniem — ogień to mój głos.", element: "ogien" },
+            { text: "Pozwalam by śpiew przebrzmiał jak fala — woda jest cierpliwa.", element: "woda" },
+            { text: "Siadam i słucham — ziemia uczy, żeby nie spieszyć.", element: "ziemia" },
+            { text: "Śpiewam razem z wiatrem — dołączam do chóru.", element: "powietrze" },
             { text: "Odpowiadam blaskiem — niech wiedzą, że jestem.", element: "swiatlo" },
-            { text: "Milczę i nasłuchuję — w ciszy więcej słychać.", element: "cien" }
+            { text: "Milczę i nasłuchuję — w ciszy słyszę więcej.", element: "cien" }
         ]
     },
     {
@@ -6007,7 +6029,9 @@ const merchantThirdQuestions = [
         answers: [
             { text: "Jawne — jak płomień, nie da się go ukryć.", element: "ogien" },
             { text: "Ukryte — jak głębina, tajemnicze i niezmierzone.", element: "woda" },
-            { text: "Jawne, bo tylko światło buduje zaufanie.", element: "swiatlo" },
+            { text: "Jawne — ziemia nie kłamie, stałość jest cnotą.", element: "ziemia" },
+            { text: "Jawne — wiatr nie nosi sekretów, dość nie powiedzianych słów.", element: "powietrze" },
+            { text: "Jawne, bo tylko światło buduje prawdziwe zaufanie.", element: "swiatlo" },
             { text: "Ukryte — wiedza i cień dają przewagę.", element: "cien" }
         ]
     }
