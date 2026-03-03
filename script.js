@@ -4706,6 +4706,334 @@ function openRegionOriginal(regionKey) {
     `;
 }
 
+
+/* ==========================================================
+   DYNAMICZNE OPISY LOKACJI (zmieniają się po wykonaniu questów)
+========================================================== */
+function getDynamicLocationData(regionKey, locationId) {
+    const lasStage = lasQuestStage();
+    const runeStage = getRuneQuestStage();
+    const lasQS = getLasQuestState();
+
+    const BACK = [{ label: 'Zawróć', action: 'back' }];
+
+    // ─────────────────────────────────────────────────────
+    // LAS MGIEŁ
+    // ─────────────────────────────────────────────────────
+
+    if (regionKey === 'las') {
+
+        // SIEDZIBA LEŚNIKA
+        if (locationId === 'siedziba') {
+            if (lasStage === 'done_light') {
+                return {
+                    desc: `Chata Leśniczki wygląda spokojniej niż kiedykolwiek. Na progu leżą świeże kwiaty — nie suszone, żywe. Leśniczka wita cię ciepłym spojrzeniem, jakby czekała właśnie na ciebie.\n\n— Las dziękuje — mówi po prostu. — I ja też.`,
+                    actions: [
+                        { label: 'Porozmawiaj o przyszłości lasu', action: 'talkForesterDoneLight' },
+                        { label: 'Zapytaj o ścieżki', action: 'askPaths' },
+                        { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow') {
+                return {
+                    desc: `Chata wygląda tak samo jak zawsze, ale Leśniczka siedzi inaczej — plecami do lasu, jakby nie chciała na niego patrzeć. Słyszysz ją dopiero gdy jesteś blisko.\n\n— Zrobiłeś co uważałeś za słuszne — mówi bez osądzania. — Las będzie żył dalej. Inaczej. Ale będzie żył.`,
+                    actions: [
+                        { label: 'Zapytaj jak się czuje', action: 'talkForesterDoneShadow' },
+                        { label: 'Zapytaj o ścieżki', action: 'askPaths' },
+                        { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'offered') {
+                return {
+                    desc: `Leśniczka stoi przy progu zamiast siedzieć. Ręce ma złożone, wzrok niespokojny. Kiedy cię widzi, coś w jej twarzy rozluźnia się — tylko trochę.\n\n— Wróciłeś. Dobrze. Powiedz, co postanowiłeś.`,
+                    actions: [
+                        { label: '📜 Odpowiedz w sprawie lasu (Quest)', action: 'startLasMgielQuest' },
+                        { label: 'Zapytaj o ścieżki', action: 'askPaths' },
+                        { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage !== 'none') {
+                // quest in progress
+                return {
+                    desc: `Leśniczka jest w środku — drzwi uchylone. Słyszysz jak przerzuca jakieś księgi. Kiedy wchodzisz, unosi głowę.\n\n— Wróciłeś. Jak sprawy?`,
+                    actions: [
+                        { label: '📋 Sprawdź postęp questu', action: 'startLasMgielQuest' },
+                        { label: 'Zapytaj o ścieżki', action: 'askPaths' },
+                        { label: 'Kup zioła (8 miedzi)', action: 'buyHerbs' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        // JEZIORO SNU
+        if (locationId === 'jezioro_snu') {
+            if (lasStage === 'done_light' || (lasStage === 'stage5_light' && lasQS.visitedLake)) {
+                return {
+                    desc: `Jezioro Snu lśni dzisiaj inaczej — woda nie jest już czarna jak atrament, lecz głęboka i ciemnoniebieskawa, jak nocne niebo tuż przed świtem. Niebieskie kwiaty na brzegu są otwarte szerzej niż normalnie.\n\nMasz wrażenie, że jezioro cię zna. I że jest spokojne z tego powodu.`,
+                    actions: [
+                        { label: 'Napij się wody', action: 'drinkLake' },
+                        { label: 'Posiedź w ciszy', action: 'sitLake' },
+                        { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
+                        { label: '💧 Pomedytuj nad wodą', action: 'meditateByLake' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow' || (lasStage === 'stage5_shadow')) {
+                return {
+                    desc: `Jezioro Snu jest nieruchome jak lustro ze szkła. Woda jest jeszcze ciemniejsza niż przedtem — prawie nieprzezroczysta. Niebieskie kwiaty na brzegu pochyliły się ku powierzchni, jakby chciały zajrzeć w głąb.\n\nTwoje odbicie w wodzie nie uśmiecha się razem z tobą.`,
+                    actions: [
+                        { label: 'Wpatruj się w odbicie', action: 'throwStone' },
+                        { label: 'Posiedź w ciszy', action: 'sitLake' },
+                        { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'stage4_light') {
+                return {
+                    desc: `Jezioro Snu leży ciche w zagłębieniu lasu. Ale dziś jest coś innego — na powierzchni wody pojawiają się i znikają delikatne kręgi, choć nic jej nie dotyka.\n\nCzujesz, że Serce Lasu chce żebyś tu był. To nie przypadek, że tu trafiłeś.`,
+                    actions: [
+                        { label: '💧 Nawiąż kontakt z jeziorem (Quest)', action: 'drinkLake' },
+                        { label: 'Posiedź w ciszy', action: 'sitLake' },
+                        { label: 'Zbierz niebieskie kwiaty', action: 'pickFlowers' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        // POLANA URODZAJU
+        if (locationId === 'polana_urodzaju') {
+            if (lasStage === 'done_light') {
+                return {
+                    desc: `Polana jest jaśniejsza niż kiedykolwiek. Trawa zdaje się rosnąć szybciej, kwiaty otwierają się szeroko, a stare drzewo w centrum wydaje się... wyższe. Jakby ulżono mu ciężaru.\n\nPowietrze ma smak po burzy — czyste, zelektryzowane, żywe.`,
+                    actions: [
+                        { label: 'Zbieraj jagody', action: 'gatherBerries' },
+                        { label: 'Zbieraj zioła', action: 'gatherHerbs' },
+                        { label: 'Usiądź pod drzewem', action: 'sitTree' },
+                        { label: '🌿 Poczuj puls lasu', action: 'digDirt' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow') {
+                return {
+                    desc: `Polana jest nadal zielona, ale coś się tu zmieniło. Cień drzewa jest dłuższy niż powinien być o tej porze. Owady brzęczą ciszej. Kwiaty są otwarte, ale blade.\n\nLas żyje. Ale inaczej.`,
+                    actions: [
+                        { label: 'Zbieraj jagody', action: 'gatherBerries' },
+                        { label: 'Zbieraj zioła', action: 'gatherHerbs' },
+                        { label: 'Usiądź pod ciemnym drzewem', action: 'sitTree' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage !== 'none' && lasStage !== 'offered') {
+                return {
+                    desc: `Polana jest jasna i spokojna — ale wiesz już, że gdzieś głębiej w lesie nie jest tak dobrze. Drzewo pośrodku stoi nieruchomo. Czekasz, czy poczujesz coś więcej.\n\nNa razie — cisza.`,
+                    actions: [
+                        { label: 'Zbieraj jagody', action: 'gatherBerries' },
+                        { label: 'Zbieraj zioła', action: 'gatherHerbs' },
+                        { label: 'Usiądź pod drzewem', action: 'sitTree' },
+                        { label: 'Baw się z robakami', action: 'digDirt' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        // RUINY LEŚNEJ ŚWIĄTYNI
+        if (locationId === 'ruiny_swiatyni') {
+            if (lasStage === 'done_light') {
+                return {
+                    desc: `Ruiny wyglądają inaczej odkąd wszystko się rozstrzygnęło. Chwasty nadal oplatają kamienie, ale symbol na ołtarzu — ten skrzydlaty kształt — teraz delikatnie lśni zielonkawym blaskiem. Jakby coś tu wróciło do równowagi.\n\nJeszcze kilka dni temu powietrze tu było ciężkie. Teraz jest... spokojne.`,
+                    actions: [
+                        { label: 'Pomedytuj przy ołtarzu', action: 'examineAltar' },
+                        { label: 'Zostaw ofiarę wdzięczności', action: 'leaveOffering' },
+                        { label: 'Przeszukaj ruiny', action: 'searchRuins' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow') {
+                return {
+                    desc: `Ruiny są ciemniejsze niż pamiętasz. Symbol na ołtarzu — ten skrzydlaty kształt — pulsuje lekko fioletowym blaskiem, ledwo widocznym. Chwasty wokół kamieni zdają się gęstsze.\n\nMiejsce to zna twoją decyzję. I akceptuje ją.`,
+                    actions: [
+                        { label: 'Zbadaj ołtarz', action: 'examineAltar' },
+                        { label: 'Przeszukaj ruiny', action: 'searchRuins' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'stage2' || lasStage === 'stage3_choice' || lasStage.startsWith('stage4') || lasStage.startsWith('stage5')) {
+                return {
+                    desc: `Kamienne kolumny stoją jak zawsze, ale teraz patrzysz na nie inaczej — wiedząc, że to starożytna świątynia Serca Lasu. Symbol na ołtarzu jest teraz dla ciebie czytelniejszy: skrzydlate stworzenie ma dwa oblicza — jedno obrócone ku słońcu, drugie ku cieniu.\n\nZrozumiałeś coś, czego nie wiedziałeś jeszcze tydzień temu.`,
+                    actions: [
+                        { label: 'Zbadaj ołtarz (ponownie)', action: 'examineAltar' },
+                        { label: 'Zostaw ofiarę', action: 'leaveOffering' },
+                        { label: 'Przeszukaj ruiny', action: 'searchRuins' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        // GNIAZDO LEŚNEGO STRAŻNIKA
+        if (locationId === 'gniazdo_straznika') {
+            if (lasStage === 'done_light' || (lasQS.visitedNest && lasStage.startsWith('stage'))) {
+                return {
+                    desc: `Kiedy podchodzisz, z gniazda dobiega głęboki, spokojny krzyk — nie ostrzegawczy, raczej powitanie. Leśny Strażnik wyprostowuje się i patrzy na ciebie przez długą chwilę.\n\nPoznaje cię. Jesteście po tej samej stronie.`,
+                    actions: [
+                        { label: 'Obserwuj Strażnika', action: 'observeNest' },
+                        { label: 'Zostaw pożywienie pod gniazdem', action: 'climbTree' },
+                        { label: 'Odejdź spokojnie', action: 'sneakAway' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow') {
+                return {
+                    desc: `Gniazdo jest puste. Na gałęziach zostały tylko resztki traw i kilka piór. Leśny Strażnik odleciał — może czuł zmianę w lesie. Może po prostu wybrał inne miejsce.\n\nPusty konar kołysze się lekko.`,
+                    actions: [
+                        { label: 'Zbadaj puste gniazdo', action: 'observeNest' },
+                        { label: 'Zbierz pióro', action: 'climbTree' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage !== 'none' && lasStage !== 'offered') {
+                return {
+                    desc: `Odgłos skrzydeł w koronach jest bliższy niż zwykle. Gniazdo wydaje się... inne. Jakby ktoś je niedawno powiększył albo przemeblował.\n\nLeśny Strażnik patrzy na ciebie z dołu — spokojniej niż ostatnim razem.`,
+                    actions: [
+                        { label: 'Zostań w miejscu i obserwuj', action: 'observeNest' },
+                        { label: 'Wspinaj się ostrożnie', action: 'climbTree' },
+                        { label: 'Odejdź cicho', action: 'sneakAway' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+
+        // WODOSPAD MILCZENIA
+        if (locationId === 'wodospad') {
+            if (lasStage === 'done_light') {
+                return {
+                    desc: `Wodospad śpiewa dziś głośniej — rytmicznie, jakby w radości. Mgła nad wodą jest bielsza, niemal świetlista. Za kaskadą widzisz teraz wyraźniej rysunki na kamieniach — i rozpoznajesz wśród nich symbol podobny do tego z ołtarza w ruinach.\n\nMalowidła są pradawne, ale jedno z nich wygląda jakby ktoś je niedawno odświeżył.`,
+                    actions: [
+                        { label: 'Wejdź za wodospad', action: 'behindWaterfall' },
+                        { label: 'Napełnij bukłak', action: 'fillFlask' },
+                        { label: 'Zbadaj odnowione malowidła', action: 'examineDrawings' },
+                        { label: 'Posłuchaj wodospadu', action: 'listenWaterfall' },
+                        ...BACK
+                    ]
+                };
+            }
+            if (lasStage === 'done_shadow') {
+                return {
+                    desc: `Wodospad szumi przytłumiony, jakby opłakiwał coś. Mgła jest gęstsza niż zwykle i wyjątkowo zimna. Rysunki na kamieniach za kaskadą wyglądają inaczej — jedna ze scen wydaje się teraz przedstawiać stworzenie wchodzące w mrok, nie wychodzące z niego.\n\nCzy zawsze tak wyglądała?`,
+                    actions: [
+                        { label: 'Wejdź za wodospad', action: 'behindWaterfall' },
+                        { label: 'Napełnij bukłak', action: 'fillFlask' },
+                        { label: 'Zbadaj malowidła', action: 'examineDrawings' },
+                        ...BACK
+                    ]
+                };
+            }
+        }
+    } // end las
+
+    // ─────────────────────────────────────────────────────
+    // GÓRY SARAK — KSIĘŻYCOWA BRAMA
+    // ─────────────────────────────────────────────────────
+
+    if (regionKey === 'gory' && locationId === 'ksiezycowa_brama') {
+        if (runeStage === 'sketch' || runeStage === 'readFirst') {
+            return {
+                desc: `Kamienna brama stoi tak samo jak zawsze — ale teraz masz przy sobie szkicownik. Wiesz już jak wyglądają runy z bliska. Bibliotekarz czeka na twój szkic.\n\nPatrzysz na symbole i próbujesz odtworzyć każdy detal. Jeden z nich — centralny — jest chyba najstarszy. Głębszy niż reszta.`,
+                actions: [
+                    { label: '📝 Naszkicuj runy (Quest)', action: 'examineRunes' },
+                    { label: 'Dotknij bramy', action: 'touchGate' },
+                    ...BACK
+                ]
+            };
+        }
+        if (runeStage === 'readBooks' || runeStage === 'delivered') {
+            return {
+                desc: `Stoisz przed bramą z nową wiedzą. Bibliotekarz badał twój szkic — może już wie coś więcej. Runy wyglądają teraz znajomiej, choć nadal są dla ciebie tajemnicą.\n\nŚrodkowy symbol. Ten o którym bibliotekarz pisał ostatnio.`,
+                actions: [
+                    { label: 'Wpatrz się w środkowy symbol', action: 'examineRunes' },
+                    { label: 'Dotknij bramy', action: 'touchGate' },
+                    { label: 'Przejdź przez bramę', action: 'enterGate' },
+                    ...BACK
+                ]
+            };
+        }
+        if (runeStage === 'fragment_hunt') {
+            return {
+                desc: `Fragmenty dawnych ksiąg gdzieś tu są — ukryte między skałami wschodniej ściany. Bibliotekarz mówił o dwóch kawałkach pergaminu, które zaginęły wiele lat temu.\n\nPatrzysz na skały wokół bramy z nowym wzrokiem. Tym razem nie szukasz run — szukasz resztek stron.`,
+                actions: [
+                    { label: '🔍 Szukaj fragmentów wśród skał', action: 'examineRunes' },
+                    { label: 'Zbadaj runy', action: 'touchGate' },
+                    { label: 'Przejdź przez bramę', action: 'enterGate' },
+                    ...BACK
+                ]
+            };
+        }
+        if (runeStage === 'translated' || runeStage === 'researchDone' || runeStage === 'researchAcknowledged') {
+            const moonOpen = getMoonGateStatus().open;
+            return {
+                desc: `Stoisz przed bramą i — po raz pierwszy — rozumiesz co tu jest napisane. Lewa runa: <em>wejście</em>. Prawa: <em>powrót</em>. Środkowa: <em>warunek</em>.\n\n${moonOpen
+                    ? 'Dziś pełnia. Runy drżą cicho, pulsując srebrnym blaskiem. Brama jest otwarta.'
+                    : 'Nie jest pełnia. Runy są zimne i milczące. Brama czeka.'}`,
+                actions: [
+                    { label: 'Zbadaj runy (znasz już ich znaczenie)', action: 'examineRunes' },
+                    { label: 'Dotknij bramy', action: 'touchGate' },
+                    { label: 'Przejdź przez bramę', action: 'enterGate' },
+                    ...BACK
+                ]
+            };
+        }
+        if (runeStage === 'done') {
+            return {
+                desc: `Brama. Już ją znasz — każdą runę, każdy rysunek. Środkowy symbol: <em>warunek</em>. Wiesz, że otwiera się tylko w pełni.\n\nBrama milczy dziś. Ale ty już wiesz jak mówić jej językiem.`,
+                actions: [
+                    { label: 'Przejdź przez bramę', action: 'enterGate' },
+                    { label: 'Poobserwuj runy', action: 'examineRunes' },
+                    ...BACK
+                ]
+            };
+        }
+    }
+
+    // ─────────────────────────────────────────────────────
+    // GÓRY SARAK — SZCZYT
+    // ─────────────────────────────────────────────────────
+    if (regionKey === 'gory' && locationId === 'szczyt') {
+        const hasSketchbook = getRuneQuestStage() !== 'none';
+        if (hasSketchbook) {
+            return {
+                desc: `Szczyt Sarak jest miejscem między niebem a ziemią. Stoisz nad chmurami. Poniżej widać całe Astorveil — małe jak model z drewna. Wiatr szarpie ubraniem.\n\nZ tej wysokości widzisz też coś, czego nie widać z dołu — po wschodnim zboczu, przy Księżycowej Bramie, gra dziwne, subtelne światło. Nawet w ciągu dnia.`,
+                actions: [
+                    { label: 'Medytuj na szczycie', action: 'meditateTop' },
+                    { label: 'Obserwuj Księżycową Bramę z góry', action: 'watchHorizon' },
+                    { label: 'Przeszukaj skalne szczeliny', action: 'searchCracks' },
+                    { label: 'Przywołaj smoka', action: 'callDragon' },
+                    ...BACK
+                ]
+            };
+        }
+    }
+
+    return null; // no override — use static data
+}
+
 function openLocation(regionKey, locationId) {
     const region = worldData[regionKey];
     const loc = region.locations.find(l => l.id === locationId);
@@ -4753,6 +5081,11 @@ function openLocation(regionKey, locationId) {
         }
     }
 
+    // Dynamic location override (quest-aware desc + actions)
+    const dynOverride = getDynamicLocationData(regionKey, locationId);
+    const activeDesc    = dynOverride ? dynOverride.desc    : loc.desc;
+    const activeActions = dynOverride ? dynOverride.actions : loc.actions;
+
     // Special handling for moon gate
     let extraContent = '';
     let extraQuestActions = [];
@@ -4780,12 +5113,12 @@ function openLocation(regionKey, locationId) {
     area.innerHTML = `
         <div class="dialog-window" style="margin-top:20px;">
             <div class="dialog-title">${loc.icon} ${loc.label}</div>
-            <div class="dialog-text" style="white-space:pre-line;">${loc.desc}</div>
+            <div class="dialog-text" style="white-space:pre-line;">${activeDesc}</div>
             ${extraContent}
             <div id="location-action-area">
                 ${renderCourierSearchButton(regionKey, locationId)}
                 ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
-                ${isSerceQuest ? '' : renderLocationActions(regionKey, locationId, loc.actions)}
+                ${isSerceQuest ? '' : renderLocationActions(regionKey, locationId, activeActions)}
             </div>
         </div>
     `;
