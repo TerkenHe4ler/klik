@@ -358,48 +358,116 @@ function playerTournamentFight() {
    DYNAMICZNY OPIS DOMU
 ========================================= */
 
+/* ==========================================================
+   DOM — OPISY ROTOWANE CO 10 MINUT
+========================================================== */
+const HOME_DESCS_0 = []; // 0 smoków
+const HOME_DESCS_1 = { ogien: [], woda: [], ziemia: [], powietrze: [] };
+const HOME_DESCS_2 = {};
+const HOME_DESCS_3 = [];
+
+function getRotatingDesc(arr) {
+    if (!arr || arr.length === 0) return '';
+    const idx = Math.floor(Date.now() / (10 * 60 * 1000)) % arr.length;
+    return arr[idx];
+}
+
 function getDragonHomeDesc() {
     const dragons = [];
     if (eggHeats >= 3) dragons.push({ name: dragonName, element: chosenDragon, num: 1 });
     if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ name: secondDragonName, element: secondDragonElement, num: 2 });
     if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ name: thirdDragonName, element: thirdDragonElement, num: 3 });
 
+    // ── 0 smoków ─────────────────────────────────────────
     if (dragons.length === 0) {
-        return 'Dom jest cichy. Na stoliku leży jajko — ciepłe, pulsujące życiem. Czekasz.';
+        const opts = [
+            'Dom jest cichy. Na stoliku leży jajko — ciepłe, pulsujące życiem. Czekasz.',
+            'W izbie słychać tylko trzask ognia w kominku. Jajko leży w wyściełanym koszu, ledwo widoczne pod kocykiem z owczej wełny.',
+            'Stawiasz jajko bliżej ciepła. Zdaje się, że drgnęło — albo to tylko gra światła.',
+            'Dom pachnie dymem i starym drewnem. Jajko jest jedynym towarzyszem tej ciszy.',
+            'Siedzisz przy kominku, jajko w dłoniach. Coś w nim tętni rytmicznie — jakby serce.',
+        ];
+        return opts[Math.floor(Date.now() / (10*60*1000)) % opts.length];
     }
 
+    // ── 1 smok ───────────────────────────────────────────
     if (dragons.length === 1) {
         const d = dragons[0];
         const descs = {
-            ogien: `${d.name} leży zwinięty przy kominku i śpi. Od czasu do czasu z nozdrzy wydobywa się mały język ognia — pewnie śni o walce.`,
-            woda: `${d.name} siedzi przy misce z wodą i wpatruje się w nią jak zahipnotyzowany. Woda w misce kręci się sama, powoli.`,
-            ziemia: `${d.name} leży dokładnie tam, gdzie go zostawiłeś. Nie ruszył się ani o centymetr. Jak posąg — tylko ciepły.`,
-            powietrze: `${d.name} siedzi na najwyższej półce i stamtąd patrzy na pokój. Jak tam wlazł — nie masz pojęcia.`
+            ogien: [
+                `${d.name} leży zwinięty przy kominku i śpi. Od czasu do czasu z nozdrzy wydobywa się mały język ognia — pewnie śni o walce.`,
+                `${d.name} siedzi pośrodku pokoju i wpatruje się w płomienie jak zahipnotyzowany. Ogień w kominku płonie jaśniej niż zwykle.`,
+                `Wchodząc zastajesz ${d.name} śpiącego na dywanie. Dywan ma nowy osmolony ślad. Smok chrapie cicho.`,
+                `${d.name} próbuje podpalić świeczkę oddechem. Z piątej próby wychodzi za duże — połowa stołu teraz dymi. Patrzy na ciebie bez śladu winy.`,
+                `${d.name} przyniósł sobie kawałek drewna i żuje go z zadowoleniem przy kominku. Drewno się tli.`,
+            ],
+            woda: [
+                `${d.name} siedzi przy misce z wodą i wpatruje się w nią jak zahipnotyzowany. Woda w misce kręci się sama, powoli.`,
+                `${d.name} śpi zwinięty obok wiadra z wodą — łapę zanurzoną do środka. Woda jest lodowata.`,
+                `Zastajesz ${d.name} siedzącego przy oknie i patrzącego na deszcz. Wydaje się spokojniejszy niż zwykle.`,
+                `${d.name} wylał miskę z wodą i leży w kałuży z wyraźnym zadowoleniem. Podłoga mokra. Smok szczęśliwy.`,
+                `${d.name} robi coś co wygląda jak "pływanie" po podłodze. Nie pyta, po prostu daje mu przestrzeń.`,
+            ],
+            ziemia: [
+                `${d.name} leży dokładnie tam, gdzie go zostawiłeś. Nie ruszył się ani o centymetr. Jak posąg — tylko ciepły.`,
+                `${d.name} kopie mały dołek w kącie pokoju. Ziemia z doniczki rozsypana po podłodze. Smok wygląda na zadowolonego.`,
+                `Zastajesz ${d.name} śpiącego na stosie własnych łusek — część zrzucił pod ścianą. Chrapie rytmicznie jak głaz toczący się ze wzgórza.`,
+                `${d.name} siedzi przy oknie i patrzy na ulicę. Kiedy wchodzisz, odwraca głowę i ziewa — pokazując zęby. Jego sposób na "cześć".`,
+                `${d.name} ułożył starannie kilka kamieni w rząd przy ścianie. Po co? Nie wiadomo. Nie ruszaj.`,
+            ],
+            powietrze: [
+                `${d.name} siedzi na najwyższej półce i stamtąd patrzy na pokój. Jak tam wlazł — nie masz pojęcia.`,
+                `${d.name} krąży pod sufitem w kółko. Na twój widok nurkuje i ląduje centymetry od twoich stóp. Uśmiecha się.`,
+                `Gdy wchodzisz, ${d.name} znika za szafą. Po chwili wraca z kawałkiem pergaminu w pysku — pewnie chciał coś powiedzieć.`,
+                `${d.name} stoi przy drzwiach jakby czekał. Kiedy je otwierasz, wybiega na zewnątrz i po chwili wraca. Spacer.`,
+                `Powietrze w pokoju jest chłodniejsze niż zwykle. ${d.name} śpi w rogu, skrzydła lekko rozłożone — kto wie, co mu się śni.`,
+            ],
         };
-        return descs[d.element] || `${d.name} czeka spokojnie.`;
+        const arr = descs[d.element] || [`${d.name} czeka spokojnie.`];
+        return arr[Math.floor(Date.now() / (10*60*1000)) % arr.length];
     }
 
+    // ── 2 smoki ──────────────────────────────────────────
     if (dragons.length === 2) {
         const [d1, d2] = dragons;
         const pair = [d1.element, d2.element].sort().join('_');
-        if (pair === 'ogien_woda') {
-            const f = dragons.find(d => d.element === 'ogien');
-            const w = dragons.find(d => d.element === 'woda');
-            return `Wchodząc do domu widzisz, że ${f.name} i ${w.name} patrzą na siebie z bezpiecznej odległości. Na dywanie widać mokrą plamę i spalony skraj materiału. Krzesło między nimi zostało wyraźnie przesunięte kilka razy. Walka o terytorium trwa od twojego wyjścia.`;
-        }
-        if (pair === 'ogien_ziemia') {
-            return `${d1.name} siedzi przy kominku, ${d2.name} w kącie — każdy w swoim miejscu. Atmosfera jest spokojna. Może nawet zbyt spokojna.`;
-        }
-        if (pair === 'ogien_powietrze') {
-            return `${d1.name} śledzi każdy ruch ${d2.name}, który kręci się po całym pokoju jak wicher. Wyraźnie go to drażni. Kilka rzeczy zostało strąconych z półek.`;
-        }
-        if (pair === 'woda_ziemia') {
-            return `${d1.name} i ${d2.name} leżą w swoich miejscach w milczeniu. Raz na jakiś czas jedno zerknie na drugie. Cisza jest niemal namacalna.`;
-        }
-        return `${d1.name} i ${d2.name} są w domu. Wygląda na to, że dzień minął spokojnie.`;
+        const pairDescs = {
+            ogien_woda: [
+                `${d1.name} i ${d2.name} patrzą na siebie z bezpiecznej odległości. Na dywanie mokra plama i spalony skraj. Walka o terytorium.`,
+                `Wchodzisz w chwili gdy ${d1.name} i ${d2.name} mierzą się wzrokiem. Krzesło między nimi jest przesunięte. Nikt się nie ruszył.`,
+                `Para smoków po przeciwnych stronach pokoju. Para z nozdrzy jednego. Mokre ślady po podłodze od drugiego. Neutralna strefa naruszana co jakiś czas.`,
+                `${d1.name} i ${d2.name} śpią osobno — każdy w swoim kącie. Na środku pokoju stoi przewrócona miska. Żadne nie chce jej podnieść.`,
+            ],
+            ogien_ziemia: [
+                `${d1.name} siedzi przy kominku, ${d2.name} w kącie — każdy w swoim miejscu. Atmosfera spokojna. Może zbyt spokojna.`,
+                `${d2.name} śpi przy ścianie. ${d1.name} tli się przy kominku. Żadne nie zwraca uwagi na drugie.`,
+                `${d1.name} próbuje zmusić ${d2.name} do zabawy. ${d2.name} ignoruje go całkowicie. ${d1.name} wraca do kominka pokonany.`,
+                `Obydwa smoki siedzą przy kominku — jeden grzeje się w ogniu, drugi w cieple. Rzadka chwila zgody.`,
+            ],
+            ogien_powietrze: [
+                `${d1.name} śledzi każdy ruch ${d2.name}, który kręci się po całym pokoju jak wicher. Wyraźnie go to drażni.`,
+                `${d2.name} kręci się po suficie. ${d1.name} śledzi go wzrokiem aż zaczyna kręcić mu się głowa. Kiwa głową z rezygnacją.`,
+                `${d1.name} śpi. ${d2.name} lata cicho wokół — sprawdza czy przypadkiem to nie chwila na złośliwość. Decyduje że tak.`,
+                `Kilka rzeczy strąconych z półki. ${d2.name} siedzi niewinnie przy oknie. ${d1.name} dymi z niezadowolenia.`,
+            ],
+            woda_ziemia: [
+                `${d1.name} i ${d2.name} leżą w milczeniu. Raz na jakiś czas jedno zerknie na drugie. Cisza namacalna.`,
+                `${d1.name} siedzi przy misce. ${d2.name} drzemie przy ścianie. Spokój jak w starym klasztorze.`,
+                `Obydwa smoki śpią — jeden obok drugiego, ramię w ramię. Rzadki widok.`,
+                `${d2.name} wcisnął się między ${d1.name} a ścianę. Wyglądają jak dwa kamienie w rzece.`,
+            ],
+        };
+        const arr = pairDescs[pair];
+        if (arr) return arr[Math.floor(Date.now() / (10*60*1000)) % arr.length];
+        const generic = [
+            `${d1.name} i ${d2.name} są w domu. Wygląda na to że dzień minął spokojnie.`,
+            `${d1.name} drzemie, ${d2.name} siedzi przy oknie. Cisza.`,
+            `Obydwa smoki wyglądają na zmęczone. Może to czas na odpoczynek.`,
+        ];
+        return generic[Math.floor(Date.now() / (10*60*1000)) % generic.length];
     }
 
-    // 3 smoki
+    // ── 3 smoki ──────────────────────────────────────────
     const elements = dragons.map(d => d.element);
 
     if (elements.includes('ogien') && elements.includes('woda')) {
@@ -408,21 +476,31 @@ function getDragonHomeDesc() {
         const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
 
         let thirdDesc = '';
-
         if (thirdD) {
             const map = {
-                ziemia: `${thirdD.name} czeka dokładnie w tym miejscu, co był gdy wychodziłeś. Pewnie siedział tutaj cały czas jak kamień, ignorując całe zamieszanie.`,
-                powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`
+                ziemia: `${thirdD.name} czeka dokładnie w tym miejscu co był gdy wychodziłeś — ignoruje całe zamieszanie jak kamień.`,
+                powietrze: `${thirdD.name} gdzieś zniknął. Po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`
             };
-            thirdDesc = map[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
+            thirdDesc = map[thirdD.element] || `${thirdD.name} ignoruje całą sytuację z filozoficznym spokojem.`;
         } else {
-            // gdy masz 2 ognie albo 2 wody
             thirdDesc = `Trzeci smok również miesza się do konfliktu — napięcie w powietrzu jest wyczuwalne.`;
         }
 
-        return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
+        const conflictDescs = [
+            `Wchodząc widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady — walka o terytorium. ${thirdDesc}`,
+            `${fireD.name} i ${waterD.name} okrążają się nawzajem po pokoju. Dywan ma ślady wilgoci i opalenia. ${thirdDesc}`,
+            `Skraj zasłony spalony — nowy. Przy oknie mokra plama. ${fireD.name} i ${waterD.name} siedzą tyłem do siebie. ${thirdDesc}`,
+        ];
+        return conflictDescs[Math.floor(Date.now() / (10*60*1000)) % conflictDescs.length];
     }
-    return `Wszystkie trzy smoki są w domu. Panuje względny spokój — jak na trójkę smoków przystało.`;
+
+    const peaceful3 = [
+        `Wszystkie trzy smoki są w domu. Panuje względny spokój — jak na trójkę smoków przystało.`,
+        `Trzy smoki śpią w swoich miejscach. Dom pachnie dymem, wilgocią i czymś co można nazwać "smoczym pokojem".`,
+        `${dragons[0].name}, ${dragons[1].name} i ${dragons[2].name} siedzą razem przy oknie i patrzą na miasto. Nikt się nie kłóci — na razie.`,
+        `Coś przewrócone, coś przesunięte — ale wszystkie trzy smoki żyją i wyglądają zadowolenie. Tyle wystarczy.`,
+    ];
+    return peaceful3[Math.floor(Date.now() / (10*60*1000)) % peaceful3.length];
 }
 
 
@@ -568,27 +646,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
                 ${vitals.fatigue > 0 ? `<div class="dialog-button" onclick="handleRestDragon(${num})">💤 Pozwól odpocząć</div>` : ''}
             ` : ''}
 
-            <!-- Misje smoka -->
-            ${!isOnMission ? `
-                <details style="margin:8px 0;" ${getDetailsState('mission', num) === 'open' ? 'open' : ''} ontoggle="saveDetailsState('mission', ${num}, this.open)">
-                    <summary style="cursor:pointer; color:#9ab; padding:6px 0;">🗺️ Wyślij na misję</summary>
-                    <div style="margin-top:8px;">
-                        ${DRAGON_MISSIONS.filter(m => {
-                            if (m.id === 'wyprawa_ksiezycowa') {
-                                return getMoonGateStatus().open;
-                            }
-                            return true;
-                        }).map(m => `
-                            <div style="margin:6px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;">
-                                <b>${m.name}</b><br>
-                                <span style="color:#8090aa; font-size:12px;">${m.desc}</span><br>
-                                ⏱ ${formatTime(m.duration)} | 😴 Zmęczenie: +${m.fatigue} | 💰 ${Object.entries(m.reward).map(([t,a])=>`${a} ${t}`).join(', ')}
-                                <div class="dialog-button" style="margin-top:4px;" onclick="handleStartMission(${num}, '${m.id}')">Wyślij</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </details>
-            ` : ''}
+            <!-- Misje smoka — przeniesione do zakładki Smoki -->
 
             <!-- Zaklęcia -->
             ${enrolled ? `
@@ -730,37 +788,132 @@ function checkMissionStatus(num) {
    ZAKŁADKA SMOKI (ZAKTUALIZOWANA Z CECHAMI)
 ========================================= */
 
+function renderMissionPanel(num, isOnMission, mission) {
+    if (isOnMission) {
+        const remaining = Math.max(0, mission.endTime - Date.now());
+        return `
+            <div style="margin:8px 0; padding:10px; background:rgba(40,30,10,0.5); border-left:3px solid #cc9900; border-radius:6px;">
+                <div style="color:#ffcc44; font-weight:bold; margin-bottom:4px;">🦅 Na misji: ${mission.name}</div>
+                <div style="color:#aaa; font-size:13px;">Powrót za: <b style="color:#ffcc44;" id="dtab-timer-${num}">${formatTime(remaining)}</b></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <div class="dialog-button" style="flex:1; font-size:12px;" onclick="checkMissionStatus(${num})">🔍 Status</div>
+                    <div class="dialog-button" style="flex:1; font-size:12px; border-color:#cc6600; color:#ffaa44;" onclick="skipDragonMission(${num}); updateDragonsTab();">⏭️ Pomiń</div>
+                </div>
+            </div>
+        `;
+    }
+    const moonOpen = getMoonGateStatus().open;
+    const missions = DRAGON_MISSIONS.filter(m => m.id !== 'wyprawa_ksiezycowa' || moonOpen);
+    return `
+        <details style="margin:8px 0;" ontoggle="if(this.open) this.setAttribute('data-open','1'); else this.removeAttribute('data-open');">
+            <summary style="cursor:pointer; color:#88aadd; padding:5px 0; font-size:13px;">🗺️ Wyślij na wyprawę</summary>
+            <div style="margin-top:6px;">
+                ${missions.map(m => `
+                    <div style="margin:5px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:12px;">
+                        <div style="font-weight:bold; color:#c0cce0;">${m.name} ${m.id==='wyprawa_ksiezycowa'?'🌕':''}</div>
+                        <div style="color:#8090aa; font-size:11px; margin:2px 0;">${m.desc}</div>
+                        <div style="color:#7080aa; font-size:11px;">⏱ ${formatTime(m.duration)} | 😴 +${m.fatigue} | 💰 ${Object.entries(m.reward).map(([t,a])=>`${a} ${t}`).join(', ')}</div>
+                        <div class="dialog-button" style="margin-top:5px; font-size:12px; padding:4px 8px;" onclick="handleStartMissionDragons(${num}, '${m.id}')">Wyślij</div>
+                    </div>
+                `).join('')}
+            </div>
+        </details>
+    `;
+}
+
+function handleStartMissionDragons(num, missionId) {
+    const result = startDragonMission(num, missionId);
+    alert(result.msg);
+    if (result.ok) updateDragonsTab();
+}
+
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
+    if (!list) return;
     dragonLevel = dragonFeedings * 5;
     secondDragonLevel = secondDragonFeedings * 5;
     thirdDragonLevel = thirdDragonFeedings * 5;
+    eggHeats        = Number(localStorage.getItem('eggHeats')) || 0;
+    secondEggHeats  = Number(localStorage.getItem('secondEggHeats')) || 0;
+    thirdEggHeats   = Number(localStorage.getItem('thirdEggHeats')) || 0;
 
-    let html = renderDragonOverviewSlot(1, dragonName, chosenDragon, eggHeats, dragonLevel);
+    const dragonData = [
+        { num: 1, name: dragonName, element: chosenDragon, heats: eggHeats, level: dragonLevel, unlocked: true },
+        { num: 2, name: secondDragonName, element: secondDragonElement, heats: secondEggHeats, level: secondDragonLevel, unlocked: secondDragonUnlocked },
+        { num: 3, name: thirdDragonName, element: thirdDragonElement, heats: thirdEggHeats, level: thirdDragonLevel, unlocked: thirdDragonUnlocked },
+    ];
 
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 2:</b><br>
-            ${secondDragonUnlocked ?
-                renderDragonOverviewSlot(2, secondDragonName, secondDragonElement, secondEggHeats, secondDragonLevel, true)
-                :
-                "🔒 Zablokowany — odwiedź Handlarza"
-            }
-        </div>
-    `;
+    let html = '';
 
-    html += `
-        <div class="dragon-slot">
-            <b>Smok 3:</b><br>
-            ${thirdDragonUnlocked ?
-                renderDragonOverviewSlot(3, thirdDragonName, thirdDragonElement, thirdEggHeats, thirdDragonLevel, true)
-                :
-                "🔒 Zablokowany"
-            }
-        </div>
-    `;
+    dragonData.forEach(d => {
+        if (!d.unlocked) {
+            html += `<div class="dragon-slot" style="opacity:0.5; color:#6070a0;">🔒 Smok ${d.num} — Zablokowany${d.num === 2 ? ' (odwiedź Handlarza)' : ''}</div>`;
+            return;
+        }
+
+        if (d.heats < 3) {
+            const heatMsg = d.heats === 0 ? 'Zimne — potrzebuje troski.' : d.heats === 1 ? 'Ciepłe — czujesz w nim życie.' : 'Drga — coś się porusza!';
+            html += `
+                <div class="dragon-slot">
+                    <div style="font-weight:bold; color:#c0cce0; margin-bottom:6px;">${d.name} — ${d.element ? d.element.toUpperCase() : '?'}</div>
+                    <div style="color:#8090aa; font-size:13px; margin-bottom:8px;">🥚 Ogrzania: <b style="color:#ffcc44;">${d.heats}/3</b> — ${heatMsg}</div>
+                    <div class="dialog-button" onclick="heatEgg${d.num}()">🔥 Zadbaj o jajo</div>
+                    <div style="color:#6070a0; font-size:12px; font-style:italic; margin-top:8px;">Gdy jajo się wykluje, tutaj pojawią się opcje wypraw.</div>
+                </div>
+            `;
+            return;
+        }
+
+        const stats = loadDragonStats(d.num);
+        const vitals = initDragonVitalsIfNeeded(d.num, stats);
+        const maxHP = getDragonMaxHP(stats);
+        const maxMana = getDragonMaxMana(stats);
+        const mission = loadDragonMission(d.num);
+        if (mission && Date.now() >= mission.endTime) {
+            completeDragonMission(d.num);
+        }
+        const activeMission = loadDragonMission(d.num);
+        const equipBonus = getEquipmentStatBonus(d.num);
+        const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff' };
+        const elColor = elColors[d.element] || '#aab';
+
+        html += `
+            <div class="dragon-slot">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div>
+                        <span style="font-weight:bold; color:#e0e8ff; font-size:15px;">${d.name}</span>
+                        <span style="color:${elColor}; font-size:12px; margin-left:8px;">${d.element ? d.element.toUpperCase() : ''}</span>
+                        <span style="color:#7080aa; font-size:12px; margin-left:8px;">Poz. ${d.level}</span>
+                    </div>
+                </div>
+                <div style="font-size:12px; color:#aab; margin-bottom:6px;">
+                    ❤️ ${vitals.hp}/${maxHP} | 💧 ${vitals.mana}/${maxMana} | 😴 ${vitals.fatigue}/100
+                </div>
+                <div style="font-size:12px; color:#7080aa; margin-bottom:8px;">
+                    ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: ${v}${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' · ')}
+                </div>
+                ${renderMissionPanel(d.num, !!activeMission, activeMission)}
+            </div>
+        `;
+    });
 
     list.innerHTML = html;
+
+    // Live timers for active missions
+    dragonData.forEach(d => {
+        if (!d.unlocked || d.heats < 3) return;
+        const mission = loadDragonMission(d.num);
+        if (mission) {
+            const tick = () => {
+                const el = document.getElementById(`dtab-timer-${d.num}`);
+                if (!el) return;
+                const rem = Math.max(0, mission.endTime - Date.now());
+                el.textContent = formatTime(rem);
+                if (rem > 0) setTimeout(tick, 1000);
+            };
+            tick();
+        }
+    });
 }
 
 function renderDragonOverviewSlot(num, name, element, heats, level, inline) {
@@ -2339,11 +2492,33 @@ function renderGuardMission() {
 
     if (gs.stage === 'none' || !gs.stage) {
         box.innerHTML = `
-            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">Kapitan Mira odkłada raporty i mierzy cię wzrokiem.\n\n— Mamy problem. Kurier z dokumentami zaginął trzy dni temu. Dokumenty są ważne — nie dla mnie, dla kogoś wyżej. Chcę żebyś się tym zajął. Dyskretnie.\n\nPodaje ci opisany kawałek pergaminu — wizerunek kuriera i ostatnia znana trasa.\n\n— Jak go znajdziesz, wróć tu zanim cokolwiek zrobisz. Zrozumiałeś?</div>
+            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                Kapitan Mira odkłada raporty i mierzy cię wzrokiem.<br><br>
+                — Mamy problem. Kurier z dokumentami zaginął trzy dni temu. Dokumenty są ważne — nie dla mnie, dla kogoś wyżej. Chcę żebyś się tym zajął. Dyskretnie.<br><br>
+                Podaje ci opisany kawałek pergaminu — wizerunek kuriera i ostatnia znana trasa.<br><br>
+                — Jak go znajdziesz, wróć tu zanim cokolwiek zrobisz. Zrozumiałeś?
+            </div>
             <div class="dialog-button" onclick="acceptGuardMission('loyal')">„Jasne. Najpierw wracam do ciebie."</div>
             <div class="dialog-button" onclick="acceptGuardMission('independent')">„Działam jak uznam za stosowne."</div>
-            <div class="dialog-button" onclick="acceptGuardMission('curious')">„Czemu te dokumenty są takie ważne?"</div>
+            <div class="dialog-button" onclick="guardAskAboutDocs()">„Co zawierają te dokumenty?"</div>
             <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="declineGuardMission()">Odmów zlecenia</div>
+        `;
+        return;
+    }
+
+    if (gs.stage === 'asking_docs') {
+        box.innerHTML = `
+            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; font-style:italic;">
+                Kapitan Mira unosi brew.<br><br>
+                — <em>Nie twoja sprawa</em> — mówi spokojnie, ale coś w jej głosie mówi że to nie jest do dyskusji.<br><br>
+                Milczysz przez chwilę. Ona też.<br><br>
+                — Korespondencja urzędowa — dodaje w końcu, ważąc słowa. — Między pewnymi osobami. Wrażliwa. Jeśli trafi w złe ręce, sprawi kłopoty ludziom których nie chcę mieć za wrogów.<br><br>
+                Odchyla się i krzyżuje ramiona.<br><br>
+                — Dość gadania. Podejmujesz się czy nie?
+            </div>
+            <div class="dialog-button" onclick="acceptGuardMission('loyal')">„Dobrze. Wracam do ciebie z kurierem."</div>
+            <div class="dialog-button" onclick="acceptGuardMission('independent')">„Znajdę go — ale działam po swojemu."</div>
+            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="declineGuardMission()">„Nie, to nie dla mnie."</div>
         `;
         return;
     }
@@ -2387,12 +2562,11 @@ function renderGuardMission() {
     }
 
     if (gs.stage === 'curious') {
-        box.innerHTML = `
-            <div style="padding:12px; background:rgba(10,20,40,0.7); border-left:3px solid #cc9900; border-radius:6px; color:#e0d0a0; line-height:1.7; margin-bottom:12px; white-space:pre-line; font-style:italic;">— Są ważne — mówi Kapitan z naciskiem. — I to wystarczy.\n\nMira uśmiecha się, ale uśmiech nie dosięga oczu.</div>
-            <div class="dialog-button" onclick="acceptGuardMission('loyal')">„Dobrze. Podejmuję."</div>
-            <div class="dialog-button" onclick="acceptGuardMission('independent')">„Działam jak uznam za stosowne."</div>
-            <div class="dialog-button" style="border-color:#778;color:#aab;" onclick="declineGuardMission()">Odmów</div>
-        `;
+        // Redirect to asking_docs for unified handling
+        const gs2 = getGuardState();
+        gs2.stage = 'asking_docs';
+        setGuardState(gs2);
+        renderGuardMission();
         return;
     }
 
@@ -2447,6 +2621,13 @@ function declineGuardMission() {
 
 function resetGuardMission() {
     setGuardState({ stage: 'none' });
+    renderGuardMission();
+}
+
+function guardAskAboutDocs() {
+    const gs = getGuardState();
+    gs.stage = 'asking_docs';
+    setGuardState(gs);
     renderGuardMission();
 }
 
