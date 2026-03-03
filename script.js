@@ -2886,9 +2886,19 @@ function renderCourierSearchButton(regionKey, locationId) {
 
     if (!isCorrectLoc) return '';
 
+    const _searchHints = {
+        karczma:           'Na sali jest nieźle zatłoczone. Ktoś w kapturze zamówił chwilę temu piwo i nie pije — tylko obserwuje wyjście. Rozejrzyj się wolno, nie zwracając na siebie uwagi.',
+        plac:              'Plac pełen kupców i przechodniów — idealne miejsce, żeby zniknąć w tłumie. Szukaj kogoś, kto stoi zbyt długo w jednym miejscu albo unika wzroku strażników.',
+        port:              'Przy pomostach śmierdzi rybami i smołą. Jeden z dokerów kręci się bez celu przy składzie beczek — nie załadowuje ani nie rozładowuje. Może to on.',
+        tablica:           'Przy tablicy stoi kilka osób. Jedna z nich — w szarej pelerynie — czyta to samo ogłoszenie już trzeci raz. Zbyt długo. Zbyt uważnie.',
+        handlarz_zywnosci: 'Stragan jest głośny i pełen ludzi. Dobra kryjówka jeśli wiesz jak wtopić się w tłum. Szukaj kogoś, kto kupuje mało, ale stoi długo — i zerka przez ramię.',
+        kowal:             'Kuźnia huczy od uderzeń. W głębi, między stojakami ze zbroją, jest ktoś kto udaje, że ogląda towar. Kurier raczej nie interesuje się żelazem — ale tu można czekać niewidocznym.',
+        biblioteka:        'W bibliotece panuje cisza. Między wysokimi regałami w głębi sali widać oparty o półkę kapelusz. Ktoś przykucnął za jednym z regałów — jakby szukał czegoś bardzo blisko podłogi.',
+    };
+    const _hint = _searchHints[locationId] || 'Ślad prowadzi właśnie tutaj. Masz rysopis — rozejrzyj się uważnie.';
     return `<div style="margin:10px 0; padding:12px; background:rgba(30,50,20,0.7); border:2px solid #66cc44; border-radius:8px; animation:worldFadeIn 0.5s;">
         <b style="color:#aaff66;">🔍 Szukaj kuriera tutaj</b>
-        <p style="color:#c0e0a0; font-size:13px; margin:6px 0 10px;">Ślad prowadzi właśnie tutaj. Masz rysopis — rozejrzyj się uważnie.</p>
+        <p style="color:#c0e0a0; font-size:13px; margin:6px 0 10px;">${_hint}</p>
         <div class="dialog-button" style="border-color:#66cc44;color:#aaff66;" onclick="attemptCourierSearch()">Szukaj</div>
     </div>`;
 }
@@ -2900,6 +2910,18 @@ function attemptCourierSearch() {
     const success = Math.random() < chance || attempt >= 3;
 
     if (success) {
+        const _locIdx2 = Number(localStorage.getItem('courierSearchLoc') ?? gs.currentLocIndex ?? 0);
+        const _foundLocId = (COURIER_SEARCH_LOCATIONS[_locIdx2] || {}).loc || '';
+        const _foundMsgs = {
+            karczma:           'Wypatrzyłeś go. Siedzi sam przy stoliku pod ścianą, twarzą do okna — ale oczy wędrują nerwowo po sali. Kapelusz naciągnięty głęboko. Widzi cię zanim jeszcze do niego dojdziesz.',
+            plac:              'Stoi przy fontannie z zawiniątkiem pod pachą — za ciężkim, żeby to był zwykły zakup. Kiedy na niego patrzysz, zaczyna wolno iść w stronę bocznej uliczki. Zrywasz się za nim.',
+            port:              'Jedna z dużych beczek przy składzie kołysze się lekko — bez powodu. Podnosisz pokrywę. Kurier siedzi w środku, skulony między deskami, z dokumentami za paskiem. Patrzy na ciebie wielkimi oczami.',
+            tablica:           'Podchodzisz od tyłu. Odwraca się — za późno. Macie kontakt wzrokowy. Przez chwilę oboje stoją bez ruchu. Potem ty robisz krok do przodu.',
+            handlarz_zywnosci: 'Zauważasz go między kramami — udaje, że wybiera mięso. Handlarka patrzy na niego dziwnie; on za dużo czasu poświęca na wąchanie kawałka, który nie wygląda zachęcająco. Podchodzisz od boku.',
+            kowal:             'Ukrył się za stojakiem z hełmami w głębi kuźni. Brag rzuca w jego kierunku krótkie spojrzenie — ale to nie jego sprawa. Ty podchodzisz pewnym krokiem. Kurier nie ma dokąd uciec.',
+            biblioteka:        'Kucnął między dolnymi półkami w bocznym korytarzu — udaje, że szuka jakiejś księgi. Bibliotekarz mruży oczy w jego kierunku, ale nic nie mówi. Ty kładziesz rękę na regale tuż nad jego głową.',
+        };
+        const _foundMsg = _foundMsgs[_foundLocId] || 'Wypatrzyłeś go! Siedzi w kącie, osłaniając twarz kapeluszem. Oczy zdradzają strach.';
         gs.stage = 'found';
         setGuardState(gs);
         localStorage.removeItem('courierSearchLoc');
@@ -2907,7 +2929,7 @@ function attemptCourierSearch() {
         const box = document.getElementById('location-action-area');
         if (box) {
             box.innerHTML = `<div style="padding:12px; background:rgba(20,50,20,0.7); border-left:3px solid #44cc88; border-radius:6px; color:#99ffcc; margin-bottom:12px; font-style:italic;">
-                Wypatrzyłeś go! Siedzi w kącie, osłaniając twarz kapeluszem. Oczy zdradzają strach.
+                ${_foundMsg}
                 <div class="dialog-button" style="margin-top:10px;" onclick="renderGuardMission()">Podejdź do kuriera</div>
             </div>`;
         }
