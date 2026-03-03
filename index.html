@@ -9,72 +9,224 @@
 
 <div id="content">
     <div id="intro"></div>
-
-    <div id="world" class="tab-content"></div>
-
-    <div id="dragons" class="tab-content">
-        <h2>Smoki</h2>
-        <div id="dragons-list"></div>
-    </div>
-
-    <div id="home" class="tab-content">
-        <h2>Dom</h2>
-        <div id="home-content"></div>
-    </div>
-
-    <div id="work" class="tab-content">
-        <div id="work-content"></div>
-    </div>
-
-    <div id="inventory" class="tab-content">
-        <div id="inventory-content"></div>
-    </div>
-
-    <div id="warta" class="tab-content">
-        <h2>⚔️ Warta</h2>
-        <div id="warta-content"></div>
-    </div>
-
-    <div id="ochrona" class="tab-content">
-        <h2>🛡️ Ochrona</h2>
-        <div id="ochrona-content"></div>
-    </div>
-
-    <div id="szpiegowanie" class="tab-content">
-        <h2>🌑 Szpiegowanie</h2>
-        <div id="szpiegowanie-content"></div>
-    </div>
-
-    <div id="merchant" class="tab-content">
-        <h2>Handlarz Smoczych Jaj</h2>
-        <div id="merchant-content"></div>
-    </div>
+    <div id="world" class="tab-content"><h2>Świat</h2><p>Tu pojawi się mapa świata.</p></div>
+    <div id="dragons" class="tab-content"><h2>Smoki</h2><div id="dragons-list"></div></div>
+    <div id="home" class="tab-content"><h2>Dom</h2><div id="home-content"></div></div>
+    <div id="work" class="tab-content"><div id="work-content"></div></div>
+    <div id="inventory" class="tab-content"><div id="inventory-content"></div></div>
+    <div id="merchant" class="tab-content"><h2>Handlarz Smoczych Jaj</h2><div id="merchant-content"></div></div>
 </div>
 
 <!-- SIDEBAR -->
 <div id="sidebar">
+
+    <!-- ══ SMOCZE ZEGARY ══ -->
+    <div id="dragon-clock-wrap">
+        <div id="dragon-clock-outer">
+            <div class="dragon-horn dragon-horn-l"></div>
+            <div class="dragon-horn dragon-horn-r"></div>
+            <div class="dragon-spike dragon-spike-l"></div>
+            <div class="dragon-spike dragon-spike-r"></div>
+            <canvas id="dragon-clock-canvas" width="160" height="160"></canvas>
+            <div class="dragon-eye dragon-eye-l"><div class="dragon-pupil" id="dpupil-l"></div></div>
+            <div class="dragon-eye dragon-eye-r"><div class="dragon-pupil" id="dpupil-r"></div></div>
+            <div class="dragon-jaw">
+                <div class="dragon-tooth"></div>
+                <div class="dragon-tooth"></div>
+                <div class="dragon-tooth"></div>
+            </div>
+        </div>
+        <div id="dragon-clock-digital"><span id="dragon-time">00:00:00</span></div>
+        <div id="dragon-clock-date"></div>
+    </div>
+    <!-- ══ KONIEC ZEGARÓW ══ -->
+
     <div id="currency-display" style="padding:10px; text-align:center; border-bottom:1px solid #cfd8ff; margin-bottom:10px;">
         <div id="curr-gold">Złoto: 0</div>
         <div id="curr-silver">Srebro: 0</div>
         <div id="curr-copper">Miedź: 0</div>
     </div>
     <h2>Zakładki</h2>
-
     <div class="tab" onclick="openTab('world')">Świat</div>
-    <div class="tab" id="tab-dragons-btn" onclick="openTab('dragons')">Smoki</div>
-    <div class="tab" id="tab-home-btn" onclick="openTab('home')">Dom</div>
+    <div class="tab" onclick="openTab('dragons')">Smoki</div>
+    <div class="tab" onclick="openTab('home')">Dom</div>
     <div id="tab-work" class="tab" onclick="openTab('work')">Praca</div>
     <div class="tab" onclick="openTab('inventory')">Ekwipunek</div>
     <div class="tab" onclick="openTab('merchant')">Handlarz</div>
-    <div class="tab" id="tab-warta" style="display:none; border-color:#cc9900; color:#ffcc66;" onclick="openTab('warta')">⚔️ Warta</div>
-
-    <div class="tab" id="tab-ochrona" style="display:none; border-color:#4488bb; color:#88bbff;" onclick="openTab('ochrona')">🛡️ Ochrona</div>
-    <div class="tab" id="tab-szpiegowanie" style="display:none; border-color:#774499; color:#cc88ff;" onclick="openTab('szpiegowanie')">🌑 Szpiegowanie</div>
-
-    <!-- RESET JAKO OSTATNIA ZAKŁADKA -->
     <div class="tab reset-tab" onclick="resetGame()">RESET DO POCZĄTKU</div>
 </div>
 
 <script src="script.js"></script>
+<script>
+(function(){
+    var canvas = document.getElementById('dragon-clock-canvas');
+    var ctx = canvas.getContext('2d');
+    var W=160,H=160,CX=80,CY=80,R=70;
+
+    var DAYS=['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+    var MONTHS=['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+
+    // Pre-render scales ring
+    var scaleC=document.createElement('canvas'); scaleC.width=W; scaleC.height=H;
+    var sc=scaleC.getContext('2d');
+    for(var row=0;row<22;row++){
+        for(var col=0;col<22;col++){
+            var sx=col*9+(row%2===0?0:4.5), sy=row*7.5;
+            var dist=Math.hypot(sx-CX,sy-CY);
+            if(dist<R+16 && dist>R-8){
+                sc.beginPath();
+                sc.ellipse(sx,sy,5.5,4,0,0,Math.PI*2);
+                var g=sc.createRadialGradient(sx-1,sy-1,0,sx,sy,5.5);
+                g.addColorStop(0,'rgba(50,220,100,0.6)');
+                g.addColorStop(1,'rgba(10,70,25,0.2)');
+                sc.fillStyle=g;
+                sc.fill();
+                sc.strokeStyle='rgba(0,200,60,0.35)';
+                sc.lineWidth=0.5;
+                sc.stroke();
+            }
+        }
+    }
+
+    function hand(angle,len,w,col,glow,claw){
+        var ex=CX+Math.cos(angle)*len, ey=CY+Math.sin(angle)*len;
+        ctx.shadowBlur=14; ctx.shadowColor=glow;
+        ctx.beginPath();
+        ctx.moveTo(CX-Math.cos(angle)*14, CY-Math.sin(angle)*14);
+        ctx.lineTo(ex,ey);
+        ctx.strokeStyle=col; ctx.lineWidth=w; ctx.lineCap='round'; ctx.stroke();
+        if(claw>0){
+            var px=-Math.sin(angle)*w*0.6, py=Math.cos(angle)*w*0.6;
+            ctx.beginPath();
+            ctx.moveTo(ex+px,ey+py);
+            ctx.lineTo(ex+Math.cos(angle)*claw, ey+Math.sin(angle)*claw);
+            ctx.lineTo(ex-px,ey-py);
+            ctx.strokeStyle='#00ffaa'; ctx.lineWidth=1.5; ctx.stroke();
+        }
+        ctx.shadowBlur=0; ctx.shadowColor='transparent';
+    }
+
+    function draw(){
+        var now=new Date();
+        var s=now.getSeconds(), m=now.getMinutes(), h=now.getHours()%12, ms=now.getMilliseconds();
+        var sA=((s+ms/1000)/60)*Math.PI*2-Math.PI/2;
+        var mA=((m+(s+ms/1000)/60)/60)*Math.PI*2-Math.PI/2;
+        var hA=((h+(m+s/60)/60)/12)*Math.PI*2-Math.PI/2;
+
+        ctx.clearRect(0,0,W,H);
+
+        // Outer glow
+        var og=ctx.createRadialGradient(CX,CY,R-6,CX,CY,R+20);
+        og.addColorStop(0,'rgba(0,255,80,0.15)');
+        og.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=og;
+        ctx.beginPath(); ctx.arc(CX,CY,R+20,0,Math.PI*2); ctx.fill();
+
+        // Scales
+        ctx.drawImage(scaleC,0,0);
+
+        // Rim
+        ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2);
+        var rim=ctx.createLinearGradient(CX-R,CY-R,CX+R,CY+R);
+        rim.addColorStop(0,'#00ff77'); rim.addColorStop(0.4,'#1a7a44');
+        rim.addColorStop(0.7,'#0a4a22'); rim.addColorStop(1,'#00cc55');
+        ctx.strokeStyle=rim; ctx.lineWidth=3.5; ctx.stroke();
+
+        // Face bg
+        var fg=ctx.createRadialGradient(CX,CY-12,4,CX,CY,R-2);
+        fg.addColorStop(0,'#0f2218'); fg.addColorStop(0.5,'#081610'); fg.addColorStop(1,'#030c07');
+        ctx.fillStyle=fg; ctx.beginPath(); ctx.arc(CX,CY,R-2,0,Math.PI*2); ctx.fill();
+
+        // Hour ticks
+        for(var i=0;i<12;i++){
+            var a=(i/12)*Math.PI*2-Math.PI/2, big=i%3===0;
+            ctx.beginPath();
+            ctx.moveTo(CX+Math.cos(a)*(R-3.5), CY+Math.sin(a)*(R-3.5));
+            ctx.lineTo(CX+Math.cos(a)*(big?R-17:R-9), CY+Math.sin(a)*(big?R-17:R-9));
+            ctx.strokeStyle=big?'#00ff88':'#1a5533'; ctx.lineWidth=big?2.5:1.2; ctx.stroke();
+            if(big){
+                ctx.beginPath(); ctx.arc(CX+Math.cos(a)*(R-17),CY+Math.sin(a)*(R-17),2.5,0,Math.PI*2);
+                ctx.fillStyle='#00ff88'; ctx.fill();
+            }
+        }
+
+        // Minute dots
+        for(var i=0;i<60;i++){
+            if(i%5===0) continue;
+            var a2=(i/60)*Math.PI*2-Math.PI/2;
+            ctx.beginPath(); ctx.arc(CX+Math.cos(a2)*(R-5),CY+Math.sin(a2)*(R-5),1,0,Math.PI*2);
+            ctx.fillStyle='rgba(0,160,70,0.4)'; ctx.fill();
+        }
+
+        // Inner ring
+        ctx.beginPath(); ctx.arc(CX,CY,R-20,0,Math.PI*2);
+        ctx.strokeStyle='rgba(0,180,70,0.08)'; ctx.lineWidth=1; ctx.stroke();
+
+        // Scale texture on face
+        ctx.save(); ctx.globalAlpha=0.06;
+        for(var i=0;i<8;i++){
+            var a3=(i/8)*Math.PI*2;
+            ctx.beginPath(); ctx.ellipse(CX+Math.cos(a3)*26,CY+Math.sin(a3)*26,8,6,a3,0,Math.PI*2);
+            ctx.fillStyle='#00ee66'; ctx.fill();
+        }
+        ctx.restore();
+
+        // Hands
+        hand(hA, 40, 5.5, '#22dd77', '#00ff55', 7);
+        hand(mA, 57, 3.2, '#44ff99', '#00ff88', 9);
+
+        // Second hand (fire-red)
+        ctx.shadowBlur=18; ctx.shadowColor='#ff4400';
+        ctx.beginPath();
+        ctx.moveTo(CX-Math.cos(sA)*16, CY-Math.sin(sA)*16);
+        ctx.lineTo(CX+Math.cos(sA)*63, CY+Math.sin(sA)*63);
+        ctx.strokeStyle='#ff5500'; ctx.lineWidth=1.6; ctx.lineCap='round'; ctx.stroke();
+        ctx.shadowBlur=0;
+
+        // Center gem
+        var gem=ctx.createRadialGradient(CX-2,CY-2,1,CX,CY,7);
+        gem.addColorStop(0,'#ffffff'); gem.addColorStop(0.25,'#aaffdd');
+        gem.addColorStop(0.6,'#00cc55'); gem.addColorStop(1,'#003318');
+        ctx.shadowBlur=12; ctx.shadowColor='#00ff88';
+        ctx.beginPath(); ctx.arc(CX,CY,6.5,0,Math.PI*2);
+        ctx.fillStyle=gem; ctx.fill();
+        ctx.strokeStyle='#00ff88'; ctx.lineWidth=1.2; ctx.stroke();
+        ctx.shadowBlur=0;
+    }
+
+    function digital(){
+        var now=new Date();
+        var hh=String(now.getHours()).padStart(2,'0');
+        var mm=String(now.getMinutes()).padStart(2,'0');
+        var ss=String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('dragon-time').textContent=hh+':'+mm+':'+ss;
+        var day=DAYS[now.getDay()], d=now.getDate();
+        var mon=MONTHS[now.getMonth()], yr=now.getFullYear();
+        document.getElementById('dragon-clock-date').textContent=day+', '+d+' '+mon+' '+yr;
+    }
+
+    var glowPh=0;
+    function breathe(){
+        glowPh+=0.025;
+        var t=0.5+0.5*Math.sin(glowPh);
+        var v=Math.round(70+t*140);
+        var outer=document.getElementById('dragon-clock-outer');
+        if(outer) outer.style.boxShadow='0 0 '+(10+t*22)+'px rgba(0,'+v+',40,0.65), inset 0 0 '+(6+t*10)+'px rgba(0,'+v+',25,0.3)';
+    }
+
+    function pupils(){
+        var sec=new Date().getSeconds()+new Date().getMilliseconds()/1000;
+        var a=(sec/60)*Math.PI*2;
+        var dx=Math.cos(a)*2.5, dy=Math.sin(a)*2.5;
+        ['dpupil-l','dpupil-r'].forEach(function(id){
+            var el=document.getElementById(id);
+            if(el) el.style.transform='translate('+dx+'px,'+dy+'px)';
+        });
+    }
+
+    function tick(){ draw(); digital(); breathe(); pupils(); requestAnimationFrame(tick); }
+    tick();
+})();
+</script>
 </body>
 </html>

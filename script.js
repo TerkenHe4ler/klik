@@ -3120,6 +3120,75 @@ function joinSzpiegowanie() {
 
 const LAS_QUEST_KEY = 'lasMgielQuest';
 
+
+/* ───────────────────────────────────────────────────────────────
+   UNIVERSAL DRAGON PICKER FOR QUESTS
+─────────────────────────────────────────────────────────────── */
+const ELEMENT_ICONS = {
+    ogien:'🔥', woda:'💧', ziemia:'🪨', powietrze:'🌪️',
+    swiatlo:'✨', cien:'🌑', lod:'❄️', magma:'🌋'
+};
+const ELEMENT_NAMES_PL = {
+    ogien:'Ogień', woda:'Woda', ziemia:'Ziemia', powietrze:'Powietrze',
+    swiatlo:'Światło', cien:'Cień', lod:'Lód', magma:'Magma'
+};
+const ELEMENT_COLORS = {
+    ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff',
+    swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633'
+};
+
+function getHatchedDragonsInfo() {
+    const list = [];
+    const h1 = Number(localStorage.getItem('eggHeats')) || 0;
+    if (h1 >= 3) list.push({ num:1, name: localStorage.getItem('dragonName')||'Smok 1', element: localStorage.getItem('chosenDragon')||'ogien' });
+    const h2 = Number(localStorage.getItem('secondEggHeats')) || 0;
+    if (h2 >= 3) list.push({ num:2, name: localStorage.getItem('secondDragonName')||'Smok 2', element: localStorage.getItem('secondDragonElement')||'ogien' });
+    const h3 = Number(localStorage.getItem('thirdEggHeats')) || 0;
+    if (h3 >= 3) list.push({ num:3, name: localStorage.getItem('thirdDragonName')||'Smok 3', element: localStorage.getItem('thirdDragonElement')||'ogien' });
+    return list;
+}
+
+let _questDragonPickerCallback = null;
+
+function renderDragonPickerForQuest(title, flavourText, borderColor, bgColor, onPickFn) {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+    const dragons = getHatchedDragonsInfo();
+    if (dragons.length === 1) {
+        onPickFn(dragons[0]);
+        return;
+    }
+    // Store callback globally so onclick can reach it
+    _questDragonPickerCallback = onPickFn;
+    const cards = dragons.map((dr, idx) => {
+        const icon  = ELEMENT_ICONS[dr.element]  || '🐉';
+        const color = ELEMENT_COLORS[dr.element] || '#aab';
+        const elName= ELEMENT_NAMES_PL[dr.element]|| dr.element;
+        return `<div style="padding:12px 14px;background:rgba(10,15,30,0.6);border:2px solid ${color};border-radius:10px;cursor:pointer;transition:transform 0.15s;"
+                     onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'"
+                     onclick="questPickDragon(${idx})">
+            <div style="font-size:22px;margin-bottom:4px;">${icon}</div>
+            <div style="font-weight:bold;color:${color};font-size:14px;">${dr.name}</div>
+            <div style="color:#aab;font-size:12px;">${elName}</div>
+        </div>`;
+    }).join('');
+    box.innerHTML = `
+    <div style="padding:14px;background:${bgColor};border:2px solid ${borderColor};border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
+        <div style="font-size:16px;font-weight:bold;color:#e8e0c0;margin-bottom:8px;">🐉 ${title}</div>
+        <div style="color:#c0b890;font-style:italic;line-height:1.7;margin-bottom:14px;">${flavourText}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:10px;">${cards}</div>
+    </div>`;
+}
+
+function questPickDragon(idx) {
+    const dragons = getHatchedDragonsInfo();
+    const chosen = dragons[idx];
+    if (!chosen || !_questDragonPickerCallback) return;
+    const cb = _questDragonPickerCallback;
+    _questDragonPickerCallback = null;
+    cb(chosen);
+}
+
 function getLasQuestState() {
     const s = localStorage.getItem(LAS_QUEST_KEY);
     return s ? JSON.parse(s) : { stage: 'none' };
@@ -3213,6 +3282,7 @@ function renderLasMgielQuest() {
             <div style="color:#90b8e0;line-height:1.8;font-style:italic;margin-bottom:12px;">
                 Głos z kamienia szepcze:<br>
                 <em style="color:#aad4ff;">— By uleczyć las, musisz zebrać sojuszników. Odwiedź Jezioro Snu i nawiąż kontakt z Leśnym Strażnikiem przy jego Gnieździe. Dopiero wtedy wróć tutaj.</em>
+                ${qs.missionDragonName ? `<br><br><span style="color:#66ddaa;">🐉 Towarzysz misji: <b>${qs.missionDragonName}</b> (${ELEMENT_NAMES_PL[qs.missionDragon]||qs.missionDragon})</span>` : ''}
             </div>
             <div style="padding:10px 12px;background:rgba(10,20,40,0.6);border-radius:8px;margin-bottom:12px;font-size:13px;line-height:2.0;">
                 <span style="${vL ? 'color:#66ff88;' : 'color:#5060a0;'}">${vL ? '✅' : '⬜'} Jezioro Snu — ${vL ? '<b>odwiedzono</b>' : 'wymagana wizyta'}</span><br>
@@ -3376,20 +3446,38 @@ function lasQuestExamineArtifact() {
 }
 
 function lasQuestChooseLight() {
-    setLasQuestState({ stage: 'stage4_light', visitedLake: false, visitedNest: false });
-    const box = document.getElementById('location-action-area');
-    if (!box) { return; }
-    box.innerHTML = `
+    renderDragonPickerForQuest(
+        'Wybierz smoka towarzyszącego misji',
+        'Droga Światła wymaga sojuszników. Który smok wyruszy z tobą do Jeziora Snu i Gniazda Strażnika?',
+        '#44aaff', 'rgba(10,25,45,0.9)',
+        (dragon) => {
+            setLasQuestState({ stage: 'stage4_light', visitedLake: false, visitedNest: false, missionDragon: dragon.element, missionDragonName: dragon.name });
+            const box = document.getElementById('location-action-area');
+            if (!box) return;
+            const elName = ELEMENT_NAMES_PL[dragon.element] || dragon.element;
+            const elIcon = ELEMENT_ICONS[dragon.element] || '🐉';
+            const elColor= ELEMENT_COLORS[dragon.element] || '#aab';
+            box.innerHTML = `
         <div style="padding:12px;background:rgba(10,25,40,0.8);border-left:3px solid #44aaff;border-radius:6px;color:#a0c8f0;margin-bottom:12px;line-height:1.7;font-style:italic;">
             Kamień pulsuje ciepłym, błękitnym blaskiem. Głos mówi spokojnie:<br>
             <em style="color:#88ccff;">— Mądrze. Odwiedź Jezioro Snu i Gniazdo Leśnego Strażnika. Gdy wrócisz — rytuał będzie gotowy.</em>
+            <br><br><span style="color:${elColor};">${elIcon} ${dragon.name} wyrusza razem z tobą.</span>
         </div>
         <div class="dialog-button" onclick="openRegion('las')">→ Szukaj sojuszników w Lesie</div>`;
+        }
+    );
 }
 
 function lasQuestChooseShadow() {
-    setLasQuestState({ stage: 'stage4_shadow', shadowEndTime: Date.now() + 3 * 60 * 1000 });
-    renderLasMgielQuest();
+    renderDragonPickerForQuest(
+        'Wybierz smoka towarzyszącego misji',
+        'Droga Cienia wymaga siły i cierpliwości. Który smok poprowadzi cię przez mroczny rytuał?',
+        '#cc66ff', 'rgba(20,10,40,0.9)',
+        (dragon) => {
+            setLasQuestState({ stage: 'stage4_shadow', shadowEndTime: Date.now() + 3 * 60 * 1000, missionDragon: dragon.element, missionDragonName: dragon.name });
+            renderLasMgielQuest();
+        }
+    );
 }
 
 function hasAnyHatchedDragon() {
@@ -3421,8 +3509,8 @@ function lasQuestMarkLightVisit(place) {
     const box = document.getElementById('location-action-area');
     if (!box) return;
 
-    const elements = getHatchedDragonElements();
-    const primaryEl = elements[0] || 'ogien';
+    const qs2 = getLasQuestState();
+    const primaryEl = qs2.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
     if (place === 'visitedLake') {
         // Alliance with Jezioro Snu — varies by dragon element
@@ -3434,7 +3522,7 @@ function lasQuestMarkLightVisit(place) {
             swiatlo: `Gdy smok podchodzi, jezioro rozbłyska od środka — jakby pod powierzchnią ktoś zapalił tysiąc świec. Ciemna woda staje się na chwilę przezroczysta. Widać dno. Widać coś jeszcze — coś, co porusza się w głębi i patrzy.\n\nSmok pochyla głowę. Błysk gaśnie. Jezioro zapamięta.`,
             cien: `Smok nie podchodzi do brzegu — zatrzymuje się w cieniu drzew i patrzy. Jezioro jakby to czuje — na powierzchni pojawiają się kręgi bez żadnej przyczyny, odpowiadając na obecność smoka.\n\nZ wody dobiegają szepczące dźwięki, których nie możesz rozróżnić. Smok je słyszy. Odwraca się do ciebie i kiwa głową powoli.\n\nSojusz zawarty — po cichu, jak wszystko co dotyczy cienia.`,
             lod: `Twój lodowy smok podchodzi do brzegu i zatrzymuje się. Jezioro Snu i smok patrzą na siebie — dwie zimne natury, każda po swojemu spokojna.\n\nPotocznie temperatura przy brzegu spada o kilka stopni. Na powierzchni wody formuje się cienka, piękna sieć szronu — i znika. Jezioro przemówiło.\n\nSojusz zawarty — między lodem a głębią.`,
-            magma: `Smok magmowy staje przy brzegu i patrzy w czarną wodę. Jezioro Snu widzi żar smoka i nie ucieka — zamiast tego woda przy brzegu zaczyna parować delikatnie.\n\nGorące i zimne — przez chwilę tańczą razem. Smok prychnie iskrami, woda pochłania je spokojnie.\n\nSojusz zawarty — ogień i głębia znalazły wspólny język.`,
+            magma: `Smok magmowy staje przy brzegu i wpatruje się w czarną wodę bez lęku. Między żywiołami kipi napięcie — ale jezioro nie cofa się. Zamiast tego, w głębinie pojawia się ciepły poblask.\n\nDwa skrajne żywioły — lawa i ciemna woda — mierzą się spokojnie. Smok prychnie iskrami, woda pochłania je bez szmeru.\n\nSojusz zawarty — żar i głębia znalazły równowagę.`,
         };
         const narration = lakeNarrations[primaryEl] || lakeNarrations['ogien'];
         box.innerHTML = `
@@ -3500,12 +3588,45 @@ function lasQuestLightEnding() {
     localStorage.setItem('inventory', JSON.stringify(inventory));
     updateInventoryTabFull();
     updateCurrencyDisplay();
+
+    const qs = getLasQuestState();
+    const el = qs.missionDragon || getHatchedDragonElements()[0] || 'ogien';
+    const dName = qs.missionDragonName || 'Twój smok';
+
+    const endings = {
+        ogien:     `${dName} ryczy triumfalnie gdy twoje dłonie dotykają kamienia. Płomień tryska w górę niczym pochodnia — ale zamiast palić, ogrzewa. Las przyjmuje ten ogień jak dawno zgaszone ognisko. Korzenie odpowiadają ciepłem.`,
+        woda:      `${dName} pochyla głowę razem z tobą. Kamień drży — i nagle przez korzenie całego lasu przepływa fala wilgoci. Mgła gęstnieje chwilowo, potem opada. Las oddycha.`,
+        ziemia:    `${dName} kładzie ciężką łapę na ziemi przy ołtarzu. Drżenie idzie przez grunt. Kamień stabilizuje się, puls spowalnia do spokojnego, głębokiego rytmu — jak bicie serca starego drzewa.`,
+        powietrze: `${dName} wzlatuje i krąży nad ołtarzem, skrzydłami zbierając mgłę. Las wzdycha — naprawdę wzdycha, jakby całe drzewa nabrały powietrza. Kamień gaśnie spokojnie.`,
+        swiatlo:   `${dName} promieniuje blaskiem gdy twoje dłonie dotykają kamienia. Przez chwilę cały las lśni — każdy liść, każda kroplą rosy. Potem blask opada. Coś zostało uzdrowione.`,
+        cien:      `${dName} wchodzi w cień między korzeniami ołtarza. Kamień na moment gaśnie — i zapala się ponownie, spokojniej. Cień i las zawarły przymierze w ciszy.`,
+        lod:       `${dName} stoi nieruchomo jak posąg gdy twoje dłonie dotykają kamienia. Temperatura spada — mgła krzepnie w drobne kryształy lodu wokół was. Chwilę później topią się. Las przyjął zimno jako część siebie.`,
+        magma:     `${dName} siedzi przy ołtarzu z łapą na gorącej skale. Żar smoka i żar kamienia zlewają się w jedno — ziemia pod stopami cieplejsza przez chwilę. Las odczuwa to jak dawno zapomniane słońce dochodzące przez glebę.`,
+    };
+    const endingText = endings[el] || endings['ogien'];
+
     setLasQuestState({ stage: 'done_light' });
-    renderLasMgielQuest();
+    const box = document.getElementById('location-action-area');
+    if (box) box.innerHTML = `
+        <div style="padding:16px;background:rgba(10,35,20,0.9);border:2px solid #44ff88;border-radius:10px;animation:worldFadeIn 0.5s;">
+            <div style="font-size:17px;font-weight:bold;color:#66ff88;margin-bottom:10px;">✅ Quest Ukończony — Droga Światła</div>
+            <div style="color:#a0e8b8;font-style:italic;margin-bottom:14px;line-height:1.9;">
+                ${endingText}<br><br>
+                <em style="color:#88ffaa;">Las Mgieł żyje. Twoje imię jest teraz wpisane w korzenie.</em>
+            </div>
+            <div style="padding:10px 14px;background:rgba(10,30,20,0.6);border-left:3px solid #44ff88;border-radius:6px;color:#66ff88;font-size:13px;margin-bottom:12px;">🎁 Nagroda: +3 złoto, +Amulet Lasu</div>
+            <div class="dialog-button" style="border-color:#44ff88;color:#66ff88;" onclick="openRegion('las')">← Las Mgieł</div>
+        </div>`;
 }
 
 function lasQuestShadowEnding() {
-    const stats = loadDragonStats(1);
+    const qs = getLasQuestState();
+    const el = qs.missionDragon || getHatchedDragonElements()[0] || 'ogien';
+    const dName = qs.missionDragonName || 'Twój smok';
+
+    // Use missionDragon's slot stats if known
+    const missionNum = (['ogien','woda','ziemia','powietrze','swiatlo','cien','lod','magma'].indexOf(el) % 3) + 1;
+    const stats = loadDragonStats(missionNum);
     const power = (stats.sila || 5) + (stats.sila_woli || 5) + (stats.szczescie || 5);
     const win = power >= 18 || Math.random() > 0.35;
 
@@ -3515,8 +3636,31 @@ function lasQuestShadowEnding() {
         localStorage.setItem('inventory', JSON.stringify(inventory));
         updateInventoryTabFull();
         updateCurrencyDisplay();
+
+        const shadowEndings = {
+            ogien:     `${dName} wchodzi w rytualny ogień bez wahania. Płomienie i mrok lasu zderzają się — przez chwilę wszystko drży. Potem cisza. Smok wyłania się z cienia silniejszy — a las wchłonął moc, którą mu zaoferowałeś.`,
+            woda:      `${dName} sięga do głębin mrocznej wody pod ołtarzem. Ciemna mgła owijała się wokół was — smok pochłaniał ją, zamieniając w lód i oddech. Las przemówił wodą.`,
+            ziemia:    `${dName} wbija łapy w ziemię gdy rytuał osiąga szczyt. Korzenie ciągną mrok do głębi — smok trzyma je w miejscu siłą kamiennego spokoju. Las zapieczętowany.`,
+            powietrze: `${dName} wzlatuje w sam wir mrocznej energii. Smok rozniósł ją na skrzydłach — rozproszył jak mgłę po wietrze. Las odetchnął.`,
+            swiatlo:   `${dName} rozbłyska w środku mrocznego rytuału — cień i blask walczą przez sekundę. Potem blask wchłonął cień. ${dName} stoi pośród iskier, spokojny i zwycięski.`,
+            cien:      `${dName} zlewa się z mrokiem lasu — nie walczy, pochłania. Ciemność lasu i ciemność smoka stają się jednym. Rytuał zakończony w absolutnej ciszy.`,
+            lod:       `${dName} zamraża mrok — dosłownie. Lodowy oddech twardnieje czarną energię w kryształy, które opadają i rozsypują się w pył. Las zapieczętowany zimnem.`,
+            magma:     `${dName} topi mrok gorącem. Lawa i cień — skrajności, które się znoszą. Energia rytuału pochłonięta przez żar smoka. Las oczyszczony ogniem.`,
+        };
+        const endingText = shadowEndings[el] || shadowEndings['ogien'];
+
         setLasQuestState({ stage: 'done_shadow' });
-        renderLasMgielQuest();
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:16px;background:rgba(20,5,40,0.9);border:2px solid #cc66ff;border-radius:10px;animation:worldFadeIn 0.5s;">
+                <div style="font-size:17px;font-weight:bold;color:#cc66ff;margin-bottom:10px;">✅ Quest Ukończony — Droga Cienia</div>
+                <div style="color:#c0a0e8;font-style:italic;margin-bottom:14px;line-height:1.9;">
+                    ${endingText}<br><br>
+                    <em style="color:#e0c8ff;">Las zapamięta to. I ty też.</em>
+                </div>
+                <div style="padding:10px 14px;background:rgba(20,5,40,0.6);border-left:3px solid #cc66ff;border-radius:6px;color:#cc66ff;font-size:13px;margin-bottom:12px;">🎁 Nagroda: +5 złoto, +Kamień Cienia</div>
+                <div class="dialog-button" style="border-color:#cc66ff;color:#cc66ff;" onclick="openRegion('las')">← Las Mgieł</div>
+            </div>`;
     } else {
         const box = document.getElementById('location-action-area');
         if (!box) return;
@@ -3534,8 +3678,557 @@ function lasQuestShadowEnding() {
 }
 
 /* ── Dodatkowa zawartość questowa wstrzykiwana w lokacje ─── */
+/* ═══════════════════════════════════════════════════════════════
+   GRA W KOŚCI — FARKLE (styl Kingdom Come Deliverance 2)
+   
+   Zasady:
+   - Gra toczy się do 2000 pkt. Wejście na planszę wymaga min. 300 pkt w jednej turze.
+   - Rzut 6 kośćmi. Gracz MUSI zabrać co najmniej jedną punktującą kość.
+   - Po zabraniu kości można rzucać pozostałymi LUB zatrzymać i zabrać punkty.
+   - "Gorący rzut" (hot dice) — gdy wszystkie 6 kości punktuje, bierzesz wszystkie i
+     możesz rzucać od nowa wszystkimi 6.
+   - Brak żadnej punktującej kości = "fiasko" — tracisz punkty rundy.
+   - Przeciwnik (karczmarz) gra automatycznie wg prostej AI.
+   
+   Punktacja:
+   - 1 oczko = 100 pkt         5 oczek = 50 pkt
+   - Trójka jedynek = 1000 pkt  Trójka dowolna N = N×100 pkt
+   - Czwórka = 2× trójki        Piątka = 4× trójki       Szóstka = 8× trójki
+   - Trzy pary = 750 pkt        Mały szlem (1-2-3-4-5-6) = 1500 pkt
+═══════════════════════════════════════════════════════════════ */
+
+let diceState = null;
+
+function openDiceGame() {
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    const opponents = [
+        { name: 'Karczmarz Borek', desc: 'Rudy karczmarz odkłada ścierkę i siada naprzeciwko z szerokim uśmiechem.', skill: 0.65, portrait: '🍺' },
+        { name: 'Stary Żołnierz',  desc: 'Weteran przy kominku unosi brew. — Młodemu chce się grać? Dobrze, siadaj.', skill: 0.78, portrait: '⚔️' },
+        { name: 'Wędrowna Kupiec', desc: 'Kobieta w podróżnym płaszczu tasuje kostki z wprawą. — Stawka?', skill: 0.72, portrait: '💼' },
+        { name: 'Pijany Szlachcic', desc: 'Szlachcic kładzie na stole garść monet. — Jeden rzut losu, co?', skill: 0.45, portrait: '🍷' },
+    ];
+    const opp = opponents[Math.floor(Math.random() * opponents.length)];
+
+    box.innerHTML = `
+    <div style="padding:16px;background:rgba(20,12,5,0.95);border:2px solid #8B6914;border-radius:12px;animation:worldFadeIn 0.4s;" id="dice-game-root">
+        <div style="font-size:17px;font-weight:bold;color:#e8c84a;margin-bottom:6px;">🎲 Kości — Karczma Pod Smokiem</div>
+        <div style="color:#b8966a;font-style:italic;margin-bottom:16px;line-height:1.6;">${opp.portrait} ${opp.desc}</div>
+        <div style="background:rgba(10,6,2,0.7);border:1px solid #6B4F14;border-radius:8px;padding:14px;margin-bottom:14px;">
+            <div style="color:#e8c84a;font-weight:bold;margin-bottom:8px;">Zasady gry</div>
+            <div style="color:#a08050;font-size:12px;line-height:1.9;">
+                🎯 Cel: pierwszy do <b style="color:#e8c84a;">2000 punktów</b><br>
+                🔒 Wejście na planszę: minimum <b style="color:#e8c84a;">300 pkt</b> w jednej turze<br>
+                💀 Fiasko: brak punktujących kości — tracisz punkty rundy<br>
+                🔥 Gorący rzut: wszystkie 6 kości punktują — rzuć ponownie wszystkimi!<br>
+                <br>
+                <span style="color:#9B7840;">1 = 100 pkt &nbsp;|&nbsp; 5 = 50 pkt &nbsp;|&nbsp; Trójka = N×100 (jedynki = 1000)<br>
+                Czwórka = 2× &nbsp;|&nbsp; Piątka = 4× &nbsp;|&nbsp; Szóstka = 8× &nbsp;|&nbsp; 3 pary = 750 &nbsp;|&nbsp; Szlem = 1500</span>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div class="dialog-button" style="border-color:#c8a430;color:#e8c84a;flex:1;" onclick="diceGameStart('${opp.name}',${opp.skill},10)">🥉 Gra za 10 miedzi</div>
+            <div class="dialog-button" style="border-color:#888;color:#aaa;flex:1;" onclick="diceGameStart('${opp.name}',${opp.skill},30)">🥈 Gra za 30 miedzi</div>
+            <div class="dialog-button" style="border-color:#aaa870;color:#ffe060;flex:1;" onclick="diceGameStart('${opp.name}',${opp.skill},100)">🥇 Gra za 1 srebro</div>
+        </div>
+        <div class="dialog-button" style="border-color:#554;color:#887;margin-top:8px;" onclick="openLocation('miasto','karczma')">← Wróć do karczmy</div>
+    </div>`;
+}
+
+function diceGameStart(oppName, oppSkill, stake) {
+    if (!canAfford(stake)) {
+        const box = document.getElementById('location-action-area');
+        if (box) box.innerHTML = `
+            <div style="padding:12px 16px;background:rgba(20,12,5,0.9);border-left:3px solid #cc4422;border-radius:8px;color:#cc8866;font-style:italic;margin-bottom:12px;">
+                — Nie masz tyle przy sobie — mówi ${oppName}. — Wróć kiedy będziesz bogatszy.
+            </div>
+            <div class="dialog-button" onclick="openDiceGame()">← Wróć</div>`;
+        return;
+    }
+    spendCurrency(stake);
+    updateCurrencyDisplay();
+
+    diceState = {
+        oppName, oppSkill, stake,
+        playerScore: 0, oppScore: 0,
+        playerOnBoard: false, oppOnBoard: false,
+        turn: 'player',   // 'player' | 'opp'
+        phase: 'rolling', // 'rolling' | 'selecting'
+        diceCount: 6,
+        rolledDice: [],
+        keptDice: [],    // indices of kept dice from current roll
+        keptThisTurn: [],// all kept dice values this turn
+        turnPoints: 0,
+        log: [`💰 Stawka: ${stake} miedzi. Grasz z ${oppName}.`, '--- Twoja tura ---'],
+    };
+
+    diceRollPlayer();
+}
+
+// ── SCORING ENGINE ────────────────────────────────────────────────
+
+function diceScore(dice) {
+    // Returns { points, valid } for a SELECTION of dice
+    if (!dice.length) return { points: 0, valid: false };
+    const counts = [0,0,0,0,0,0,0];
+    dice.forEach(v => counts[v]++);
+
+    // Full 6-dice combos (only valid if all 6 provided)
+    if (dice.length === 6) {
+        // Straight (1-2-3-4-5-6)
+        if (counts.slice(1).every(c => c === 1)) return { points: 1500, valid: true };
+        // Three pairs
+        const pairs = counts.filter(c => c === 2).length;
+        if (pairs === 3) return { points: 750, valid: true };
+    }
+
+    let pts = 0;
+    for (let v = 1; v <= 6; v++) {
+        const c = counts[v];
+        if (c === 0) continue;
+        if (c >= 3) {
+            const base = v === 1 ? 1000 : v * 100;
+            const mult = [0,0,0,1,2,4,8][c];
+            pts += base * mult;
+            const rem = 0; // handled
+        } else {
+            if (v === 1) pts += c * 100;
+            else if (v === 5) pts += c * 50;
+            else return { points: 0, valid: false }; // non-1, non-5, count < 3 = invalid selection
+        }
+    }
+    return { points: pts, valid: pts > 0 };
+}
+
+function diceScoreAll(dice) {
+    // Score all dice (for display purposes), returns total
+    return diceScore(dice).points;
+}
+
+function diceHasAnyScoring(dice) {
+    // Check if any single die or combination scores
+    if (dice.includes(1) || dice.includes(5)) return true;
+    const counts = [0,0,0,0,0,0,0];
+    dice.forEach(v => counts[v]++);
+    if (counts.some(c => c >= 3)) return true;
+    if (dice.length === 6) {
+        if (counts.slice(1).every(c => c === 1)) return true;
+        if (counts.filter(c => c === 2).length === 3) return true;
+    }
+    return false;
+}
+
+function diceGetScoringSubsets(dice) {
+    // Returns array of scoring selections for AI and hints
+    // Simplified: return valid individual dice + triples
+    const scoring = [];
+    const counts = [0,0,0,0,0,0,0];
+    dice.forEach((v,i) => counts[v]++);
+
+    // Check full 6-dice combos first
+    if (dice.length === 6) {
+        const straight = counts.slice(1).every(c => c === 1);
+        if (straight) return [{ indices: dice.map((_,i)=>i), points: 1500, label: 'Szlem!' }];
+        const pairs = counts.filter(c => c === 2).length;
+        if (pairs === 3) return [{ indices: dice.map((_,i)=>i), points: 750, label: '3 Pary' }];
+    }
+
+    for (let v = 1; v <= 6; v++) {
+        const idxs = dice.map((d,i)=>d===v?i:-1).filter(i=>i>=0);
+        const c = counts[v];
+        if (c >= 3) {
+            const base = v === 1 ? 1000 : v * 100;
+            const mult = [0,0,0,1,2,4,8][c];
+            scoring.push({ indices: idxs, points: base * mult, label: `${c}×${v}` });
+        } else {
+            if (v === 1) idxs.forEach(i => scoring.push({ indices:[i], points:100, label:'1 (100)' }));
+            if (v === 5) idxs.forEach(i => scoring.push({ indices:[i], points:50,  label:'5 (50)' }));
+        }
+    }
+    return scoring;
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────────────
+
+function diceFaceHTML(val, idx, selectable, selected, kept) {
+    const faces = ['', '⚀','⚁','⚂','⚃','⚄','⚅'];
+    const isScoring = (val === 1 || val === 5);
+    let bg, border, cursor = 'default', opacity = '1', scale = '';
+    if (kept) {
+        bg = 'rgba(60,40,10,0.8)'; border = '#664400'; opacity = '0.5';
+    } else if (selected) {
+        bg = 'rgba(40,60,10,0.95)'; border = '#88ee44'; scale = 'scale(1.15)';
+    } else if (selectable && isScoring) {
+        bg = 'rgba(20,35,10,0.8)'; border = '#66aa44'; cursor = 'pointer';
+    } else if (selectable) {
+        bg = 'rgba(30,20,10,0.7)'; border = '#554433'; cursor = 'pointer';
+    } else {
+        bg = 'rgba(15,10,5,0.8)'; border = '#333';
+    }
+    const onclick = selectable && !kept ? `onclick="diceToggle(${idx})"` : '';
+    return `<div ${onclick} style="display:inline-flex;align-items:center;justify-content:center;
+        width:52px;height:52px;font-size:32px;border-radius:10px;border:2px solid ${border};
+        background:${bg};cursor:${cursor};opacity:${opacity};transform:${scale || 'scale(1)'};
+        transition:transform 0.15s,border 0.1s;user-select:none;"
+        title="${kept ? 'Już zabrana' : isScoring ? 'Punktuje!' : 'Nie punktuje'}"
+        onmouseover="${selectable && !kept ? `this.style.transform='scale(1.1)'` : ''}"
+        onmouseout="${selectable && !kept ? `this.style.transform='${scale||'scale(1)'}'` : ''}">
+        ${faces[val]}</div>`;
+}
+
+function diceRenderGame() {
+    const box = document.getElementById('dice-game-root');
+    if (!box || !diceState) return;
+    const s = diceState;
+    const isPlayer = s.turn === 'player';
+
+    // Score bars
+    const pct = (score) => Math.min(100, Math.round(score / 20));
+    const barColor = (score, onBoard) => score >= 2000 ? '#ffcc00' : onBoard ? '#66dd44' : '#dd8833';
+
+    // Selected dice score preview
+    const selVals = s.keptDice.map(i => s.rolledDice[i]);
+    const selScore = selVals.length ? diceScore(selVals) : { points: 0, valid: false };
+    const potentialTotal = s.turnPoints + selScore.points;
+
+    // Build dice HTML
+    const keptSet = new Set(s.keptDice);
+    const alreadyKeptCount = s.keptThisTurn.length;
+    let diceHTML = '';
+    s.rolledDice.forEach((val, idx) => {
+        const isKept = false; // shown separately
+        diceHTML += diceFaceHTML(val, idx, isPlayer && s.phase === 'rolling', keptSet.has(idx), false);
+    });
+
+    // Already-kept dice (greyed)
+    let keptHTML = '';
+    s.keptThisTurn.forEach(val => {
+        keptHTML += diceFaceHTML(val, -1, false, false, true);
+    });
+
+    // Log (last 5)
+    const logLines = s.log.slice(-6).map(l =>
+        `<div style="color:${l.startsWith('---') ? '#775533' : l.startsWith('💀') ? '#dd4444' : l.startsWith('✅') ? '#44dd88' : l.startsWith('🔥') ? '#ff9900' : '#a08060'};font-size:12px;margin-bottom:2px;">${l}</div>`
+    ).join('');
+
+    // Buttons
+    let btns = '';
+    if (isPlayer && s.phase === 'rolling') {
+        const canKeep = selScore.valid;
+        const canBank  = (potentialTotal >= 300 || s.playerOnBoard) && canKeep && potentialTotal > 0;
+        btns = `
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+                <div class="dialog-button" style="flex:1;${canKeep ? 'border-color:#88ee44;color:#aaf066;' : 'opacity:0.4;pointer-events:none;border-color:#444;color:#666;'}"
+                    onclick="diceKeepAndRoll()">
+                    🎲 Zabierz i rzuć (${selScore.points > 0 ? '+'+selScore.points+' pkt' : 'wybierz kości'})
+                </div>
+                <div class="dialog-button" style="flex:1;${canBank ? 'border-color:#e8c84a;color:#f0d060;' : 'opacity:0.4;pointer-events:none;border-color:#444;color:#666;'}"
+                    onclick="diceBankPoints()">
+                    🏦 Zatrzymaj (${potentialTotal} pkt)
+                </div>
+            </div>`;
+    } else if (!isPlayer) {
+        btns = `<div style="padding:10px;text-align:center;color:#a08050;font-style:italic;">Tura ${s.oppName}...</div>`;
+    }
+
+    box.innerHTML = `
+    <div style="background:rgba(20,12,5,0.98);border:2px solid #8B6914;border-radius:12px;padding:14px;">
+        <div style="font-size:15px;font-weight:bold;color:#e8c84a;margin-bottom:12px;">🎲 Kości — <span style="font-size:12px;color:#a08050;">vs ${s.oppName}</span></div>
+
+        <!-- SCORE BARS -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+            <div>
+                <div style="color:#66dd88;font-size:12px;font-weight:bold;margin-bottom:4px;">TY ${s.playerOnBoard?'':'🔒'}</div>
+                <div style="background:#1a1008;border-radius:6px;height:12px;overflow:hidden;border:1px solid #444;">
+                    <div style="height:100%;width:${pct(s.playerScore)}%;background:${barColor(s.playerScore,s.playerOnBoard)};transition:width 0.4s;border-radius:6px;"></div>
+                </div>
+                <div style="color:#e8c84a;font-weight:bold;margin-top:2px;">${s.playerScore} / 2000</div>
+            </div>
+            <div>
+                <div style="color:#ff8866;font-size:12px;font-weight:bold;margin-bottom:4px;">${s.oppName} ${s.oppOnBoard?'':'🔒'}</div>
+                <div style="background:#1a1008;border-radius:6px;height:12px;overflow:hidden;border:1px solid #444;">
+                    <div style="height:100%;width:${pct(s.oppScore)}%;background:${barColor(s.oppScore,s.oppOnBoard)};transition:width 0.4s;border-radius:6px;"></div>
+                </div>
+                <div style="color:#ff8866;font-weight:bold;margin-top:2px;">${s.oppScore} / 2000</div>
+            </div>
+        </div>
+
+        <!-- TURA INFO -->
+        <div style="background:rgba(10,6,2,0.8);border:1px solid #443322;border-radius:8px;padding:10px;margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="color:${isPlayer ? '#66dd88' : '#ff8866'};font-weight:bold;font-size:13px;">${isPlayer ? '▶ TWOJA TURA' : `▶ TURA: ${s.oppName}`}</span>
+                <span style="color:#e8c84a;font-size:13px;">Pula: <b>${s.turnPoints}${selScore.points > 0 ? ' + ' + selScore.points : ''} pkt</b></span>
+            </div>
+
+            <!-- Już zabrane kości -->
+            ${keptHTML ? `<div style="margin-bottom:8px;opacity:0.5;">${keptHTML}</div>` : ''}
+
+            <!-- Aktywne kości -->
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${diceHTML || '<span style="color:#665533;font-style:italic;">Czekaj...</span>'}</div>
+
+            ${isPlayer && s.phase === 'rolling' ? `
+            <div style="font-size:11px;color:#776644;margin-top:4px;">
+                ${selScore.valid ? `✅ Wybór: <b style="color:#aaee66;">+${selScore.points} pkt</b>` : selVals.length ? `❌ Nieprawidłowy wybór` : 'Kliknij kości żeby wybrać'}
+                ${!s.playerOnBoard && potentialTotal < 300 ? ` • 🔒 Potrzebujesz 300 pkt żeby wejść (masz ${potentialTotal})` : ''}
+            </div>` : ''}
+        </div>
+
+        ${btns}
+
+        <!-- LOG -->
+        <div style="background:rgba(5,3,1,0.7);border:1px solid #332211;border-radius:6px;padding:8px;margin-top:10px;max-height:110px;overflow-y:auto;">
+            ${logLines}
+        </div>
+    </div>`;
+}
+
+// ── PLAYER ACTIONS ────────────────────────────────────────────────
+
+function diceRollPlayer() {
+    const s = diceState;
+    s.rolledDice = Array.from({length: s.diceCount}, () => Math.ceil(Math.random()*6));
+    s.keptDice = [];
+    s.phase = 'rolling';
+    s.log.push(`🎲 Rzut ${s.diceCount} kośćmi: [${s.rolledDice.join(', ')}]`);
+
+    if (!diceHasAnyScoring(s.rolledDice)) {
+        s.turnPoints = 0;
+        s.keptThisTurn = [];
+        s.log.push(`💀 Fiasko! Brak punktujących kości. Stracono punkty rundy.`);
+        diceRenderGame();
+        setTimeout(() => {
+            s.turn = 'opp';
+            s.turnPoints = 0;
+            s.keptThisTurn = [];
+            s.diceCount = 6;
+            s.log.push(`--- Tura ${s.oppName} ---`);
+            diceRenderGame();
+            setTimeout(diceOppTurn, 1200);
+        }, 1800);
+    } else {
+        diceRenderGame();
+    }
+}
+
+function diceToggle(idx) {
+    const s = diceState;
+    if (s.turn !== 'player' || s.phase !== 'rolling') return;
+    const pos = s.keptDice.indexOf(idx);
+    if (pos >= 0) s.keptDice.splice(pos, 1);
+    else s.keptDice.push(idx);
+    diceRenderGame();
+}
+
+function diceKeepAndRoll() {
+    const s = diceState;
+    const selVals = s.keptDice.map(i => s.rolledDice[i]);
+    const sc = diceScore(selVals);
+    if (!sc.valid) return;
+
+    s.turnPoints += sc.points;
+    s.keptThisTurn.push(...selVals);
+    s.log.push(`✅ Zabrałeś [${selVals.join(',')}] → +${sc.points} pkt (pula: ${s.turnPoints})`);
+
+    const remaining = s.diceCount - s.keptDice.length;
+
+    // Hot dice — all scored, get fresh 6
+    if (remaining === 0) {
+        s.log.push(`🔥 Gorący rzut! Wszystkie kości punktują — rzut od nowa!`);
+        s.diceCount = 6;
+        s.rolledDice = [];
+        s.keptDice = [];
+        diceRenderGame();
+        setTimeout(diceRollPlayer, 800);
+        return;
+    }
+
+    s.diceCount = remaining;
+    s.rolledDice = [];
+    s.keptDice = [];
+    diceRenderGame();
+    setTimeout(diceRollPlayer, 600);
+}
+
+function diceBankPoints() {
+    const s = diceState;
+    const selVals = s.keptDice.map(i => s.rolledDice[i]);
+    const sc = diceScore(selVals);
+    if (!sc.valid && selVals.length > 0) return;
+
+    const total = s.turnPoints + (sc.valid ? sc.points : 0);
+    if (!s.playerOnBoard && total < 300) return;
+
+    if (!s.playerOnBoard && total >= 300) {
+        s.playerOnBoard = true;
+        s.log.push(`🏆 Wchodzisz na planszę!`);
+    }
+    s.playerScore += total;
+    s.log.push(`🏦 Zatrzymujesz ${total} pkt. Wynik: ${s.playerScore}/2000`);
+
+    if (s.playerScore >= 2000) {
+        diceGameEnd(true);
+        return;
+    }
+
+    s.turnPoints = 0;
+    s.keptThisTurn = [];
+    s.diceCount = 6;
+    s.turn = 'opp';
+    s.log.push(`--- Tura ${s.oppName} ---`);
+    diceRenderGame();
+    setTimeout(diceOppTurn, 1000);
+}
+
+// ── OPPONENT AI ───────────────────────────────────────────────────
+
+function diceOppTurn() {
+    const s = diceState;
+    s.keptThisTurn = [];
+    s.turnPoints = 0;
+    diceOppRollStep(6);
+}
+
+function diceOppRollStep(diceCount) {
+    const s = diceState;
+    s.diceCount = diceCount;
+    const roll = Array.from({length: diceCount}, () => Math.ceil(Math.random()*6));
+    s.rolledDice = roll;
+    s.keptDice = [];
+    s.log.push(`🎲 ${s.oppName} rzuca ${diceCount} kośćmi: [${roll.join(', ')}]`);
+    diceRenderGame();
+
+    if (!diceHasAnyScoring(roll)) {
+        s.turnPoints = 0;
+        s.keptThisTurn = [];
+        s.log.push(`💀 ${s.oppName} — fiasko! Brak punktów.`);
+        diceRenderGame();
+        setTimeout(() => {
+            s.turn = 'player';
+            s.turnPoints = 0;
+            s.keptThisTurn = [];
+            s.diceCount = 6;
+            s.log.push('--- Twoja tura ---');
+            diceRollPlayer();
+        }, 1500);
+        return;
+    }
+
+    // AI decision: greedily take best scoring subset
+    const subsets = diceGetScoringSubsets(roll);
+    if (!subsets.length) {
+        setTimeout(() => {
+            s.turn = 'player';
+            s.turnPoints = 0;
+            s.keptThisTurn = [];
+            s.diceCount = 6;
+            s.log.push('--- Twoja tura ---');
+            diceRollPlayer();
+        }, 1200);
+        return;
+    }
+
+    // Sort: take highest value subset
+    subsets.sort((a,b) => b.points - a.points);
+    const best = subsets[0];
+    const bestVals = best.indices.map(i => roll[i]);
+    s.turnPoints += best.points;
+    s.keptThisTurn.push(...bestVals);
+    s.log.push(`${s.oppName} bierze [${bestVals.join(',')}] → +${best.points} (pula: ${s.turnPoints})`);
+    diceRenderGame();
+
+    const remaining = diceCount - best.indices.length;
+    const needsBoard = !s.oppOnBoard && s.turnPoints < 300;
+
+    setTimeout(() => {
+        // Hot dice
+        if (remaining === 0) {
+            s.log.push(`🔥 ${s.oppName} — gorący rzut!`);
+            diceOppRollStep(6);
+            return;
+        }
+
+        // AI: continue or bank?
+        const shouldBank = diceOppShouldBank(s, remaining);
+        if (shouldBank) {
+            if (!s.oppOnBoard && s.turnPoints >= 300) {
+                s.oppOnBoard = true;
+                s.log.push(`${s.oppName} wchodzi na planszę!`);
+            }
+            if (s.oppOnBoard || s.turnPoints >= 300) {
+                s.oppScore += s.turnPoints;
+                s.log.push(`${s.oppName} zatrzymuje ${s.turnPoints} pkt. Wynik: ${s.oppScore}/2000`);
+                s.turnPoints = 0;
+                s.keptThisTurn = [];
+                if (s.oppScore >= 2000) { diceGameEnd(false); return; }
+                s.turn = 'player';
+                s.diceCount = 6;
+                s.log.push('--- Twoja tura ---');
+                diceRenderGame();
+                setTimeout(diceRollPlayer, 800);
+            } else {
+                diceOppRollStep(remaining);
+            }
+        } else {
+            diceOppRollStep(remaining);
+        }
+    }, 1200);
+}
+
+function diceOppShouldBank(s, remainingDice) {
+    const pts = s.turnPoints;
+    const skill = s.oppSkill; // 0..1, higher = more aggressive
+
+    // Must hit 300 to get on board
+    if (!s.oppOnBoard && pts < 300) return false;
+    // Very close to winning — always bank
+    if (s.oppScore + pts >= 2000) return true;
+    // Ahead and comfortable — tend to bank
+    const lead = s.oppScore - s.playerScore;
+    const riskTolerance = skill; // higher skill = take more risks for bigger score
+    const bankThreshold = 300 + Math.floor((1 - riskTolerance) * 400);
+    if (pts >= bankThreshold && remainingDice <= 2) return true;
+    if (pts >= bankThreshold + 200) return Math.random() > riskTolerance * 0.5;
+    if (pts >= 500) return Math.random() > 0.3;
+    return false;
+}
+
+// ── GAME END ──────────────────────────────────────────────────────
+
+function diceGameEnd(playerWon) {
+    const s = diceState;
+    const box = document.getElementById('dice-game-root');
+    if (!box) return;
+
+    const winnings = playerWon ? s.stake * 2 : 0;
+    if (playerWon) {
+        adjustCurrency('copper', winnings);
+        updateCurrencyDisplay();
+    }
+
+    const bgColor = playerWon ? 'rgba(10,35,15,0.97)' : 'rgba(35,8,8,0.97)';
+    const borderColor = playerWon ? '#44dd88' : '#cc3333';
+    const title = playerWon ? '🏆 Wygrałeś!' : '💀 Przegrana';
+    const msg = playerWon
+        ? `${s.oppName} wzdycha i przesuwa monety przez stół. — Nieźle, nieźle... — mruczy. — Następnym razem moje szczęście wróci.<br><br>Wygrałeś <b style="color:#e8c84a;">${winnings} miedzi</b>!`
+        : `${s.oppName} zgarnia monety z szerokim uśmiechem. — Nic osobistego, przyjacielu. Taka gra.<br><br>Straciłeś <b style="color:#cc4444;">${s.stake} miedzi</b>.`;
+
+    box.innerHTML = `
+    <div style="padding:18px;background:${bgColor};border:2px solid ${borderColor};border-radius:12px;text-align:center;animation:worldFadeIn 0.5s;">
+        <div style="font-size:22px;font-weight:bold;color:${borderColor};margin-bottom:10px;">${title}</div>
+        <div style="color:#c0a070;line-height:1.9;font-style:italic;margin-bottom:16px;">${msg}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:13px;color:#9B7840;background:rgba(10,6,2,0.6);padding:10px;border-radius:8px;">
+            <div>Twój wynik: <b style="color:#e8c84a;">${s.playerScore}</b></div>
+            <div>${s.oppName}: <b style="color:#ff8866;">${s.oppScore}</b></div>
+        </div>
+        <div class="dialog-button" style="border-color:#c8a430;color:#e8c84a;" onclick="openDiceGame()">🎲 Zagraj ponownie</div>
+        <div class="dialog-button" style="border-color:#554;color:#887;margin-top:8px;" onclick="openLocation('miasto','karczma')">← Wróć do karczmy</div>
+    </div>`;
+    diceState = null;
+}
+
 /* ═══════════════════════════════════════════════════════════
-   QUEST: DUCH HALYAZ — PUSTYNIA HALYAZ
+   QUEST: DUCH HALYAZ - PUSTYNIA HALYAZ
    Etapy: none → offered → stage2 (znaki) → stage3_choice
           → stage4_trials → stage5_finale → done_ochrona / done_przemiana
 ═══════════════════════════════════════════════════════════ */
@@ -3592,7 +4285,7 @@ function renderHalyazQuest() {
         const signs = qs.signsFound || 0;
         box.innerHTML = `
         <div style="padding:14px;background:rgba(40,25,10,0.9);border:2px solid #cc8833;border-radius:10px;margin-bottom:14px;animation:worldFadeIn 0.4s;">
-            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">🔍 Etap 2 z 5 — Trzy Znaki</div>
+            <div style="font-size:16px;font-weight:bold;color:#ffcc66;margin-bottom:10px;">🔍 Etap 2 z 5 — Trzy Znaki ${qs.missionDragonName ? `<span style="font-size:12px;color:${ELEMENT_COLORS[qs.missionDragon]||'#aab'};">${ELEMENT_ICONS[qs.missionDragon]||'🐉'} ${qs.missionDragonName}</span>` : ''}</div>
             <div style="color:#e0c080;line-height:1.8;font-style:italic;margin-bottom:12px;">
                 Strażniczka podaje ci kawałek węgla drzewnego.<br><br>
                 <em style="color:#ffdd88;">— W Ruinach Halyaz są wyryte trzy znaki. Musisz je wszystkie znaleźć i przerysować. Twój smok je rozpozna — śledź jego reakcje.</em>
@@ -3702,14 +4395,23 @@ function renderHalyazQuest() {
 }
 
 function halyazQuestAccept() {
-    setHalyazQuestState({ stage: 'stage2', signsFound: 0 });
-    const box = document.getElementById('location-action-area');
-    if (box) box.innerHTML = `
-        <div style="padding:12px;background:rgba(40,25,10,0.75);border-left:3px solid #cc8833;border-radius:6px;color:#e0c080;line-height:1.7;margin-bottom:12px;font-style:italic;">
-            Strażniczka kiwa głową z powagą.<br><br>
-            — Dobrze. Zacznij od Ruin. Trzy znaki — słońce, wiatr i ogień. Twój smok je rozpozna. Gdy je znajdziesz, wróć.
-            <div class="dialog-button" style="margin-top:10px;border-color:#cc8833;color:#ffcc66;" onclick="openLocation('pustynia','ruiny_halyaz')">📍 Idź do Ruin Halyaz</div>
-        </div>`;
+    renderDragonPickerForQuest(
+        'Wybierz smoka towarzyszącego wyprawie',
+        'Halyaz przemawia przez żywioły. Który smok wyruszy z tobą w głąb pustyni?',
+        '#cc8833', 'rgba(40,25,10,0.9)',
+        (dragon) => {
+            setHalyazQuestState({ stage: 'stage2', signsFound: 0, missionDragon: dragon.element, missionDragonName: dragon.name });
+            const box = document.getElementById('location-action-area');
+            const elIcon = ELEMENT_ICONS[dragon.element] || '🐉';
+            const elColor= ELEMENT_COLORS[dragon.element] || '#aab';
+            if (box) box.innerHTML = `
+                <div style="padding:12px;background:rgba(40,25,10,0.75);border-left:3px solid #cc8833;border-radius:6px;color:#e0c080;line-height:1.7;margin-bottom:12px;font-style:italic;">
+                    Strażniczka kiwa głową z powagą i spogląda na twojego smoka z uznaniem.<br><br>
+                    — ${elIcon} ${dragon.name} będzie dobrym towarzyszem. Zacznij od Ruin. Trzy znaki — słońce, wiatr i ogień. Twój smok je rozpozna.
+                    <div class="dialog-button" style="margin-top:10px;border-color:${elColor};color:${elColor};" onclick="openLocation('pustynia','ruiny_halyaz')">📍 Idź do Ruin Halyaz z ${dragon.name}</div>
+                </div>`;
+        }
+    );
 }
 
 function halyazSearchSign() {
@@ -3718,8 +4420,8 @@ function halyazSearchSign() {
     const signs = qs.signsFound || 0;
     if (signs >= 3) return;
 
-    const elements = getHatchedDragonElements();
-    const primaryEl = elements[0] || 'ogien';
+    const qss = getHalyazQuestState();
+    const primaryEl = qss.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
     const dragonReactions = {
         ogien:    ['Smok nagle zatrzymuje się przy kolumnie i wdycha powietrze z przejęciem — coś tu go przyciąga. Widzisz znak.', 'Smok uderza łapą w kamień i wrzeszczy — nie z bólu, z triumfu. Pod warstwą pyłu — znak.', 'Smok siada przy ruinie i wpatruje się w jedno miejsce. Gdy podchodzisz, widzisz wyryty symbol.'],
@@ -3824,8 +4526,8 @@ function halyazFinale() {
     const box = document.getElementById('location-action-area');
     if (!box) return;
 
-    const elements = getHatchedDragonElements();
-    const primaryEl = elements[0] || 'ogien';
+    const qsf = getHalyazQuestState();
+    const primaryEl = qsf.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
     const ochronaScenes = {
         ogien:    'Twój smok ryczy — nie z agresji, z triumfu. Płomień wybucha z jego pysk, ale zamiast parzyć, tańczy wokół ołtarza jak złota korona. Kamień gaśnie spokojnie, jakby zadanie było wykonane.',
@@ -3834,14 +4536,14 @@ function halyazFinale() {
         powietrze:'Podmuch wiatru gasi żar wokół ołtarza na moment. Potem wraca — słabszy, łagodniejszy. Twój smok tańczy na skrzydłach wokół świątyni.',
         swiatlo:  'Kamień rozbłyska tak jasno, że przez chwilę nic nie widać. Gdy blask opada, całe niebo nad pustynią ma złotą poświatę. Halyaz przebudziło się w spokoju.',
         cien:     'Cień smoka pada na ołtarz i połyka blask kamienia. Przez moment jest ciemno jak w środku nocy. Potem — spokojny, żółty brzask. Halyaz oddycha.',
-        lod:      'Smok chuchnął na kamień — gorąco i zimno zderzają się przez chwilę. Para. Potem kamień styg nie do martwoty, lecz do spokoju. Jak jezioro przed świtem.',
+        lod:      'Twój lodowy smok kładzie łapę na kamieniu spokojnie. Żar ołtarza napotyka zimno smoka — i zwalnia. Puls kamienia stabilizuje się do spokojnego, równego rytmu. Jak lód pod którym płynie strumień.',
         magma:    'Magmowy smok dotyka kamienia z szacunkiem. Żar z żarem — ale tu nie ma walki. Dwa gorące oddechy zlewają się w jeden rytm. Halyaz przebudzone.',
     };
 
     const przemianaScenes = {
         ogien:    'Kamień eksploduje płomieniem — twój smok rzuca się w sam środek i pochłania go. Gdy wychodzi, jest wyraźnie silniejszy. Halyaz przemienione.',
         woda:     'Smok liże kamień długim strumieniem wody. Kamień syczą jak rozpalone żelazo. Gdy para opada, kamień jest ciemny jak obsydian — i żywy.',
-        ziemia:   'Kamień pęka pod dotknięciem smoka — z pęknięcia wydobywa się ogień i skała stopiona razem. Halyaz wyzwolone, nieprzewidywalne.',
+        ziemia:   'Kamień pęka pod dotknięciem smoka — z pęknięcia wydobywa się strumień rozgrzanej magmy i pary. Smok ziemi pochłania siłę ołtarza w korzenie pustyni. Halyaz wyzwolone, nieprzewidywalne.',
         powietrze:'Smok tworzy wir nad ołtarzem. Kamień unosi się i przez chwilę wiruje — potem opada inny. Ciemniejszy. Mocniejszy.',
         swiatlo:  'Blask kamienia i blask smoka zderzają się — cały horyzont pustyni płonie przez sekundę pomarańczem. Halyaz przemienione przez światło.',
         cien:     'Cień smoka pochłania kamień bez reszty. Przez długą chwilę na ołtarzu jest tylko ciemność. Potem — coś wraca. Inne. Ciemniejsze. Silne.',
@@ -4941,6 +5643,7 @@ const worldData = {
                     { label: "Posłuchaj plotek", action: "listenTavern", desc: "Karczma to skarbnica informacji." },
                     { label: "Zagadaj wędrowca", action: "talkTraveler", desc: "Obcy ludzie przynoszą ciekawe wieści." },
                     { label: "Wynajmij izbę (5 miedzi)", action: "rentRoom", desc: "Odpoczynek w karczmie przynosi siły." },
+                    { label: "🎲 Zagraj w kości", action: "playDice", desc: "Zaproś kogoś do partyjki kości." },
                     { label: "🛡️ Zlecenia ochrony", action: "openOchronaFromTavern", desc: "Tablica z prywatnymi zleceniami dla ochroniarzy." },
                     { label: "Zawróć", action: "back" }
                 ]
@@ -6073,6 +6776,8 @@ const locationResponses = {
         return "Karczmarz podaje ci klucz z drewnianą zawieszką. Izba jest mała, ale czysta. Śpisz spokojnie. Rano czujesz się lepiej.";
     },
 
+    playDice: () => { openDiceGame(); return null; },
+
     // LAS - QUEST START
     startLasMgielQuest: () => {
         if (!hasAnyHatchedDragon()) {
@@ -6177,8 +6882,8 @@ const locationResponses = {
         const qs = getHalyazQuestState();
         const path = qs.path || 'ochrona';
         const isOchrona = path === 'ochrona';
-        const elements = getHatchedDragonElements();
-        const el = elements[0] || 'ogien';
+        const qt_trialSands = getHalyazQuestState();
+        const el = qt_trialSands.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
         const scenes = {
             ogien:     isOchrona ? 'Smok ryczy pośrodku wiru — i wiatr go słucha. Szepty milkną jeden po drugim, uspokajane ogniem.' : 'Smok podpala sam wir. Duchy krzyczą i gasną. Wicher się wzmaga — i Halyaz budzi się w ogniu.',
@@ -6205,8 +6910,8 @@ const locationResponses = {
         const qs = getHalyazQuestState();
         const path = qs.path || 'ochrona';
         const isOchrona = path === 'ochrona';
-        const elements = getHatchedDragonElements();
-        const el = elements[0] || 'ogien';
+        const qt_trialOasis = getHalyazQuestState();
+        const el = qt_trialOasis.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
         const scenes = {
             ogien:     isOchrona ? 'Smok pochyla się nad wodą. Jego odbicie w oazie jest spokojne — nie agresywne. Woda uznaje jego ogień.' : 'Smok patrzy w wodę bez lęku. Odbicie płonie. Oaza akceptuje to nowe, inne oblicze.',
@@ -6233,8 +6938,8 @@ const locationResponses = {
         const qs = getHalyazQuestState();
         const path = qs.path || 'ochrona';
         const isOchrona = path === 'ochrona';
-        const elements = getHatchedDragonElements();
-        const el = elements[0] || 'ogien';
+        const qt_trialCaravan = getHalyazQuestState();
+        const el = qt_trialCaravan.missionDragon || getHatchedDragonElements()[0] || 'ogien';
 
         const scenes = {
             ogien:     isOchrona ? 'Przywódca karawany wstaje gdy widzisz twojego smoka. — Widziałem dużo smoków — mówi — ale ten niesie ogień bez złości. Zdajesz próbę.' : 'Smok siada przy ognisku i... przywódca kiwa głową. — Ogień, który płonie swobodnie — odpowiada na pytanie Halyaz.',
@@ -6570,7 +7275,7 @@ function handleLocationAction(regionKey, locationId, actionName) {
     if (result === null || result === undefined) return;
 
     // If handler redirected (like openWorkTab), don't show result
-    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest', 'performLakeAlliance', 'performNestAlliance', 'allianceLake', 'allianceNest', 'startHalyazQuest', 'searchHalyazSign', 'trialSands', 'trialOasis', 'trialCaravan'].includes(actionName)) return;
+    if (['openWorkTab', 'openMerchantTab', 'browseSmith', 'magicLesson', 'watchFight', 'joinTournament', 'talkLibrarian', 'offerHelp', 'healDragon', 'sellAtFoodMerchant', 'sellAtSmith', 'openOchronaFromTavern', 'startLasMgielQuest', 'performLakeAlliance', 'performNestAlliance', 'allianceLake', 'allianceNest', 'startHalyazQuest', 'searchHalyazSign', 'trialSands', 'trialOasis', 'trialCaravan', 'playDice'].includes(actionName)) return;
 
     const actionArea = document.getElementById("location-action-area");
     if (!actionArea) return;
