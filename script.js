@@ -399,30 +399,29 @@ function getDragonHomeDesc() {
         return `${d1.name} i ${d2.name} są w domu. Wygląda na to, że dzień minął spokojnie.`;
     }
 
-// 3 smoki
-const elements = dragons.map(d => d.element);
+    // 3 smoki
+    const elements = dragons.map(d => d.element);
 
-if (elements.includes('ogien') && elements.includes('woda')) {
-    const fireD = dragons.find(d => d.element === 'ogien');
-    const waterD = dragons.find(d => d.element === 'woda');
-    const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
+    if (elements.includes('ogien') && elements.includes('woda')) {
+        const fireD = dragons.find(d => d.element === 'ogien');
+        const waterD = dragons.find(d => d.element === 'woda');
+        const thirdD = dragons.find(d => d.element !== 'ogien' && d.element !== 'woda');
 
-    let thirdDesc = '';
+        let thirdDesc = '';
 
-    if (thirdD) {
-        const map = {
-            ziemia: `${thirdD.name} czeka dokładnie w tym miejscu, co był gdy wychodziłeś. Pewnie siedział tutaj cały czas jak kamień, ignorując całe zamieszanie.`,
-            powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`
-        };
+        if (thirdD) {
+            const map = {
+                ziemia: `${thirdD.name} czeka dokładnie w tym miejscu, co był gdy wychodziłeś. Pewnie siedział tutaj cały czas jak kamień, ignorując całe zamieszanie.`,
+                powietrze: `${thirdD.name} gdzieś zniknął — po chwili widzisz go na belce pod sufitem, skąd spokojnie obserwuje konflikt.`
+            };
+            thirdDesc = map[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
+        } else {
+            // gdy masz 2 ognie albo 2 wody
+            thirdDesc = `Trzeci smok również miesza się do konfliktu — napięcie w powietrzu jest wyczuwalne.`;
+        }
 
-        thirdDesc = map[thirdD.element] || `${thirdD.name} ignoruje całą sytuację.`;
-    } else {
-        // gdy masz 2 ognie albo 2 wody
-        thirdDesc = `Trzeci smok również miesza się do konfliktu — napięcie w powietrzu jest wyczuwalne.`;
+        return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
     }
-
-    return `Wchodząc do domu widzisz jak ${fireD.name} i ${waterD.name} patrzą groźnie na siebie. Przypalone krzesło i mokre ślady wokół niego sugerują, że trwa walka o terytorium. ${thirdDesc}`;
-}
     return `Wszystkie trzy smoki są w domu. Panuje względny spokój — jak na trójkę smoków przystało.`;
 }
 
@@ -1765,51 +1764,218 @@ function handleBuyShopItem(itemId, isGear) {
    ZAKTUALIZOWANY EKWIPUNEK — WYŚWIETL GEAR
 ========================================= */
 
+
+/* =========================================
+   KATALOG PRZEDMIOTÓW — OPISY I GRUPY
+========================================= */
+
+// Kategorie przedmiotów
+// "łupy" = zdobywa się, sprzedaje lub oddaje (quest items / valuables)
+const ITEM_GROUPS = {
+    jedzenie: {
+        label: '🍖 Jedzenie dla Smoków',
+        color: '#cc8844',
+        border: '#aa6622',
+        items: ['Świeża ryba', 'Chleb', 'Górski ser', 'Mięso', 'Jagody'],
+        desc: 'Pożywienie podawane smokom w ramach codziennej pielęgnacji.'
+    },
+    fabularne: {
+        label: '📜 Przedmioty Fabularne',
+        color: '#9966cc',
+        border: '#6633aa',
+        items: ['Kartka z runami', 'Kopia inskrypcji', 'Szkicownik', 'Tajemnicza notatka',
+                'Fragment runicznego kamienia I', 'Fragment runicznego kamienia II', 'Fragment runicznego kamienia III',
+                'Fragment Ostrza Śmierci'],
+        desc: 'Przedmioty powiązane z konkretnymi questami i wydarzeniami.'
+    },
+    ksiezycowe: {
+        label: '🌕 Łupy z Księżycowej Bramy',
+        color: '#aabbff',
+        border: '#6677dd',
+        items: ['Księżycowy Kamień', 'Srebrny Pył Zza Bramy', 'Strzęp Zasłony Między Światami', 'Eter Księżycowy'],
+        desc: 'Łupy — unikatowe znaleziska z drugiej strony Bramy. Bibliotekarz zapłaci za nie dobrze.'
+    },
+    uzyteczne: {
+        label: '🧰 Przedmioty Użytkowe',
+        color: '#44aa88',
+        border: '#227755',
+        items: ['Zioła lecznicze', 'Torba złota', 'Ruda żelaza', 'Piracka mapa', 'Nocny płaszcz'],
+        desc: 'Przedmioty przydatne w handlu, rzemiośle lub jako wkład do misji.'
+    },
+    lupy: {
+        label: '💰 Łupy i Trofea',
+        color: '#ccaa44',
+        border: '#aa8822',
+        items: ['Stary miecz', 'Kryształ krwi', 'Fragment golemowego kamienia', 'Obroża smocza',
+                'Zbroja z łusek', 'Hełm ognisty', 'Amulet smoczego pazura'],
+        desc: 'Łupy — przedmioty zdobyte na wyprawach lub w walce. Nadają się do sprzedania lub wymiany.'
+    }
+};
+
+const ITEM_DESCRIPTIONS = {
+    // Jedzenie
+    'Świeża ryba':          'Złowiona w pobliskich rzekach. Smoki wodne szczególnie ją lubią — podawana surowa, z łuskami.',
+    'Chleb':                'Zwykły bochenek z miejskiej piekarni. Zaskakująco dobrze smakuje smokom ziemi.',
+    'Górski ser':           'Twardy ser dojrzewający w grotach Gór Sarak. Intensywny zapach, ale smoki go uwielbiają.',
+    'Mięso':                'Surowe mięso — podstawa diety każdego smoka. Im większy kawałek, tym smok bardziej zadowolony.',
+    'Jagody':               'Dzikie jagody z Lasu Mgieł. Lekkie i słodkie — idealne dla młodszych smoków.',
+    // Fabularne
+    'Kartka z runami':      'Starannie naszkicowane runy z Księżycowej Bramy. Bibliotekarz bardzo chce to zobaczyć.',
+    'Kopia inskrypcji':     'Wierna kopia tajemniczej inskrypcji. Każdy symbol odwzorowany z najwyższą precyzją.',
+    'Szkicownik':           'Gruby notes z grubymi kartkami. Bibliotekarz dał ci go specjalnie do szkicowania run.',
+    'Tajemnicza notatka':   'Złożona kartka znaleziona w zakamarku biblioteki. Pismo jest nieczytelne — albo w kodzie, albo w obcym języku.',
+    'Fragment runicznego kamienia I':   'Kawałek kamienia z wyrytymi runami. Drga lekko w dłoni — jakby żył.',
+    'Fragment runicznego kamienia II':  'Drugi fragment. Przy zetknięciu z pierwszym przez chwilę świeci.',
+    'Fragment runicznego kamienia III': 'Trzeci fragment. Razem tworzą coś, co wygląda jak klucz — ale do czego?',
+    'Fragment Ostrza Śmierci': '⚠️ Przerażający fragment mrocznego artefaktu. Chłodny w dotyku nawet w środku lata. Jeden z wielu fragmentów legendarnego Ostrza Śmierci — mówi się, że ten kto złoży je w całość, może przemienić swego smoka w Dracolicha.',
+    // Księżycowe
+    'Księżycowy Kamień':              'Kamień nasycony energią pełni. Ciepły w dotyku, lśni srebrzystym blaskiem nawet w ciemności.',
+    'Srebrny Pył Zza Bramy':          'Świecący pył zebrany po drugiej stronie Księżycowej Bramy. Unosi się lekko, jakby grawitacja go nie dotyczyła.',
+    'Strzęp Zasłony Między Światami': 'Materiał z granicy dwóch rzeczywistości. Przeźroczysty z jednej strony, nieprzenikniony z drugiej.',
+    'Eter Księżycowy':                'Skupiona esencja magii miejsca — niezwykle rzadka. Lekko świeci i zmienia kolor przy zmianie nastroju właściciela.',
+    // Użytkowe
+    'Zioła lecznicze':      'Mieszanka ziół z Lasu Mgieł. Kapłanka z Astorveil i kilku lekarzy bardzo je ceni.',
+    'Torba złota':          'Ciężka sakwa z kilkoma złotymi monetami — czyjaś zguba, albo zarobek z lepszych czasów.',
+    'Ruda żelaza':          'Surowy kruszec z Gór Sarak. Kowal Brag zapłaci za nią uczciwie.',
+    'Piracka mapa':         'Podarta mapa z tajemniczymi oznaczeniami. Wygląda autentycznie. Może coś na niej jest?',
+    'Nocny płaszcz':        'Ciemny płaszcz z materiału pochłaniającego światło. Idealny dla kogoś kto nie chce być widziany.',
+    // Łupy
+    'Stary miecz':          'Wyszczerbiony, ale wciąż solidny miecz. Kowal mógłby coś z niego zrobić — albo kupić na przetopienie.',
+    'Kryształ krwi':        'Czerwony kryształ pulsujący własnym słabym światłem. Alchemicy przepłacą za dobry okaz.',
+    'Fragment golemowego kamienia': 'Kawałek ożywionego kamienia — pozostałość po jakimś starym golemie. Wciąż czuć w nim resztkę magii.',
+    'Obroża smocza':        'Elegancka obroża ze wzmocnionego metalu. Nosi ją smok który chce pokazać swój status.',
+    'Zbroja z łusek':       'Lekka zbroja zrobiona ze zrzuconych smoczych łusek. Wytrzymała i lekka jak nic innego.',
+    'Hełm ognisty':         'Wykuty z rudy Gór Sarak, odporny na ogień. Żaden płomień go nie nadtopi.',
+    'Amulet smoczego pazura': 'Zawieszka z prawdziwym pazurem smoka. Podobno przynosi szczęście — i odpędza złe duchy.',
+};
+
+function getItemGroup(itemName) {
+    for (const [groupKey, group] of Object.entries(ITEM_GROUPS)) {
+        if (group.items.includes(itemName)) return { key: groupKey, ...group };
+    }
+    return null;
+}
+
+function getItemDesc(itemName) {
+    return ITEM_DESCRIPTIONS[itemName] || null;
+}
+
+function renderItemCard(name, qty, extra) {
+    const desc = getItemDesc(name);
+    return `
+        <div style="margin:5px 0; padding:9px 12px; background:rgba(15,20,35,0.6); border-radius:6px; border-left:2px solid #3a4a6a;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#d0d8f0; font-weight:bold;">${name}</span>
+                <span style="color:#ffcc44; font-weight:bold; font-size:14px;">×${qty}</span>
+            </div>
+            ${desc ? `<div style="color:#7080a0; font-size:12px; margin-top:3px; font-style:italic; line-height:1.5;">${desc}</div>` : ''}
+            ${extra || ''}
+        </div>
+    `;
+}
+
 function updateInventoryTabFull() {
     const inv = document.getElementById("inventory-content");
-    let html = `<h2>Ekwipunek</h2>`;
-    
+    let html = `<h2 style="margin-bottom:16px;">📦 Ekwipunek</h2>`;
+
+    // ── Smocze rynsztunki (z kowala/dropów) ────────────────
     const gearInventory = loadGearInventory();
     if (gearInventory.length > 0) {
-        html += `<h3>🛡️ Ekwipunek Smoczych Jeźdźców</h3>
-            <p style="color:#8090aa; font-size:13px;">Przedmioty możesz zakładać smokom w zakładce <b>Dom</b>.</p>
-            <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
-            <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Przedmiot</th><th style="padding:8px;">Slot</th><th style="padding:8px; text-align:right;">Źródło</th></tr>`;
+        html += `
+            <div style="margin-bottom:18px;">
+                <div style="font-size:15px; font-weight:bold; color:#aabbee; border-bottom:1px solid #3a4a6a; padding-bottom:6px; margin-bottom:10px;">⚔️ Rynsztunki Smoka</div>
+                <div style="color:#7080a0; font-size:12px; font-style:italic; margin-bottom:8px;">Ekwipunek zakładasz smokom w zakładce <b>Dom</b>.</div>
+        `;
         gearInventory.forEach(g => {
             const slotDef = DRAGON_EQUIPMENT_SLOTS.find(s => s.id === g.slot);
-            html += `<tr style="border-bottom:1px solid #445; color:#e0e0e0;">
-                <td style="padding:8px;">${g.name} ${g.rarity === 'rare' ? '✨' : g.rarity === 'epic' ? '💎' : ''}</td>
-                <td style="padding:8px; text-align:center;">${slotDef ? slotDef.icon + ' ' + slotDef.label : g.slot}</td>
-                <td style="padding:8px; text-align:right; color:#6070a0; font-size:12px;">${g.source || '—'}</td>
-            </tr>`;
+            const rarityBadge = g.rarity === 'epic' ? ' <span style="color:#cc88ff;">💎 Epicki</span>' : g.rarity === 'rare' ? ' <span style="color:#88ccff;">✨ Rzadki</span>' : '';
+            html += `
+                <div style="margin:5px 0; padding:9px 12px; background:rgba(15,20,35,0.6); border-radius:6px; border-left:2px solid #4a3a7a;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#d0c0ff; font-weight:bold;">${g.name}${rarityBadge}</span>
+                        <span style="color:#7080aa; font-size:12px;">${slotDef ? slotDef.icon + ' ' + slotDef.label : g.slot}</span>
+                    </div>
+                    ${g.stats ? `<div style="color:#6070a0; font-size:12px; margin-top:2px;">${Object.entries(g.stats).map(([k,v])=>`${STAT_LABELS[k]||k}: +${v}`).join(' · ')}</div>` : ''}
+                </div>
+            `;
         });
-        html += `</table>`;
+        html += `</div>`;
     }
 
-    if (Object.keys(inventory).length > 0) {
-        html += `<h3>📦 Przedmioty</h3>
-            <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
-            <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Przedmiot</th><th style="padding:8px; text-align:right;">Ilość</th></tr>`;
-        Object.entries(inventory).forEach(([item, count]) => {
-            html += `<tr style="border-bottom:1px solid #445; color:#e0e0e0;">
-                <td style="padding:8px;">${item}</td>
-                <td style="padding:8px; text-align:right;"><b>${count}</b></td>
-            </tr>`;
+    // ── Jedzenie dla smoków ──────────────────────────────
+    const foodEntries = [
+        ['Mięso',       foodItems.mięso  || 0, 'Surowe mięso — podstawa diety każdego smoka. Im większy kawałek, tym smok bardziej zadowolony.'],
+        ['Jagody',      foodItems.jagody || 0, 'Dzikie jagody z Lasu Mgieł. Lekkie i słodkie — idealne dla młodszych smoków.'],
+        ['Świeża ryba', inventory['Świeża ryba'] || 0, 'Złowiona w pobliskich rzekach. Smoki wodne szczególnie ją lubią — podawana surowa, z łuskami.'],
+        ['Chleb',       inventory['Chleb'] || 0, 'Zwykły bochenek z miejskiej piekarni. Zaskakująco dobrze smakuje smokom ziemi.'],
+        ['Górski ser',  inventory['Górski ser'] || 0, 'Twardy ser dojrzewający w grotach Gór Sarak. Intensywny zapach, ale smoki go uwielbiają.'],
+    ];
+    const hasFood = foodEntries.some(([,q]) => q > 0);
+    if (hasFood) {
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-size:15px; font-weight:bold; color:#cc9944; border-bottom:1px solid #aa6622; padding-bottom:6px; margin-bottom:10px;">🍖 Jedzenie dla Smoków</div>
+            <div style="color:#7080a0; font-size:12px; font-style:italic; margin-bottom:8px;">Podawane smokom w zakładce Dom.</div>
+        `;
+        foodEntries.forEach(([name, qty, desc]) => {
+            if (qty > 0) {
+                html += `<div style="margin:5px 0; padding:9px 12px; background:rgba(30,20,10,0.6); border-radius:6px; border-left:2px solid #aa6622;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:#e0c080; font-weight:bold;">${name}</span>
+                        <span style="color:#ffcc44; font-weight:bold;">×${qty}</span>
+                    </div>
+                    <div style="color:#7060a0; font-size:12px; margin-top:3px; font-style:italic;">${desc}</div>
+                </div>`;
+            }
         });
-        html += `</table>`;
+        html += `</div>`;
     }
 
-    if (gearInventory.length === 0 && Object.keys(inventory).length === 0) {
-        html += `<p style="color:#999;">Ekwipunek jest pusty.</p>`;
+    // ── Pozostałe grupy przedmiotów ──────────────────────
+    const foodKeysToSkip = new Set(['Świeża ryba','Chleb','Górski ser']);
+    const groupOrder = ['fabularne','ksiezycowe','uzyteczne','lupy'];
+    const usedItems = new Set([...foodEntries.map(([n])=>n)]);
+
+    groupOrder.forEach(groupKey => {
+        const group = ITEM_GROUPS[groupKey];
+        const entries = group.items.filter(name => {
+            const qty = inventory[name] || 0;
+            return qty > 0;
+        });
+        if (entries.length === 0) return;
+        usedItems.add(...entries);
+
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-size:15px; font-weight:bold; color:${group.color}; border-bottom:1px solid ${group.border}; padding-bottom:6px; margin-bottom:4px;">${group.label}</div>
+            <div style="color:#7080a0; font-size:12px; font-style:italic; margin-bottom:8px;">${group.desc}</div>
+        `;
+        entries.forEach(name => {
+            const qty = inventory[name] || 0;
+            html += renderItemCard(name, qty);
+        });
+        html += `</div>`;
+    });
+
+    // ── Inne (niesklasyfikowane) ─────────────────────────
+    const otherItems = Object.entries(inventory).filter(([name, qty]) => {
+        if (qty <= 0) return false;
+        if (foodKeysToSkip.has(name)) return false;
+        const allGroupItems = Object.values(ITEM_GROUPS).flatMap(g => g.items);
+        return !allGroupItems.includes(name);
+    });
+    if (otherItems.length > 0) {
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-size:15px; font-weight:bold; color:#8090aa; border-bottom:1px solid #445; padding-bottom:6px; margin-bottom:8px;">📦 Różne</div>
+        `;
+        otherItems.forEach(([name, qty]) => {
+            html += renderItemCard(name, qty);
+        });
+        html += `</div>`;
     }
 
-    html += `<h3>🍖 Jedzenie dla Smoków</h3>
-        <table style="width:100%; border-collapse:collapse;">
-        <tr style="border-bottom:1px solid #cfd8ff; color:#e0e0e0;"><th style="padding:8px; text-align:left;">Typ</th><th style="padding:8px; text-align:right;">Ilość</th></tr>
-        <tr style="border-bottom:1px solid #445; color:#e0e0e0;"><td style="padding:8px;">Mięso</td><td style="padding:8px; text-align:right;"><b>${foodItems.mięso || 0}</b></td></tr>
-        <tr style="border-bottom:1px solid #445; color:#e0e0e0;"><td style="padding:8px;">Jagody</td><td style="padding:8px; text-align:right;"><b>${foodItems.jagody || 0}</b></td></tr>
-        </table>`;
-    
+    if (gearInventory.length === 0 && !hasFood && Object.values(inventory).every(v => !v || v <= 0)) {
+        html += `<p style="color:#999; font-style:italic;">Ekwipunek jest pusty.</p>`;
+    }
+
     inv.innerHTML = html;
 }
 
