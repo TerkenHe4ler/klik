@@ -123,6 +123,16 @@ const DRAGON_SPELLS = {
         { id: 'powietrzne_uderzenie', name: 'Powietrzne Uderzenie', desc: 'Ostra podmuch powietrza tnie jak ostrze.',              manaCost: 5,  dmgMult: [1.5, 2.5] },
         { id: 'cyklon',              name: 'Cyklon',               desc: 'Smok wznosi spiralę wichru, odrzucając i raniąc wrogów.', manaCost: 8,  dmgMult: [2.0, 4.0] },
         { id: 'taniec_wiatru',       name: 'Taniec Wiatru',        desc: 'Smok staje się nieuchwytny — unik i leczący podmuch.',    manaCost: 10, heal: [10, 25], dodge: true, isHeal: true }
+    ],
+    swiatlo: [
+        { id: 'promien_swiatla',  name: 'Promień Światła',   desc: 'Oślepiający snop czystej energii trafia w cel, paląc ciemność.',          manaCost: 5,  dmgMult: [1.5, 2.5] },
+        { id: 'blazk_sloneczny', name: 'Blask Słoneczny',    desc: 'Smok eksploduje falą jasności — razi wszystkich wokół.',                  manaCost: 8,  dmgMult: [2.0, 3.5] },
+        { id: 'boskie_swiatlenie', name: 'Boskie Oświetlenie', desc: 'Smok otula się świętym blaskiem — leczy i odpiera kolejny cios.',         manaCost: 10, heal: [20, 40], shield: true, isHeal: true }
+    ],
+    cien: [
+        { id: 'uderzenie_cienia', name: 'Uderzenie Cienia',   desc: 'Smok uderza z mroku — cios trudny do przewidzenia, celuje w słabe punkty.', manaCost: 5,  dmgMult: [1.8, 2.8] },
+        { id: 'mroczna_pustka',   name: 'Mroczna Pustka',    desc: 'Cień pochłania wroga, drenaż energii i obrażenia z dystansu.',             manaCost: 8,  dmgMult: [2.0, 3.5], drain: true },
+        { id: 'krok_nicosci',     name: 'Krok w Nicość',     desc: 'Smok znika na chwilę w cieniu — unika ataku i kontratakuje znienacka.',   manaCost: 10, dmgMult: [2.5, 4.5], dodge: true }
     ]
 };
 
@@ -422,6 +432,20 @@ function getDragonHomeDesc() {
                 `${d.name} stoi przy drzwiach jakby czekał. Kiedy je otwierasz, wybiega na zewnątrz i po chwili wraca. Spacer.`,
                 `Powietrze w pokoju jest chłodniejsze niż zwykle. ${d.name} śpi w rogu, skrzydła lekko rozłożone — kto wie, co mu się śni.`,
             ],
+            swiatlo: [
+                `${d.name} siedzi w najjaśniejszym miejscu pokoju, twarz skierowana ku oknu. Kiedy promień słońca pada na jego łuski, cały pokój na chwilę rozbłyskuje złotem.`,
+                `Wchodząc zastajesz ${d.name} śpiącego w kałuży światła na podłodze. Mruczy cicho — przypomina to bardziej brzęczenie pszczoły niż chrapanie.`,
+                `${d.name} siedzi przy świecy i obserwuje płomień. Kiedy go dotyka łapą, świeca nie gaśnie — płonie jaśniej.`,
+                `Pokój pachnie latem i żywicą. ${d.name} przynosi kawałek połyskującego kamienia i kładzie ci go pod stopami. Prezent.`,
+                `${d.name} nie śpi — siedzi nieruchomo pośrodku pokoju i wygląda jakby słuchał czegoś czego ty nie słyszysz. Wokół niego powietrze lekko drży.`,
+            ],
+            cien: [
+                `Wchodząc do domu nie widzisz ${d.name}. Po chwili coś poruszyło się za szafą — tam siedzi. Obserwuje cię od wejścia.`,
+                `${d.name} śpi zwinięty w najciemniejszym kącie pokoju. Prawie niewidoczny. Otwiera jedno oko gdy wchodzisz — potem zamyka.`,
+                `Świeca na stole zgasła. ${d.name} siedzi obok i patrzy na ciebie z czymś co wygląda jak zadowolenie.`,
+                `${d.name} krąży cicho po pokoju — nie słyszysz jego kroków. Dopiero gdy staje tuż za tobą, zdajesz sobie sprawę, że tu jest.`,
+                `Zastajesz ${d.name} siedzącego w oknie, odwróconego do ciemnej ulicy. Kiedy wchodzisz, obraca się powoli. W jego oczach odbija się coś czego nie ma w pokoju.`,
+            ],
         };
         const arr = descs[d.element] || [`${d.name} czeka spokojnie.`];
         return arr[Math.floor(Date.now() / (10*60*1000)) % arr.length];
@@ -455,6 +479,11 @@ function getDragonHomeDesc() {
                 `${d1.name} siedzi przy misce. ${d2.name} drzemie przy ścianie. Spokój jak w starym klasztorze.`,
                 `Obydwa smoki śpią — jeden obok drugiego, ramię w ramię. Rzadki widok.`,
                 `${d2.name} wcisnął się między ${d1.name} a ścianę. Wyglądają jak dwa kamienie w rzece.`,
+            ],
+            cien_swiatlo: [
+                `${d1.name} i ${d2.name} siedzą po przeciwnych stronach pokoju. Jedno w blasku okna, drugie w najciemniejszym kącie. Obserwują się nawzajem z uwagą, której nie widać na pierwszy rzut oka.`,
+                `${d1.name} krąży w cieniu. ${d2.name} siedzi w świetle. Między nimi granica — żadne jej nie przekracza. Ale oboje wiedzą, że ona jest.`,
+                `Pokój podzielony na dwie strefy — jaśniejszą i ciemniejszą. Każdy smok trzyma swoją. Napięcie jest spokojne, niemal filozoficzne.`,
             ],
         };
         const arr = pairDescs[pair];
@@ -902,7 +931,7 @@ function updateDragonsTab() {
         }
         const activeMission = loadDragonMission(d.num);
         const equipBonus = getEquipmentStatBonus(d.num);
-        const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff' };
+        const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff' };
         const elColor = elColors[d.element] || '#aab';
 
         html += `
@@ -3674,6 +3703,17 @@ function combatAction(action, spellId) {
                 dmgToEnemy = 0;
             } else if (spell.dmgMult) {
                 dmgToEnemy = Math.floor(intel * (spell.dmgMult[0] + Math.random() * (spell.dmgMult[1] - spell.dmgMult[0])));
+                // Drain: steal 10% of damage as HP
+                if (spell.drain) {
+                    const stolen = Math.floor(dmgToEnemy * 0.10);
+                    c.dragonHP = Math.min(c.dragonHP + stolen, getDragonMaxHP(loadDragonStats(c.dragonNum)));
+                    combatLog.push(`💜 Drenaż: +${stolen} HP`);
+                }
+                // Shield: absorb next hit (stored as flag)
+                if (spell.shield) {
+                    localStorage.setItem('dragonShield_' + c.dragonNum, 'true');
+                    combatLog.push(`🛡️ Tarcza Światła aktywna — następny cios pochłonięty!`);
+                }
                 dmgToDragon = Math.floor(c.enemy.sila * (0.5 + Math.random() * 0.3));
                 actionLog = `${spell.name}! Zadaje ${dmgToEnemy} obrażeń magicznych.`;
             }
@@ -5402,19 +5442,19 @@ const merchantQuestions = [
     {
         text: "Wchodzisz do jaskini pełnej starożytnych run. Co robisz?",
         answers: [
-            { text: "Dotykam najjaśniejszej runy — ogień.", element: "ogien" },
-            { text: "Szukam wilgoci — woda.", element: "woda" },
-            { text: "Badam skały — ziemia.", element: "ziemia" },
+            { text: "Dotykam najjaśniejszej runy — coś jasnego przyciąga mnie.", element: "swiatlo" },
+            { text: "Wchodzę głębiej, gdzie nie sięga światło pochodni.", element: "cien" },
+            { text: "Badam skały i szukam śladów — ziemia.", element: "ziemia" },
             { text: "Nasłuchuję echa — powietrze.", element: "powietrze" }
         ]
     },
     {
         text: "Na pustkowiu widzisz wir energii. Co robisz?",
         answers: [
-            { text: "Wchodzę w niego — ogień mnie nie zatrzyma.", element: "ogien" },
+            { text: "Wchodzę w niego — płomień mnie nie zatrzyma.", element: "ogien" },
             { text: "Obserwuję jego ruch — jak woda.", element: "woda" },
             { text: "Dotykam ziemi, by poczuć drgania.", element: "ziemia" },
-            { text: "Pozwalam wiatrowi mnie poprowadzić.", element: "powietrze" }
+            { text: "Czekam aż ciemność odsłoni co jest w środku.", element: "cien" }
         ]
     },
     {
@@ -5422,8 +5462,17 @@ const merchantQuestions = [
         answers: [
             { text: "Patrzę mu prosto w oczy — ogień.", element: "ogien" },
             { text: "Słucham jego szeptów — woda.", element: "woda" },
-            { text: "Kłaniam się mu — ziemia.", element: "ziemia" },
+            { text: "Patrzę w miejsce skąd bije światło wokół niego.", element: "swiatlo" },
             { text: "Pozwalam mu przejść przez siebie — powietrze.", element: "powietrze" }
+        ]
+    },
+    {
+        text: "Jesteś sam w nocy. Co czujesz?",
+        answers: [
+            { text: "Potrzebuję ognia — bez niego nie ma spokoju.", element: "ogien" },
+            { text: "Szukam księżycowego odbicia w wodzie.", element: "woda" },
+            { text: "Ciemność jest znajoma — jak drugi dom.", element: "cien" },
+            { text: "Patrzę w gwiazdy — każda jest małym słońcem.", element: "swiatlo" }
         ]
     }
 ];
@@ -5432,10 +5481,10 @@ const merchantThirdQuestions = [
     {
         text: "W starym lesie odnajdujesz zrzucone łuski. Co robisz?",
         answers: [
-            { text: "Zbieram ogniste resztki.", element: "ogien" },
+            { text: "Patrzę czy iskrzą — może żar w nich tkwi.", element: "ogien" },
             { text: "Sprawdzam, czy są mokre.", element: "woda" },
-            { text: "Wącham ziemię.", element: "ziemia" },
-            { text: "Nasłuchuję liści.", element: "powietrze" }
+            { text: "Trzymam w dłoni — czuję w nich dawne życie.", element: "swiatlo" },
+            { text: "Chowam do kieszeni — przyda się w ciemności.", element: "cien" }
         ]
     },
     {
@@ -5443,8 +5492,8 @@ const merchantThirdQuestions = [
         answers: [
             { text: "Gorąco słońca.", element: "ogien" },
             { text: "Chłód wody.", element: "woda" },
-            { text: "Twardość kamieni.", element: "ziemia" },
-            { text: "Lekkość wiatru.", element: "powietrze" }
+            { text: "Blask — coś we mnie budzi się na ten widok.", element: "swiatlo" },
+            { text: "Zastanawiam się co kryje się pod powierzchnią.", element: "cien" }
         ]
     },
     {
@@ -5452,15 +5501,24 @@ const merchantThirdQuestions = [
         answers: [
             { text: "Odpowiadam ogniem.", element: "ogien" },
             { text: "Odpływam w wodzie.", element: "woda" },
-            { text: "Przemawiam ziemią.", element: "ziemia" },
-            { text: "Lotem odpowiadam.", element: "powietrze" }
+            { text: "Odpowiadam blaskiem — niech wiedzą, że jestem.", element: "swiatlo" },
+            { text: "Milczę i nasłuchuję — w ciszy więcej słychać.", element: "cien" }
+        ]
+    },
+    {
+        text: "Ktoś mówi ci: musisz wybrać między jawnym a ukrytym. Co wybierasz?",
+        answers: [
+            { text: "Jawne — jak płomień, nie da się go ukryć.", element: "ogien" },
+            { text: "Ukryte — jak głębina, tajemnicze i niezmierzone.", element: "woda" },
+            { text: "Jawne, bo tylko światło buduje zaufanie.", element: "swiatlo" },
+            { text: "Ukryte — wiedza i cień dają przewagę.", element: "cien" }
         ]
     }
 ];
 
 function startThirdMerchant() {
     merchantThirdStep = 0;
-    merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+    merchantThirdScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
     const box = document.getElementById("merchant-content");
     box.innerHTML = `
         <div class="dialog-window">
@@ -5490,10 +5548,8 @@ function merchantThirdNext() {
     }
     const chosen = Object.entries(merchantThirdScores).sort((a,b)=>b[1]-a[1])[0][0];
     const elementName = {
-        ogien: "ognistego",
-        woda: "wodnego",
-        ziemia: "ziemnego",
-        powietrze: "powietrznego"
+        ogien: "ognistego", woda: "wodnego", ziemia: "ziemnego",
+        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego"
     }[chosen];
     box.innerHTML = `
         <div class="dialog-window">
@@ -5526,7 +5582,7 @@ function merchantContinueGreeting() {
 
 
 let merchantStep = 0;
-let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+let merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
 
 // trzecia seria pytań
 let merchantThirdStep = 0;
@@ -5673,7 +5729,7 @@ function updateMerchantTab() {
 
     // jezeli wracamy z NIE - resetuj zmienne
     merchantStep = 0;
-    merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0 };
+    merchantScores = { ogien: 0, woda: 0, ziemia: 0, powietrze: 0, swiatlo: 0, cien: 0 };
 
     box.innerHTML = `
         <div class="dialog-window">
@@ -5706,10 +5762,8 @@ function merchantNext() {
 
     const chosen = Object.entries(merchantScores).sort((a,b)=>b[1]-a[1])[0][0];
     const elementName = {
-        ogien: "ognistego",
-        woda: "wodnego",
-        ziemia: "ziemnego",
-        powietrze: "powietrznego"
+        ogien: "ognistego", woda: "wodnego", ziemia: "ziemnego",
+        powietrze: "powietrznego", swiatlo: "świetlistego", cien: "ciemnego"
     }[chosen];
 
     box.innerHTML = `
