@@ -46,6 +46,7 @@
     <div id="work"      class="tab-content"><div id="work-content"></div></div>
     <div id="inventory" class="tab-content"><div id="inventory-content"></div></div>
     <div id="merchant"  class="tab-content"><h2>Handlarz Smoczych Jaj</h2><div id="merchant-content"></div></div>
+    <div id="zadania"       class="tab-content"><div id="quest-log-content"></div></div>
     <div id="warta"         class="tab-content"><div id="warta-content"></div></div>
     <div id="ochrona"       class="tab-content"><div id="ochrona-content"></div></div>
     <div id="szpiegowanie"  class="tab-content"><div id="szpiegowanie-content"></div></div>
@@ -85,6 +86,7 @@
     <div id="tab-work" class="tab" onclick="openTab('work')">Praca</div>
     <div class="tab"              onclick="openTab('inventory')">Ekwipunek</div>
     <div class="tab"              onclick="openTab('merchant')">Handlarz</div>
+    <div class="tab" onclick="openTab('zadania')" style="border-color:#6688cc;color:#aabbff;">📋 Zadania</div>
     <div id="tab-warta"         class="tab" style="display:none;border-color:#cc9900;color:#ffcc66;" onclick="openTab('warta')">⚔️ Warta</div>
     <div id="tab-ochrona"       class="tab" style="display:none;border-color:#4488cc;color:#88bbff;" onclick="openTab('ochrona')">🛡️ Ochrona</div>
     <div id="tab-szpiegowanie"  class="tab" style="display:none;border-color:#9944cc;color:#cc88ff;" onclick="openTab('szpiegowanie')">🌑 Szpiegowanie</div>
@@ -109,12 +111,12 @@
        Środek tarczy w oryginale: x=512, y=260
        Na kanwie: x=(512-239.5)/545*200 = 100.0, y=(260-0)/545*200 = 95.4 */
     var CLOCK_CX = 200.0;   /* środek tarczy X na kanwie               */
-    var CLOCK_CY = 204.0;    /* środek tarczy Y na kanwie               */
+    var CLOCK_CY = 202.0;    /* środek tarczy Y na kanwie               */
     var CLOCK_R  = 160.0;    /* promień tarczy na kanwie                */
 
     /* Długości wskazówek (% promienia) */
-    var HOUR_LEN   = CLOCK_R * 0.35;  /* ~45 px */
-    var MINUTE_LEN = CLOCK_R * 0.53;  /* ~62 px */
+    var HOUR_LEN   = CLOCK_R * 0.35;  /* ~56 px */
+    var MINUTE_LEN = CLOCK_R * 0.53;  /* ~85 px */
 
     /* Grubości wskazówek */
     var HOUR_W   = 5.5;

@@ -8680,6 +8680,273 @@ function completeRegionExpedition(dragonNum) {
 }
 
 
+
+/* ═══════════════════════════════════════════════════════════════
+   ZAKŁADKA ZADANIA — dziennik questów
+═══════════════════════════════════════════════════════════════ */
+
+function getQuestLog() {
+    // Zbiera stan wszystkich questów z localStorage i zwraca listę obiektów
+    const quests = [];
+
+    // ── 1. MISJA KURIERSKA (Straż / Posterunek) ──────────────────
+    const gs = getGuardState();
+    if (gs.stage && gs.stage !== 'none') {
+        const isDone = gs.stage.startsWith('done_');
+        const endings = {
+            A: { label: 'Droga Straży',   reward: '5 srebrnych + dołączenie do Straży Miejskiej (zakładka ⚔️ Warta)',   icon: '⚔️' },
+            B: { label: 'Droga Ochrony',  reward: '4 srebrne + dołączenie do sieci Ochroniarzy (zakładka 🛡️ Ochrona)',  icon: '🛡️' },
+            C: { label: 'Droga Cienia',   reward: '1 złoto + kontakt z Siecią Cienia (zakładka 🌑 Szpiegowanie)',        icon: '🌑' },
+        };
+        const ending = isDone ? gs.stage.replace('done_', '') : null;
+        const endData = ending ? endings[ending] : null;
+        quests.push({
+            id: 'guard_mission',
+            title: 'Zaginiony Kurier',
+            giver: 'Kapitan Mira — Posterunek Straży',
+            icon: '📜',
+            region: 'Miasto Astorveil',
+            active: !isDone,
+            done: isDone,
+            desc: 'Kurier Straży zaginął trzy dni temu wraz z ważnymi dokumentami. Kapitan Mira prosi o dyskretne śledztwo.',
+            stageLabel: isDone
+                ? `Zakończono: ${endData ? endData.label : '?'}`
+                : stageLabelGuard(gs.stage),
+            reward: isDone && endData ? endData.reward : null,
+            rewardIcon: isDone && endData ? endData.icon : null,
+        });
+    }
+
+    // ── 2. SERCE LASU MGIEŁ ──────────────────────────────────────
+    const lasStage = lasQuestStage();
+    if (lasStage && lasStage !== 'none') {
+        const isDone = lasStage.startsWith('done_');
+        const isLight = lasStage === 'done_light';
+        quests.push({
+            id: 'las_quest',
+            title: 'Serce Lasu Mgieł',
+            giver: 'Leśniczka — Siedziba Leśnika',
+            icon: '🌲',
+            region: 'Las Mgieł',
+            active: !isDone,
+            done: isDone,
+            desc: 'W Lesie Mgieł dzieje się coś niepokojącego. Leśniczka prosi o pomoc w odszukaniu źródła zakłócenia w sercu lasu.',
+            stageLabel: isDone
+                ? (isLight ? 'Zakończono: Droga Światła' : 'Zakończono: Droga Cienia')
+                : stageLabelLas(lasStage),
+            reward: isDone
+                ? (isLight
+                    ? '3 złote + 🌿 Amulet Lasu'
+                    : '5 złotych + 🌑 Kamień Cienia')
+                : null,
+            rewardIcon: isDone ? (isLight ? '🌿' : '🌑') : null,
+        });
+    }
+
+    // ── 3. TAJEMNICA PUSTYNI HALYAZ ──────────────────────────────
+    const halyazStage = halyazQuestStage();
+    if (halyazStage && halyazStage !== 'none') {
+        const isDone = halyazStage.startsWith('done_');
+        const isOchrona = halyazStage === 'done_ochrona';
+        quests.push({
+            id: 'halyaz_quest',
+            title: 'Tajemnica Pustyni Halyaz',
+            giver: 'Strażniczka Oazy — Ruiny Halyaz',
+            icon: '🏜️',
+            region: 'Pustynia Halyaz',
+            active: !isDone,
+            done: isDone,
+            desc: 'Starożytna strażniczka oazy wzywa do odkrycia sekretu ruin Halyaz. Wyprawa pełna prób i wyborów.',
+            stageLabel: isDone
+                ? (isOchrona ? 'Zakończono: Ścieżka Ochrony' : 'Zakończono: Ścieżka Przemiany')
+                : stageLabelHalyaz(halyazStage),
+            reward: isDone
+                ? (isOchrona
+                    ? '4 złote + 🪨 Kamień Halyaz + 🏺 Amulet Pustyni'
+                    : '5 złotych + 💎 Kamień Przemiany + 🌋 Łuska Magmy')
+                : null,
+            rewardIcon: isDone ? (isOchrona ? '🪨' : '💎') : null,
+        });
+    }
+
+    // ── 4. RUNY KSIĘŻYCOWEJ BRAMY ────────────────────────────────
+    const runeStage = localStorage.getItem('runeQuestProgress') || 'none';
+    if (runeStage !== 'none') {
+        const isDone = runeStage === 'translated' || runeStage === 'done';
+        quests.push({
+            id: 'rune_quest',
+            title: 'Runy Księżycowej Bramy',
+            giver: 'Bibliotekarz — Biblioteka Astorveil',
+            icon: '🌕',
+            region: 'Góry Sarak',
+            active: !isDone,
+            done: isDone,
+            desc: 'Bibliotekarz prosi o naszkicowanie tajemniczych run z Księżycowej Bramy. Znaki są wyjątkowo stare i precyzyjne — nikt ich dotąd nie przetłumaczył.',
+            stageLabel: stageLabelRune(runeStage),
+            reward: isDone ? 'Wiedza o runach — dostęp do misji Księżycowej Bramy' : null,
+            rewardIcon: isDone ? '📜' : null,
+        });
+    }
+
+    // ── 5. SKŁADNIKI DLA BIBLIOTEKARZA ───────────────────────────
+    const ingQuest = localStorage.getItem('libIngredientQuest') || 'none';
+    if (ingQuest !== 'none') {
+        const isDone = ingQuest === 'done';
+        quests.push({
+            id: 'lib_ingredients',
+            title: 'Składniki Zza Bramy',
+            giver: 'Bibliotekarz — Biblioteka Astorveil',
+            icon: '📚',
+            region: 'Księżycowa Brama / Biblioteka',
+            active: !isDone,
+            done: isDone,
+            desc: 'Bibliotekarz prosi o składniki z Księżycowej Bramy — unikalne materiały, których nie można zdobyć nigdzie indziej.',
+            stageLabel: isDone ? 'Zakończono' : 'Aktywne — przynieś składniki z Księżycowej Bramy',
+            reward: isDone ? 'Zapłata od bibliotekarza za dostarczone składniki' : null,
+            rewardIcon: isDone ? '💰' : null,
+        });
+    }
+
+    // ── 6. KONTAKT Z SIECIĄ CIENIA ───────────────────────────────
+    if (localStorage.getItem('szpiegMember') === 'true') {
+        quests.push({
+            id: 'shadow_network',
+            title: 'Sieć Cienia',
+            giver: 'Nieznany — anonimowa paczka',
+            icon: '🌑',
+            region: 'Astorveil — zaułki',
+            active: false,
+            done: true,
+            desc: 'Po dyskretnym zakończeniu misji kurierskiej, ktoś z cienia nawiązał kontakt. Sieć Cienia ma dla ciebie więcej zadań.',
+            stageLabel: 'Zakończono: dołączyłeś do Sieci Cienia',
+            reward: '1 złoto + dostęp do zakładki 🌑 Szpiegowanie',
+            rewardIcon: '🌑',
+        });
+    }
+
+    return quests;
+}
+
+// Etykiety etapów
+
+function stageLabelGuard(stage) {
+    const labels = {
+        none: 'Brak',
+        started: 'Przyjęto zlecenie — szukaj kuriera',
+        searching: 'Szukasz kuriera w mieście',
+        found: 'Znaleziono kuriera — podjęcie decyzji',
+    };
+    return labels[stage] || `Etap: ${stage}`;
+}
+
+function stageLabelLas(stage) {
+    const labels = {
+        offered: 'Etap 1 — Leśniczka prosi o pomoc',
+        stage2:  'Etap 2 — Badasz Las Mgieł',
+        stage3_choice: 'Etap 3 — Wybór ścieżki',
+        stage4_light:  'Etap 4 — Droga Światła',
+        stage4_shadow: 'Etap 4 — Droga Cienia',
+        stage5_light:  'Etap 5 — Finał Światła',
+        stage5_shadow: 'Etap 5 — Finał Cienia',
+    };
+    return labels[stage] || `Etap: ${stage}`;
+}
+
+function stageLabelHalyaz(stage) {
+    const labels = {
+        offered:       'Etap 1 — Strażniczka zaprosiła do questу',
+        stage2:        'Etap 2 — Znaki pustyni',
+        stage3_choice: 'Etap 3 — Wybór ścieżki',
+        stage4_trials: 'Etap 4 — Próby',
+        stage5_finale: 'Etap 5 — Finał',
+    };
+    return labels[stage] || `Etap: ${stage}`;
+}
+
+function stageLabelRune(stage) {
+    const labels = {
+        sketch:       'Etap 1 — Naszkicuj runy (potrzebujesz szkicownika)',
+        readFirst:    'Etap 2 — Dostarcz szkic bibliotekarzowi',
+        readBooks:    'Etap 3 — Bibliotekarz bada szkic',
+        delivered:    'Etap 4 — Dostarczono kartę z runami',
+        researchDone: 'Etap 5 — Badania zakończone',
+        fragment_hunt:'Etap 6 — Szukasz fragmentów kamienia',
+        translated:   'Zakończono — runy przetłumaczone',
+        done:         'Zakończono',
+        knowAlready:  'Odwiedziłeś bramę — zgłoś się do bibliotekarza',
+        notInterested:'Zrezygnowano z questa',
+    };
+    return labels[stage] || `Etap: ${stage}`;
+}
+
+// Render zakładki
+
+let questLogTab = 'active'; // 'active' | 'done'
+
+function updateQuestLogTab() {
+    const div = document.getElementById('quest-log-content');
+    if (!div) return;
+
+    const all = getQuestLog();
+    const active = all.filter(q => q.active);
+    const done   = all.filter(q => q.done);
+
+    const tabBtn = (id, label, count) => `
+        <div onclick="questLogTab='${id}';updateQuestLogTab()"
+             style="flex:1;text-align:center;padding:8px 4px;cursor:pointer;font-size:13px;font-weight:bold;border-radius:6px 6px 0 0;
+                    background:${questLogTab===id ? 'rgba(30,45,80,0.95)' : 'rgba(15,20,40,0.5)'};
+                    color:${questLogTab===id ? '#e0e8ff' : '#6677aa'};
+                    border-bottom:${questLogTab===id ? '2px solid #6688cc' : '2px solid transparent'};
+                    transition:0.2s;">
+            ${label} <span style="font-size:11px;opacity:0.7;">(${count})</span>
+        </div>`;
+
+    const renderQuest = (q) => {
+        const col = q.done ? '#66cc88' : '#aabbff';
+        const border = q.done ? '#336644' : '#334466';
+        const rewardSection = q.done && q.reward ? `
+            <div style="margin-top:10px;padding:8px 12px;background:rgba(30,50,20,0.6);border-left:3px solid #44aa66;border-radius:5px;">
+                <div style="font-size:11px;color:#66aa77;font-weight:bold;margin-bottom:3px;">🎁 NAGRODY</div>
+                <div style="color:#aaddaa;font-size:13px;">${q.rewardIcon ? q.rewardIcon + ' ' : ''}${q.reward}</div>
+            </div>` : '';
+        return `
+            <div style="margin:8px 0;padding:14px;background:rgba(12,18,35,0.9);border:1px solid ${border};border-radius:10px;animation:worldFadeIn 0.3s;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <span style="font-size:20px;">${q.icon}</span>
+                    <div style="flex:1;">
+                        <div style="font-size:15px;font-weight:bold;color:${col};">${q.title}</div>
+                        <div style="font-size:11px;color:#556688;">${q.giver} &nbsp;|&nbsp; ${q.region}</div>
+                    </div>
+                    <div style="font-size:11px;padding:3px 8px;border-radius:4px;
+                        background:${q.done ? 'rgba(40,80,40,0.5)' : 'rgba(40,60,100,0.5)'};
+                        color:${q.done ? '#66cc88' : '#88aaff'};">
+                        ${q.done ? '✅ Ukończone' : '🔵 Aktywne'}
+                    </div>
+                </div>
+                <div style="font-size:13px;color:#8899bb;font-style:italic;line-height:1.6;margin-bottom:6px;">${q.desc}</div>
+                <div style="font-size:12px;color:#778899;padding:5px 8px;background:rgba(20,30,50,0.5);border-radius:4px;">
+                    📍 ${q.stageLabel}
+                </div>
+                ${rewardSection}
+            </div>`;
+    };
+
+    const currentList = questLogTab === 'active' ? active : done;
+    const emptyMsg = questLogTab === 'active'
+        ? '<div style="color:#4455770;font-style:italic;padding:20px;text-align:center;color:#445566;">Brak aktywnych zadań.<br><span style="font-size:12px;">Eksploruj świat — zadania pojawią się w trakcie rozmów z mieszkańcami.</span></div>'
+        : '<div style="padding:20px;text-align:center;color:#445566;font-style:italic;">Brak ukończonych zadań jeszcze.</div>';
+
+    div.innerHTML = `
+        <div style="display:flex;gap:0;margin-bottom:0;border-bottom:2px solid rgba(60,80,120,0.3);">
+            ${tabBtn('active', '📋 Aktywne', active.length)}
+            ${tabBtn('done',   '✅ Ukończone', done.length)}
+        </div>
+        <div style="padding:4px 0;">
+            ${currentList.length ? currentList.map(renderQuest).join('') : emptyMsg}
+        </div>`;
+}
+
+
 /* -----------------------------------------
    ZMIANA ZAKŁADEK
 ----------------------------------------- */
@@ -8700,6 +8967,7 @@ function openTab(name) {
     if (name === "warta") updateWartaTab();
     if (name === "ochrona") updateOchronaTab();
     if (name === "szpiegowanie") updateSzpiegowanieTab();
+    if (name === "zadania") updateQuestLogTab();
 }
 
 /* -----------------------------------------
