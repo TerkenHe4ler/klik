@@ -624,9 +624,17 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             : freshHeats === 1
                 ? 'Jajo jest ciepłe. Czujesz w nim życie.'
                 : 'Jajo drga. Coś się porusza w środku!';
+        const eggImg = getEggImgSrc(element, num);
+        const elGlowColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
+        const glowC = elGlowColors[element] || '#ffcc44';
+        const heatGlow = freshHeats === 0 ? 'none' : freshHeats === 1 ? `drop-shadow(0 0 14px ${glowC}88)` : `drop-shadow(0 0 28px ${glowC})`;
         return `
-            <div class="dragon-slot">
-                <div style="font-weight:bold; color:#c0cce0; margin-bottom:4px;">${name} — ${elementLabel}</div>
+            <div class="dragon-slot" style="text-align:center;">
+                ${eggImg ? `<img src="${eggImg}" alt="jajo ${element}"
+                    style="width:180px; height:auto; border-radius:12px; margin:6px auto 10px;
+                           display:block; filter:${heatGlow}; transition:filter 0.6s;">` 
+                    : `<div style="font-size:64px; margin:10px 0;">🥚</div>`}
+                <div style="font-weight:bold; color:#c0cce0; margin-bottom:4px;">${name}</div>
                 <div style="color:#8090aa; font-size:13px; margin-bottom:8px;">
                     🥚 Ogrzania: <b style="color:#ffcc44;">${freshHeats}/3</b> — ${heatMsg}
                 </div>
@@ -908,6 +916,47 @@ function handleStartMissionDragons(num) {
     if (result.ok) updateDragonsTab();
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   WARIANTY OBRAZÓW JAJ — gracz może wybrać wygląd dla każdego smoka
+═══════════════════════════════════════════════════════════════ */
+
+const EGG_IMG_MAP = {
+    ogien:     ['1/Ogień_1.png',     '2/Ogień_2.png'],
+    woda:      ['1/Woda_1.png',      '2/Woda_2.png'],
+    ziemia:    ['1/Ziemia_1.png',    '2/Ziemia_2.png'],
+    powietrze: ['1/Powietrze_1.png', '2/Powietrze_2.png'],
+    swiatlo:   ['1/Światło_1.png',   '2/Światło_2.png'],
+    cien:      ['1/Cień_1.png',      '2/Cień_2.png'],
+    lod:       ['1/Lód_1.png',       '2/Lód_2.png'],
+    magma:     ['1/Magma_1.png',     '2/Magma_2.png'],
+};
+
+function getEggVariant(dragonNum) {
+    return Number(localStorage.getItem(`eggVariant${dragonNum}`)) || 1;
+}
+
+function setEggVariant(dragonNum, variant) {
+    localStorage.setItem(`eggVariant${dragonNum}`, variant);
+}
+
+function getEggImgSrc(element, dragonNum) {
+    const imgs = EGG_IMG_MAP[element];
+    if (!imgs) return null;
+    const v = getEggVariant(dragonNum);
+    return imgs[v - 1] || imgs[0];
+}
+
+function cycleEggVariant(dragonNum, element) {
+    const imgs = EGG_IMG_MAP[element];
+    if (!imgs) return;
+    const current = getEggVariant(dragonNum);
+    const next = current >= imgs.length ? 1 : current + 1;
+    setEggVariant(dragonNum, next);
+    updateDragonsTab();
+    updateHomeTab();
+}
+
 function updateDragonsTab() {
     const list = document.getElementById("dragons-list");
     if (!list) return;
@@ -934,12 +983,35 @@ function updateDragonsTab() {
 
         if (d.heats < 3) {
             const heatMsg = d.heats === 0 ? 'Zimne — potrzebuje troski.' : d.heats === 1 ? 'Ciepłe — czujesz w nim życie.' : 'Drga — coś się porusza!';
+            const eggSrc = getEggImgSrc(d.element, d.num);
+            const variant = getEggVariant(d.num);
+            const variantCount = (EGG_IMG_MAP[d.element] || []).length;
+            const elColors2 = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
+            const glowCol = elColors2[d.element] || '#aabbff';
+            const heatGlow = d.heats === 0 ? 'none' : d.heats === 1 ? `drop-shadow(0 0 14px ${glowCol}88)` : `drop-shadow(0 0 28px ${glowCol})`;
             html += `
-                <div class="dragon-slot">
-                    <div style="font-weight:bold; color:#c0cce0; margin-bottom:6px;">${d.name} — ${d.element ? d.element.toUpperCase() : '?'}</div>
-                    <div style="color:#8090aa; font-size:13px; margin-bottom:8px;">🥚 Ogrzania: <b style="color:#ffcc44;">${d.heats}/3</b> — ${heatMsg}</div>
+                <div class="dragon-slot" style="text-align:center;">
+                    ${eggSrc ? `
+                        <img src="${eggSrc}" alt="jajo"
+                             style="width:200px;height:auto;border-radius:12px;margin:4px auto 10px;display:block;filter:${heatGlow};transition:filter 0.5s;"
+                             id="egg-img-dtab-${d.num}">
+                        ${variantCount > 1 ? `
+                        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
+                            <span style="font-size:11px;color:#556688;">Wygląd jajka:</span>
+                            ${[...Array(variantCount)].map((_,i) => `
+                                <div onclick="cycleEggVariant(${d.num},'${d.element}')" 
+                                     style="width:10px;height:10px;border-radius:50%;cursor:pointer;
+                                            background:${i+1===variant ? glowCol : '#2a3a55'};
+                                            border:1px solid ${glowCol}55;transition:0.2s;"></div>
+                            `).join('')}
+                            <div class="dialog-button" style="padding:3px 10px;font-size:11px;margin:0;" 
+                                 onclick="cycleEggVariant(${d.num},'${d.element}')">Zmień wygląd</div>
+                        </div>` : ''}
+                    ` : `<div style="font-size:52px;margin:8px 0;">🥚</div>`}
+                    <div style="font-weight:bold;color:#c0cce0;margin-bottom:6px;">${d.name} — ${d.element ? d.element.toUpperCase() : '?'}</div>
+                    <div style="color:#8090aa;font-size:13px;margin-bottom:8px;">🥚 Ogrzania: <b style="color:#ffcc44;">${d.heats}/3</b> — ${heatMsg}</div>
                     <div class="dialog-button" onclick="heatEgg${d.num}()">🔥 Zadbaj o jajo</div>
-                    <div style="color:#6070a0; font-size:12px; font-style:italic; margin-top:8px;">Gdy jajo się wykluje, tutaj pojawią się opcje wypraw.</div>
+                    <div style="color:#6070a0;font-size:12px;font-style:italic;margin-top:8px;">Gdy jajo się wykluje, tutaj pojawią się opcje wypraw.</div>
                 </div>
             `;
             return;
@@ -7834,14 +7906,21 @@ function finalizeDragon() {
     };
     const col = elColors[chosen] || '#cfd8ff';
 
+    const eggImgSrc = getEggImgSrc(chosen, 1);
+
     intro.innerHTML = `
-        <div class="dialog-window">
+        <div class="dialog-window" style="text-align:center; max-width:500px;">
             <div class="dialog-title">Twoje pierwsze jajo</div>
-            <div class="dialog-text">
+            ${eggImgSrc
+                ? `<img src="${eggImgSrc}" alt="jajo ${chosen}"
+                       style="width:220px; height:auto; border-radius:14px; margin:10px auto 14px;
+                              display:block; filter:drop-shadow(0 0 24px ${col});">`
+                : `<div style="font-size:80px; margin:16px 0;">🥚</div>`}
+            <div class="dialog-text" style="text-align:left;">
                 Otrzymałeś swoje pierwsze jajo. Trzymasz je w dłoniach i czujesz ${descriptions[chosen]}
             </div>
-            <div style="text-align:center;margin:10px 0 4px;">
-                <span style="font-size:28px;">${elNames[chosen].split(' ')[0]}</span>
+            <div style="margin:10px 0 4px;">
+                <span style="font-size:24px;">${elNames[chosen].split(' ')[0]}</span>
                 <span style="color:${col};font-weight:bold;font-size:16px;"> ${elNames[chosen].split(' ')[1]}</span>
             </div>
             <div class="dialog-button" style="margin-top:14px;" onclick="showWorldIntro()">Dalej →</div>
