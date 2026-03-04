@@ -1166,15 +1166,7 @@ function updateDragonsTab() {
                             ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
                         </div>
                         <!-- Ekwipunek (zwinięty) -->
-                        <details style="margin-bottom:6px;" id="equip-details-dtab-${d.num}">
-                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
-                                ⚔️ Ekwipunek smoka
-                            </summary>
-                            <div style="margin-top:6px;padding:8px;background:rgba(10,15,30,0.5);border-radius:6px;font-size:12px;color:#8090aa;">
-                                <!-- placeholder — docelowo renderEquipSlots(d.num) -->
-                                Brak ekwipunku
-                            </div>
-                        </details>
+                        ${renderDragonGearPanel(d.num, d.level)}
                         <!-- Wyprawa -->
                         <details style="margin-bottom:4px;" id="mission-details-dtab-${d.num}" open>
                             <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
@@ -6132,7 +6124,7 @@ function openRegionOriginal(regionKey) {
             <div class="dialog-title">${region.icon} ${region.label}</div>
             <div class="dialog-text" style="white-space:pre-line;">${desc}</div>
             <div id="location-buttons">
-                ${REGION_EXPEDITIONS[regionKey] ? `
+                ${(REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey]) ? `
                     <div class="dialog-button" style="border-color:#667799;color:#aabbdd;" onclick="openRegionExpedition('${regionKey}')">🗺️ Wyślij smoka na wyprawę</div>
                     <div style="margin: 10px 0; border-top: 1px solid rgba(100,110,140,0.25);"></div>
                 ` : ''}
@@ -6747,6 +6739,12 @@ function openLocation(regionKey, locationId) {
         const questContent = getMoonGateQuestContent(moonStatus.open);
         extraContent += questContent.extra;
         extraQuestActions = questContent.questActions;
+        if (moonStatus.open) {
+            extraQuestActions = extraQuestActions.concat([{
+                label: '🌕 Wyślij smoka na wyprawę przez Bramę',
+                onclick: "openRegionExpedition('ksiezycowa_brama')"
+            }]);
+        }
     }
 
     // Special handling for Las Mgieł quest locations
@@ -8777,6 +8775,28 @@ const REGION_EXPEDITIONS = {
     },
 };
 
+const REGION_EXPEDITIONS_MOON = {
+    ksiezycowa_brama: {
+        label: 'Księżycowa Brama',
+        icon: '🌕',
+        food: { key: 'Eter Księżycowy', label: 'Eter Księżycowy', desc: 'Smok przeszedł przez Bramę i wrócił z flakonikiem srebrzystego eteru.' },
+        loot: [
+            { key: 'Księżycowy Kamień',              weight: 40, minHours: 1 },
+            { key: 'Srebrny Pył Zza Bramy',          weight: 35, minHours: 1 },
+            { key: 'Strzęp Zasłony Między Światami', weight: 20, minHours: 1 },
+            { key: 'Eter Księżycowy',                weight: 15, minHours: 3 },
+            { key: 'Kryształ krwi',                  weight: 12, minHours: 3 },
+            { key: 'Złote pióro',                    weight: 10, minHours: 3 },
+            { key: 'Fragment Ostrza Śmierci',        weight: 8,  minHours: 8 },
+            { key: 'Amulet smoczego pazura',         weight: 6,  minHours: 8 },
+            { key: 'Nocny płaszcz',                  weight: 5,  minHours: 8 },
+            { key: 'Zbroja z łusek',                 weight: 4,  minHours: 24 },
+            { key: 'Hełm ognisty',                   weight: 4,  minHours: 24 },
+        ],
+        extraFoodByDuration: { 3: 1, 8: 2, 24: 3 },
+    },
+};
+
 const REGION_EXPEDITION_DURATIONS = [
     { hours: 1,  label: '1 godzina',   fatigue: 15, lootRolls: 1, desc: 'Krótki zwiad. Smok zbiera co znajdzie w pobliżu.' },
     { hours: 3,  label: '3 godziny',   fatigue: 25, lootRolls: 2, desc: 'Solidna wyprawa. Większy teren, więcej możliwości.' },
@@ -8793,7 +8813,7 @@ function getAvailableDragons() {
 }
 
 function openRegionExpedition(regionKey) {
-    const regionConf = REGION_EXPEDITIONS[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
     if (!regionConf) return;
     // At region level we write to world-content-area; inside a location to location-action-area
     const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
@@ -8843,7 +8863,7 @@ function openRegionExpedition(regionKey) {
 }
 
 function openRegionExpeditionDuration(regionKey, dragonNum) {
-    const regionConf = REGION_EXPEDITIONS[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
     const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
     if (!box || !regionConf) return;
 
@@ -8858,7 +8878,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
         const tooTired = vitals.fatigue + d.fatigue > 100;
         const tooYoung = dragonLevel < 25 && d.hours >= 8;
         const blocked = tooTired || tooYoung;
-        const lootHints = REGION_EXPEDITIONS[regionKey].loot
+        const lootHints = (REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey]).loot
             .filter(l => l.minHours <= d.hours)
             .slice(0, 4)
             .map(l => l.key).join(', ');
@@ -8885,7 +8905,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
 }
 
 function startRegionExpedition(regionKey, dragonNum, hours) {
-    const regionConf = REGION_EXPEDITIONS[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
     if (!regionConf) return;
 
     const vitals = loadDragonVitals(dragonNum);
@@ -8932,7 +8952,7 @@ function startRegionExpedition(regionKey, dragonNum, hours) {
 }
 
 function rollRegionExpeditionLoot(regionKey, hours, rolls) {
-    const regionConf = REGION_EXPEDITIONS[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
     if (!regionConf) return [];
     const eligible = regionConf.loot.filter(l => l.minHours <= hours);
     const totalWeight = eligible.reduce((s, l) => s + l.weight, 0);
@@ -8953,7 +8973,7 @@ function completeRegionExpedition(dragonNum) {
     const mission = loadDragonMission(dragonNum);
     if (!mission || !mission.isRegionExpedition) return;
 
-    const regionConf = REGION_EXPEDITIONS[mission.regionKey];
+    const regionConf = REGION_EXPEDITIONS[mission.regionKey] || REGION_EXPEDITIONS_MOON[mission.regionKey];
     const dur = REGION_EXPEDITION_DURATIONS.find(d => d.hours === mission.hours);
     const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
 
