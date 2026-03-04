@@ -1047,29 +1047,40 @@ function updateDragonsTab() {
             const elColors2 = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
             const glowCol = elColors2[d.element] || '#aabbff';
             const heatGlow = d.heats === 0 ? 'none' : d.heats === 1 ? `drop-shadow(0 0 14px ${glowCol}88)` : `drop-shadow(0 0 28px ${glowCol})`;
+            const eggLeftCol = eggSrc ? `
+                <div style="flex-shrink:0;width:220px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                    <img src="${eggSrc}" alt="jajo"
+                         style="width:210px;height:auto;border-radius:14px;display:block;filter:${heatGlow};transition:filter 0.5s;"
+                         id="egg-img-dtab-${d.num}">
+                    ${variantCount > 1 ? `
+                    <div style="display:flex;gap:5px;align-items:center;margin-top:2px;">
+                        ${[...Array(variantCount)].map((_,i) => `
+                            <div onclick="cycleEggVariant(${d.num},'${d.element}')"
+                                 style="width:8px;height:8px;border-radius:50%;cursor:pointer;
+                                        background:${i+1===variant ? glowCol : '#2a3a55'};
+                                        border:1px solid ${glowCol}44;"></div>
+                        `).join('')}
+                    </div>
+                    <div class="dialog-button" style="padding:4px 12px;font-size:11px;margin:0;width:100%;text-align:center;"
+                         onclick="cycleEggVariant(${d.num},'${d.element}')">Zmień wygląd</div>` : ''}
+                </div>` : `<div style="font-size:64px;padding:10px;">🥚</div>`;
+
             html += `
-                <div class="dragon-slot" style="text-align:center;">
-                    ${eggSrc ? `
-                        <img src="${eggSrc}" alt="jajo"
-                             style="width:260px;height:auto;border-radius:14px;margin:4px auto 10px;display:block;filter:${heatGlow};transition:filter 0.5s;"
-                             id="egg-img-dtab-${d.num}">
-                        ${variantCount > 1 ? `
-                        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
-                            <span style="font-size:11px;color:#556688;">Wygląd jajka:</span>
-                            ${[...Array(variantCount)].map((_,i) => `
-                                <div onclick="cycleEggVariant(${d.num},'${d.element}')" 
-                                     style="width:10px;height:10px;border-radius:50%;cursor:pointer;
-                                            background:${i+1===variant ? glowCol : '#2a3a55'};
-                                            border:1px solid ${glowCol}55;transition:0.2s;"></div>
-                            `).join('')}
-                            <div class="dialog-button" style="padding:3px 10px;font-size:11px;margin:0;" 
-                                 onclick="cycleEggVariant(${d.num},'${d.element}')">Zmień wygląd</div>
-                        </div>` : ''}
-                    ` : `<div style="font-size:52px;margin:8px 0;">🥚</div>`}
-                    <div style="font-weight:bold;color:#c0cce0;margin-bottom:6px;">${d.name} — ${d.element ? d.element.toUpperCase() : '?'}</div>
-                    <div style="color:#8090aa;font-size:13px;margin-bottom:8px;">🥚 Ogrzania: <b style="color:#ffcc44;">${d.heats}/3</b> — ${heatMsg}</div>
-                    <div class="dialog-button" onclick="heatEgg${d.num}()">🔥 Zadbaj o jajo</div>
-                    <div style="color:#6070a0;font-size:12px;font-style:italic;margin-top:8px;">Gdy jajo się wykluje, tutaj pojawią się opcje wypraw.</div>
+                <div class="dragon-slot">
+                    <div style="display:flex;gap:14px;align-items:flex-start;">
+                        ${eggLeftCol}
+                        <div style="flex:1;min-width:0;">
+                            <div style="margin-bottom:8px;">
+                                <span style="font-weight:bold;color:#e0e8ff;font-size:16px;">${d.name}</span>
+                                <span style="color:${glowCol};font-size:13px;font-weight:bold;margin-left:8px;">${d.element ? d.element.toUpperCase() : '?'}</span>
+                            </div>
+                            <div style="color:#8090aa;font-size:13px;margin-bottom:12px;">
+                                🥚 Ogrzania: <b style="color:#ffcc44;">${d.heats}/3</b> — ${heatMsg}
+                            </div>
+                            <div class="dialog-button" onclick="heatEgg${d.num}()">🔥 Zadbaj o jajo</div>
+                            <div style="color:#6070a0;font-size:12px;font-style:italic;margin-top:10px;">Gdy jajo się wykluje, tutaj pojawią się opcje wypraw.</div>
+                        </div>
+                    </div>
                 </div>
             `;
             return;
@@ -1161,6 +1172,11 @@ function updateDragonsTab() {
                         <div style="font-size:12px;color:#aab;margin-bottom:5px;">
                             ❤️ ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 ${vitals.fatigue}/100
                         </div>
+                        <!-- Odpoczynek -->
+                        ${vitals.fatigue > 0 ? `
+                        <div class="dialog-button" style="padding:5px 12px;font-size:12px;margin:0 0 8px 0;border-color:#336655;color:#88ddaa;"
+                             onclick="restDragon(${d.num})">😴 Odpoczynek — zeruje zmęczenie</div>` : `
+                        <div style="font-size:11px;color:#336655;margin-bottom:8px;font-style:italic;">✅ Smok jest wypoczęty</div>`}
                         <!-- Statystyki -->
                         <div style="font-size:12px;color:#7080aa;margin-bottom:10px;">
                             ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
@@ -6739,7 +6755,7 @@ function openLocation(regionKey, locationId) {
         const questContent = getMoonGateQuestContent(moonStatus.open);
         extraContent += questContent.extra;
         extraQuestActions = questContent.questActions;
-        if (moonStatus.open) {
+        if (moonStatus.open && localStorage.getItem('moonGateEntered') === 'true') {
             extraQuestActions = extraQuestActions.concat([{
                 label: '🌕 Wyślij smoka na wyprawę przez Bramę',
                 onclick: "openRegionExpedition('ksiezycowa_brama')"
@@ -8168,6 +8184,12 @@ function updateCurrencyDisplay() {
    ZAKŁADKA DOM
 ----------------------------------------- */
 /* updateHomeTab replaced by new version */
+
+function restDragon(num) {
+    localStorage.setItem(`dragon${num}Fatigue`, 0);
+    updateDragonsTab();
+    updateHomeTab();
+}
 
 function heatEgg1() {
     eggHeats = Number(localStorage.getItem('eggHeats')) || 0;
