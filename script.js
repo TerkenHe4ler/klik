@@ -7805,7 +7805,7 @@ function chooseStartAnswer(element) {
 }
 
 /* -----------------------------------------
-   OPIS JAJKA
+   OPIS JAJKA + EKRAN POWITALNY
 ----------------------------------------- */
 function finalizeDragon() {
     const intro = document.getElementById("intro");
@@ -7815,15 +7815,24 @@ function finalizeDragon() {
     localStorage.setItem("chosenDragon", chosen);
 
     const descriptions = {
-        ogien: "ciepło, które prawie parzy Cię w dłonie.",
-        woda: "chłód przypominający dotyk głębin oceanu.",
-        ziemia: "stabilne, kojące ciepło skał.",
+        ogien:     "ciepło, które prawie parzy Cię w dłonie.",
+        woda:      "chłód przypominający dotyk głębin oceanu.",
+        ziemia:    "stabilne, kojące ciepło skał.",
         powietrze: "delikatne pulsowanie przypominające powiew wiatru.",
-        swiatlo: "łagodne, złociste ciepło — jak promień słońca przebijający się przez chmury.",
-        cien: "dziwne chłodne drżenie, jakby jajo pochłaniało otaczające je światło.",
-        lod: "intensywne zimno — jajo jest lodowate, a mimo to czujesz w nim żywy puls.",
-        magma: "nieznośne gorąco przeplecione z rytmicznym drganiem — jak serce wulkanu."
+        swiatlo:   "łagodne, złociste ciepło — jak promień słońca przebijający się przez chmury.",
+        cien:      "dziwne chłodne drżenie, jakby jajo pochłaniało otaczające je światło.",
+        lod:       "intensywne zimno — jajo jest lodowate, a mimo to czujesz w nim żywy puls.",
+        magma:     "nieznośne gorąco przeplecione z rytmicznym drganiem — jak serce wulkanu."
     };
+    const elNames = {
+        ogien:'🔥 Ogień', woda:'💧 Woda', ziemia:'🪨 Ziemia', powietrze:'🌪️ Powietrze',
+        swiatlo:'✨ Światło', cien:'🌑 Cień', lod:'❄️ Lód', magma:'🌋 Magma'
+    };
+    const elColors = {
+        ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff',
+        swiatlo:'#ffe566', cien:'#cc88ff', lod:'#aaeeff', magma:'#ff6633'
+    };
+    const col = elColors[chosen] || '#cfd8ff';
 
     intro.innerHTML = `
         <div class="dialog-window">
@@ -7831,7 +7840,80 @@ function finalizeDragon() {
             <div class="dialog-text">
                 Otrzymałeś swoje pierwsze jajo. Trzymasz je w dłoniach i czujesz ${descriptions[chosen]}
             </div>
-            <div class="dialog-button" onclick="startGame()">Dalej</div>
+            <div style="text-align:center;margin:10px 0 4px;">
+                <span style="font-size:28px;">${elNames[chosen].split(' ')[0]}</span>
+                <span style="color:${col};font-weight:bold;font-size:16px;"> ${elNames[chosen].split(' ')[1]}</span>
+            </div>
+            <div class="dialog-button" style="margin-top:14px;" onclick="showWorldIntro()">Dalej →</div>
+        </div>
+    `;
+}
+
+function showWorldIntro() {
+    // Najpierw uruchom grę (pokaż sidebar) a ekran powitalny wyświetl w treści
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    if (sidebar) sidebar.style.display = 'flex';
+    if (content) { content.style.marginRight = ''; content.style.display = ''; content.style.alignItems = ''; content.style.justifyContent = ''; content.style.minHeight = ''; }
+    if (!workUnlocked) unlockWork();
+    updateCurrencyDisplay();
+    updateDragonsTab();
+    updateHomeTab();
+    updateMerchantTab();
+    updateWorkTab();
+    updateWorldTab();
+    startDragonRegenLoop();
+    updateSidebarTabs();
+
+    // Pokaż ekran powitalny w zakładce home
+    openTab('home');
+    const homeDiv = document.getElementById('home');
+    if (!homeDiv) return;
+    const intro = document.getElementById("intro");
+    if (intro) intro.style.display = "none";
+    homeDiv.innerHTML = `
+        <div class="dialog-window" style="max-width:680px;line-height:1.85;">
+
+            <div class="dialog-title" style="font-size:22px;letter-spacing:1px;">
+                🐉 Smocze Włości
+            </div>
+
+            <div style="color:#9ab;font-style:italic;text-align:center;margin-bottom:18px;font-size:13px;">
+                Świat, w którym smoki nie są wrogiem — są towarzyszem.
+            </div>
+
+            <div style="color:#cfd8ff;font-size:14px;margin-bottom:14px;">
+                Jesteś hodowcą smoków w Astorveil — starożytnym mieście zbudowanym u stóp Smoczej Góry.
+                Przez wieki ludzie i smoki żyli tu obok siebie. Smoki służą jako wierzchowce, pomocnicy
+                i wojownicy — ale przede wszystkim są przyjaciółmi tych, którzy potrafią je zrozumieć.
+            </div>
+
+            <div style="color:#cfd8ff;font-size:14px;margin-bottom:18px;">
+                Twoja przygoda zaczyna się od jednego jajka. Co z niego wyrośnie — zależy wyłącznie od ciebie.
+            </div>
+
+            <div style="background:rgba(10,20,40,0.6);border-radius:8px;padding:14px;margin-bottom:16px;">
+                <div style="color:#e8c84a;font-weight:bold;margin-bottom:10px;font-size:13px;">📖 PODSTAWY GRY</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;color:#aab;">
+                    <div>🥚 <b style="color:#cfd8ff;">Ogrzewaj jajko</b> — wykluj smoka i nadaj mu imię</div>
+                    <div>🍖 <b style="color:#cfd8ff;">Karm smoka</b> — rośnie, trenuje i zdobywa statystyki</div>
+                    <div>🗺️ <b style="color:#cfd8ff;">Eksploruj świat</b> — Las Mgieł, Góry Sarak, Pustynia Halyaz</div>
+                    <div>💼 <b style="color:#cfd8ff;">Pracuj i handluj</b> — zdobywaj złoto i srebrne monety</div>
+                    <div>⚔️ <b style="color:#cfd8ff;">Walcz na arenie</b> — mierz siły z innymi stworzeniami</div>
+                    <div>📜 <b style="color:#cfd8ff;">Rozwiązuj questy</b> — każdy wybór ma swoje konsekwencje</div>
+                    <div>🎲 <b style="color:#cfd8ff;">Graj w kości</b> — w karczmie znajdziesz rozrywkę</div>
+                    <div>🐉 <b style="color:#cfd8ff;">Hoduj trzy smoki</b> — każdy z innym żywiołem i charakterem</div>
+                </div>
+            </div>
+
+            <div style="background:rgba(20,10,5,0.6);border:1px solid rgba(180,130,30,0.25);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:#b0a070;font-style:italic;">
+                💡 <b style="color:#e8c84a;">Wskazówka:</b> Zacznij od zakładki <b>Dom</b> — tam znajdziesz swoje jajko.
+                Ogrzej je trzy razy, a smok się wykluje. Gdy dorośnie, możesz zacząć wysyłać go na misje i wyprawy.
+            </div>
+
+            <div class="dialog-button" style="background:linear-gradient(135deg,rgba(40,25,10,0.95),rgba(25,15,5,0.98));border-color:#c8a030;color:#e8c84a;font-size:15px;padding:12px;" onclick="updateHomeTab()">
+                🐉 Rozpocznij przygodę
+            </div>
         </div>
     `;
 }
@@ -7856,6 +7938,7 @@ function startGame() {
     updateWorldTab();
     startDragonRegenLoop();
     updateSidebarTabs();
+    openTab('home');
 }
 
 function updateCurrencyDisplay() {
