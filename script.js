@@ -8484,7 +8484,8 @@ function getAvailableDragons() {
 function openRegionExpedition(regionKey) {
     const regionConf = REGION_EXPEDITIONS[regionKey];
     if (!regionConf) return;
-    const box = document.getElementById('location-action-area');
+    // At region level we write to world-content-area; inside a location to location-action-area
+    const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
     if (!box) return;
 
     const dragons = getAvailableDragons();
@@ -8532,7 +8533,7 @@ function openRegionExpedition(regionKey) {
 
 function openRegionExpeditionDuration(regionKey, dragonNum) {
     const regionConf = REGION_EXPEDITIONS[regionKey];
-    const box = document.getElementById('location-action-area');
+    const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
     if (!box || !regionConf) return;
 
     const vitals = loadDragonVitals(dragonNum);
@@ -8597,7 +8598,7 @@ function startRegionExpedition(regionKey, dragonNum, hours) {
     saveDragonMission(dragonNum, missionData);
 
     const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
-    const box = document.getElementById('location-action-area');
+    const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
     if (box) {
         box.innerHTML = `
             <div style="padding:14px;background:rgba(10,20,10,0.9);border:1px solid #447744;border-radius:10px;">
