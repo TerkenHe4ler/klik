@@ -8810,7 +8810,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
             .filter(l => l.minHours <= d.hours)
             .slice(0, 4)
             .map(l => l.key).join(', ');
-        const blockReason = tooYoung ? ` — <span style="color:#aa7722;">wymaga poz. 25</span>` : tooTired ? ` — <span style="color:#cc4422;">za zmęczony!</span>` : '';
+        const blockReason = tooTired ? ` — <span style="color:#cc4422;">za zmęczony!</span>` : '';
         return `
             <div class="dialog-button" style="${blocked ? 'opacity:0.35;pointer-events:none;border-color:#444;' : 'border-color:#6677bb;'}"
                 onclick="startRegionExpedition('${regionKey}', ${dragonNum}, ${d.hours})">
@@ -8819,7 +8819,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
                     <span style="color:#cc8844;font-size:12px;">+${d.fatigue} zmęczenia</span>
                 </div>
                 <div style="font-size:11px;color:#7080a0;margin-top:3px;">${d.desc}</div>
-                <div style="font-size:11px;color:#556070;margin-top:2px;">Możliwe: ${lootHints}${blockReason}</div>
+                ${tooYoung ? `<div style="font-size:11px;color:#aa7722;margin-top:3px;font-style:italic;">Twój smok jest za młody by podróżować na tak długie wyprawy!</div>` : `<div style="font-size:11px;color:#556070;margin-top:2px;">Możliwe: ${lootHints}${blockReason}</div>`}
             </div>`;
     }).join('');
 
@@ -9135,7 +9135,7 @@ function stageLabelRune(stage) {
         readFirst:    'Etap 2 — Dostarcz szkic bibliotekarzowi',
         readBooks:    'Etap 3 — Bibliotekarz bada szkic',
         delivered:    'Etap 4 — Dostarczono kartę z runami',
-        researchDone: 'Etap 5 — Badania zakończone',
+        researchDone: 'Etap 5 — Badania zakończone. Przejdź przez Księżycową Bramę',
         fragment_hunt:'Etap 6 — Szukasz fragmentów kamienia',
         translated:   'Zakończono — runy przetłumaczone',
         done:         'Zakończono',
