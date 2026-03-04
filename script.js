@@ -8289,7 +8289,9 @@ const merchantThirdQuestions = [
             { text: "Zakopuję jedną — ziemia powinna ją mieć z powrotem.", element: "ziemia" },
             { text: "Podrzucam w górę i patrzę jak wiatr ją niesie.", element: "powietrze" },
             { text: "Trzymam w dłoni — czuję w nich dawne życie i ciepło.", element: "swiatlo" },
-            { text: "Chowam do kieszeni — przyda się w ciemności.", element: "cien" }
+            { text: "Chowam do kieszeni — przyda się w ciemności.", element: "cien" },
+            { text: "Przykładam do ust — są lodowate i chłodzą od środka.", element: "lod" },
+            { text: "Wkładam w żar — muszę sprawdzić ile ciepła mogą pochłonąć.", element: "magma" }
         ]
     },
     {
@@ -8300,7 +8302,9 @@ const merchantThirdQuestions = [
             { text: "Solidny grunt pod stopami — lustro to złudzenie, ziemia jest prawdziwsza.", element: "ziemia" },
             { text: "Lekkość — jakby odbicie było wejściem do powietrznego świata.", element: "powietrze" },
             { text: "Blask — coś we mnie budzi się na ten widok.", element: "swiatlo" },
-            { text: "Ciekawość co kryje się pod powierzchnią w głębinie.", element: "cien" }
+            { text: "Ciekawość co kryje się pod powierzchnią w głębinie.", element: "cien" },
+            { text: "Mróz w powietrzu — odbicie jest piękniejsze gdy zamarznie.", element: "lod" },
+            { text: "Niepokój — czuję że pod spodem coś kipi i paruje.", element: "magma" }
         ]
     },
     {
@@ -8311,7 +8315,9 @@ const merchantThirdQuestions = [
             { text: "Siadam i słucham — ziemia uczy, żeby nie spieszyć.", element: "ziemia" },
             { text: "Śpiewam razem z wiatrem — dołączam do chóru.", element: "powietrze" },
             { text: "Odpowiadam blaskiem — niech wiedzą, że jestem.", element: "swiatlo" },
-            { text: "Milczę i nasłuchuję — w ciszy słyszę więcej.", element: "cien" }
+            { text: "Milczę i nasłuchuję — w ciszy słyszę więcej.", element: "cien" },
+            { text: "Wstrzymuję oddech — zimne powietrze wyostrza zmysły.", element: "lod" },
+            { text: "Czuję wibracje w ziemi — jakby coś pod powierzchnią odpowiadało.", element: "magma" }
         ]
     },
     {
@@ -8322,7 +8328,9 @@ const merchantThirdQuestions = [
             { text: "Jawne — ziemia nie kłamie, stałość jest cnotą.", element: "ziemia" },
             { text: "Jawne — wiatr nie nosi sekretów, dość nie powiedzianych słów.", element: "powietrze" },
             { text: "Jawne, bo tylko światło buduje prawdziwe zaufanie.", element: "swiatlo" },
-            { text: "Ukryte — wiedza i cień dają przewagę.", element: "cien" }
+            { text: "Ukryte — wiedza i cień dają przewagę.", element: "cien" },
+            { text: "Jawne — jak lód, przejrzyste i bez złudzeń.", element: "lod" },
+            { text: "Ukryte — jak magma, by uderzyć gdy czas jest właściwy.", element: "magma" }
         ]
     }
 ];
