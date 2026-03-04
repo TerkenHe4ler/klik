@@ -7850,28 +7850,20 @@ function finalizeDragon() {
 }
 
 function showWorldIntro() {
-    // Najpierw uruchom grę (pokaż sidebar) a ekran powitalny wyświetl w treści
+    // Pokaż sidebar ale zachowaj #intro widoczny
     const sidebar = document.getElementById('sidebar');
     const content = document.getElementById('content');
     if (sidebar) sidebar.style.display = 'flex';
     if (content) { content.style.marginRight = ''; content.style.display = ''; content.style.alignItems = ''; content.style.justifyContent = ''; content.style.minHeight = ''; }
     if (!workUnlocked) unlockWork();
     updateCurrencyDisplay();
-    updateDragonsTab();
-    updateHomeTab();
-    updateMerchantTab();
-    updateWorkTab();
-    updateWorldTab();
-    startDragonRegenLoop();
     updateSidebarTabs();
 
-    // Pokaż ekran powitalny w zakładce home
-    openTab('home');
-    const homeDiv = document.getElementById('home');
-    if (!homeDiv) return;
+    // Intro pozostaje widoczne — wpisujemy treść do niego
     const intro = document.getElementById("intro");
-    if (intro) intro.style.display = "none";
-    homeDiv.innerHTML = `
+    if (!intro) return;
+    intro.style.display = "block";
+    intro.innerHTML = `
         <div class="dialog-window" style="max-width:680px;line-height:1.85;">
 
             <div class="dialog-title" style="font-size:22px;letter-spacing:1px;">
@@ -7911,7 +7903,7 @@ function showWorldIntro() {
                 Ogrzej je trzy razy, a smok się wykluje. Gdy dorośnie, możesz zacząć wysyłać go na misje i wyprawy.
             </div>
 
-            <div class="dialog-button" style="background:linear-gradient(135deg,rgba(40,25,10,0.95),rgba(25,15,5,0.98));border-color:#c8a030;color:#e8c84a;font-size:15px;padding:12px;" onclick="updateHomeTab()">
+            <div class="dialog-button" style="background:linear-gradient(135deg,rgba(40,25,10,0.95),rgba(25,15,5,0.98));border-color:#c8a030;color:#e8c84a;font-size:15px;padding:12px;" onclick="startGame()">
                 🐉 Rozpocznij przygodę
             </div>
         </div>
