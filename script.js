@@ -922,14 +922,14 @@ function handleStartMissionDragons(num) {
 ═══════════════════════════════════════════════════════════════ */
 
 const EGG_IMG_MAP = {
-    ogien:     ['1/Ogień_1.png',     '2/Ogień_2.png'],
-    woda:      ['1/Woda_1.png',      '2/Woda_2.png'],
-    ziemia:    ['1/Ziemia_1.png',    '2/Ziemia_2.png'],
-    powietrze: ['1/Powietrze_1.png', '2/Powietrze_2.png'],
-    swiatlo:   ['1/Światło_1.png',   '2/Światło_2.png'],
-    cien:      ['1/Cień_1.png',      '2/Cień_2.png'],
-    lod:       ['1/Lód_1.png',       '2/Lód_2.png'],
-    magma:     ['1/Magma_1.png',     '2/Magma_2.png'],
+    ogien:     ['1/Ogień 1.png',     '2/Ogień 2.png'],
+    woda:      ['1/Woda 1.png',      '2/Woda 2.png'],
+    ziemia:    ['1/Ziemia 1.png',    '2/Ziemia 2.png'],
+    powietrze: ['1/Powietrze 1.png', '2/Powietrze 2.png'],
+    swiatlo:   ['1/Światło 1.png',   '2/Światło 2.png'],
+    cien:      ['1/Cień 1.png',      '2/Cień 2.png'],
+    lod:       ['1/Lód 1.png',       '2/Lód 2.png'],
+    magma:     ['1/Magma 1.png',     '2/Magma 2.png'],
 };
 
 function getEggVariant(dragonNum) {
