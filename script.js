@@ -7944,7 +7944,6 @@ function showNextStartQuestion() {
 
     intro.innerHTML = `
         <div class="dialog-window">
-            <div class="dialog-title">Pytanie ${currentQuestion + 1}</div>
             <div class="dialog-text">${q.text}</div>
             ${q.answers.map(a => `
                 <div class="dialog-button" onclick="chooseStartAnswer('${a.element}')">${a.text}</div>
@@ -8356,7 +8355,6 @@ function merchantThirdNext() {
         const q = merchantThirdQuestions[merchantThirdStep];
         box.innerHTML = `
             <div class="dialog-window">
-                <div class="dialog-title">Pytanie ${merchantThirdStep + 1}</div>
                 <div class="dialog-text">${q.text}</div>
                 ${q.answers.map(a => `
                     <div class="dialog-button" onclick="merchantThirdChoose('${a.element}')">${a.text}</div>
@@ -8569,7 +8567,6 @@ function merchantNext() {
 
         box.innerHTML = `
             <div class="dialog-window">
-                <div class="dialog-title">Pytanie ${merchantStep + 1}</div>
                 <div class="dialog-text">${q.text}</div>
                 ${q.answers.map(a => `
                     <div class="dialog-button" onclick="merchantChoose('${a.element}')">${a.text}</div>
