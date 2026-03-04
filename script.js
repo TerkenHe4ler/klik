@@ -1158,10 +1158,12 @@ function updateDragonsTab() {
                     ${leftCol}
                     <div style="flex:1;min-width:0;">
                         <!-- Nagłówek -->
-                        <div style="margin-bottom:8px;">
+                        <div style="margin-bottom:8px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
                             <span style="font-weight:bold;color:#e0e8ff;font-size:16px;">${d.name}</span>
-                            <span style="color:${elColor};font-size:13px;font-weight:bold;margin-left:8px;">${d.element ? d.element.toUpperCase() : ''}</span>
-                            <span style="color:#7080aa;font-size:12px;margin-left:8px;">Poz. ${Math.max(1,d.level)}</span>
+                            <span style="color:${elColor};font-size:13px;font-weight:bold;">${d.element ? d.element.toUpperCase() : ''}</span>
+                            <span style="color:#7080aa;font-size:12px;">Poz. ${Math.max(1,d.level)}</span>
+                            <div class="dialog-button" style="padding:2px 8px;font-size:11px;margin:0;border-color:#445566;color:#7799bb;"
+                                 onclick="renameDragonInTab(${d.num})">✏️ Zmień imię</div>
                         </div>
                         <!-- Vitale -->
                         <div style="font-size:12px;color:#aab;margin-bottom:5px;">
@@ -1176,6 +1178,15 @@ function updateDragonsTab() {
                         <div style="font-size:12px;color:#7080aa;margin-bottom:10px;">
                             ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
                         </div>
+                        <!-- Karmienie (zwinięte) -->
+                        <details style="margin-bottom:6px;">
+                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                                🍖 Nakarm smoka
+                            </summary>
+                            <div style="margin-top:6px;">
+                                ${renderFeedPanel(d.num)}
+                            </div>
+                        </details>
                         <!-- Ekwipunek (zwinięty) -->
                         ${renderDragonGearPanel(d.num, d.level)}
                         <!-- Wyprawa -->
@@ -8184,6 +8195,40 @@ function restDragon(num) {
     localStorage.setItem(`dragon${num}Fatigue`, 0);
     updateDragonsTab();
     updateHomeTab();
+}
+
+function renameDragonInTab(num) {
+    const nameKeys = { 1: 'dragonName', 2: 'secondDragonName', 3: 'thirdDragonName' };
+    const currentName = localStorage.getItem(nameKeys[num]) || `Smok ${num}`;
+    const newName = prompt('Nowe imię smoka:', currentName);
+    if (!newName || !newName.trim()) return;
+    const trimmed = newName.trim().slice(0, 30);
+    localStorage.setItem(nameKeys[num], trimmed);
+    if (num === 1) dragonName = trimmed;
+    else if (num === 2) secondDragonName = trimmed;
+    else thirdDragonName = trimmed;
+    updateDragonsTab();
+    updateHomeTab();
+}
+
+function renderFeedPanel(num) {
+    const foods = [
+        { key: 'mięso',  icon: '🥩', label: 'Mięso',       stat: '+Siła',         count: foodItems.mięso  || 0, type: 'foodItems' },
+        { key: 'jagody', icon: '🫐', label: 'Jagody',      stat: '+Inteligencja', count: foodItems.jagody || 0, type: 'foodItems' },
+        { key: 'ryba',   icon: '🐟', label: 'Świeża ryba', stat: '+Zręczność',    count: inventory['Świeża ryba'] || 0, type: 'inventory' },
+        { key: 'chleb',  icon: '🍞', label: 'Chleb',       stat: '+Wytrzymałość', count: inventory['Chleb'] || 0, type: 'inventory' },
+        { key: 'ser',    icon: '🧀', label: 'Górski ser',  stat: '+Siła Woli',    count: inventory['Górski ser'] || 0, type: 'inventory' },
+    ].filter(f => f.count > 0);
+
+    if (foods.length === 0) {
+        return `<div style="font-size:12px;color:#556070;font-style:italic;">Brak jedzenia. Kup u Handlarza lub znajdź na wyprawie.</div>`;
+    }
+    return foods.map(f => `
+        <div class="dialog-button" style="padding:5px 10px;font-size:12px;margin:3px 0;border-color:#445533;color:#aaddaa;display:flex;justify-content:space-between;align-items:center;"
+             onclick="feedDragonFood(${num},'${f.key}')">
+            <span>${f.icon} ${f.label} <span style="color:#556677;">(${f.count})</span></span>
+            <span style="color:#667755;font-size:11px;">${f.stat} · +5 poz.</span>
+        </div>`).join('');
 }
 
 function heatEgg1() {
