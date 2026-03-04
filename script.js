@@ -1841,6 +1841,12 @@ const _originalCompleteMission = window.completeDragonMission;
 function completeDragonMission(dragonNum) {
     const mission = loadDragonMission(dragonNum);
     if (!mission) return;
+
+    // Route region expeditions to their own handler
+    if (mission.isRegionExpedition) {
+        completeRegionExpedition(dragonNum);
+        return;
+    }
     
     // Check for combat encounter during mission
     const combat = missionCombat(dragonNum, mission.id);
@@ -6543,6 +6549,7 @@ function openLocation(regionKey, locationId) {
             ${extraContent}
             <div id="location-action-area">
                 ${renderCourierSearchButton(regionKey, locationId)}
+                ${regionKey !== 'miasto' && REGION_EXPEDITIONS[regionKey] ? `<div class="dialog-button" style="border-color:#667799;color:#aabbdd;margin-top:6px;" onclick="openRegionExpedition('${regionKey}')">🗺️ Wyślij smoka na wyprawę</div>` : ''}
                 ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
                 ${isSerceQuest ? '' : renderLocationActions(regionKey, locationId, activeActions)}
             </div>
@@ -8394,6 +8401,280 @@ function unlockThird(element) {
     updateDragonsTab();
     updateHomeTab();
 }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   WYPRAWY REGIONOWE — smok przynosi łupy z konkretnych lokacji
+═══════════════════════════════════════════════════════════════ */
+
+const REGION_EXPEDITIONS = {
+    las: {
+        label: 'Las Mgieł',
+        icon: '🌲',
+        food: { key: 'Jagody', label: 'Jagody', desc: 'Smok wrócił z koszem dzikich jagód z Lasu Mgieł.' },
+        loot: [
+            { key: 'Zioła leśne',      weight: 40, minHours: 1 },
+            { key: 'Niebieski kwiat',  weight: 25, minHours: 1 },
+            { key: 'Stary kamień',     weight: 20, minHours: 1 },
+            { key: 'Złote pióro',      weight: 10, minHours: 3 },
+            { key: 'Zioła lecznicze',  weight: 15, minHours: 3 },
+            { key: 'Piracka mapa',     weight: 5,  minHours: 8 },
+            { key: 'Nocny płaszcz',    weight: 4,  minHours: 8 },
+            { key: 'Kryształ krwi',    weight: 6,  minHours: 8 },
+            { key: 'Fragment golemowego kamienia', weight: 5, minHours: 24 },
+        ],
+        extraFoodByDuration: { 3: 1, 8: 2, 24: 4 }, // extra food per duration
+    },
+    gory: {
+        label: 'Góry Sarak',
+        icon: '⛰️',
+        food: { key: 'Górski ser', label: 'Górski ser', desc: 'Smok przytaszczył kawał górskiego sera od pasterzy.' },
+        loot: [
+            { key: 'Kryształ górski',  weight: 40, minHours: 1 },
+            { key: 'Ciepły kamień',    weight: 30, minHours: 1 },
+            { key: 'Ruda żelaza',      weight: 35, minHours: 1 },
+            { key: 'Stary miecz',      weight: 15, minHours: 3 },
+            { key: 'Kryształ krwi',    weight: 10, minHours: 3 },
+            { key: 'Księżycowy Kamień', weight: 8, minHours: 8 },
+            { key: 'Fragment golemowego kamienia', weight: 6, minHours: 8 },
+            { key: 'Srebrny Pył Zza Bramy', weight: 4, minHours: 24 },
+            { key: 'Eter Księżycowy',  weight: 2,  minHours: 24 },
+        ],
+        extraFoodByDuration: { 3: 1, 8: 2, 24: 3 },
+    },
+    pustynia: {
+        label: 'Pustynia Halyaz',
+        icon: '🏜️',
+        food: { key: 'Mięso', label: 'Mięso', desc: 'Smok upolował pustynne zwierzę i przyniósł surowe mięso.' },
+        loot: [
+            { key: 'Bursztyn oazy',    weight: 35, minHours: 1 },
+            { key: 'Stary kamień',     weight: 25, minHours: 1 },
+            { key: 'Ruda żelaza',      weight: 20, minHours: 1 },
+            { key: 'Piracka mapa',     weight: 10, minHours: 3 },
+            { key: 'Torba złota',      weight: 8,  minHours: 3 },
+            { key: 'Kryształ krwi',    weight: 10, minHours: 3 },
+            { key: 'Stary miecz',      weight: 8,  minHours: 8 },
+            { key: 'Nocny płaszcz',    weight: 5,  minHours: 8 },
+            { key: 'Amulet smoczego pazura', weight: 6, minHours: 8 },
+            { key: 'Fragment golemowego kamienia', weight: 5, minHours: 24 },
+            { key: 'Eter Księżycowy',  weight: 2,  minHours: 24 },
+        ],
+        extraFoodByDuration: { 3: 1, 8: 2, 24: 4 },
+    },
+};
+
+const REGION_EXPEDITION_DURATIONS = [
+    { hours: 1,  label: '1 godzina',   fatigue: 15, lootRolls: 1, desc: 'Krótki zwiad. Smok zbiera co znajdzie w pobliżu.' },
+    { hours: 3,  label: '3 godziny',   fatigue: 25, lootRolls: 2, desc: 'Solidna wyprawa. Większy teren, więcej możliwości.' },
+    { hours: 8,  label: '8 godzin',    fatigue: 45, lootRolls: 3, desc: 'Cały dzień w terenie. Rzadsze znaleziska możliwe.' },
+    { hours: 24, label: '24 godziny',  fatigue: 70, lootRolls: 5, desc: 'Wyprawa przez dobę. Maksymalne łupy, duże zmęczenie.' },
+];
+
+function getAvailableDragons() {
+    const dragons = [];
+    if (eggHeats >= 3) dragons.push({ num: 1, name: dragonName, element: chosenDragon });
+    if (secondDragonUnlocked && secondEggHeats >= 3) dragons.push({ num: 2, name: secondDragonName, element: secondDragonElement });
+    if (thirdDragonUnlocked && thirdEggHeats >= 3) dragons.push({ num: 3, name: thirdDragonName, element: thirdDragonElement });
+    return dragons;
+}
+
+function openRegionExpedition(regionKey) {
+    const regionConf = REGION_EXPEDITIONS[regionKey];
+    if (!regionConf) return;
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    const dragons = getAvailableDragons();
+    if (dragons.length === 0) {
+        box.innerHTML = `
+            <div style="margin-top:10px;padding:12px 16px;background:rgba(20,12,5,0.9);border-left:3px solid #cc4422;border-radius:8px;color:#cc8866;font-style:italic;">
+                Nie masz jeszcze wyklutego smoka. Ogrzej jajko zanim wyślesz je w świat.
+            </div>`;
+        return;
+    }
+
+    const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
+
+    const dragonOptions = dragons.map(d => {
+        const mission = loadDragonMission(d.num);
+        const vitals = loadDragonVitals(d.num);
+        const busy = !!mission;
+        const color = elColors[d.element] || '#aab';
+        const icon = ELEMENT_ICONS[d.element] || '🐉';
+        const status = busy
+            ? `<span style="color:#cc6644;font-size:11px;">⏳ na misji</span>`
+            : `<span style="color:#88cc66;font-size:11px;">zmęczenie: ${vitals.fatigue}/100</span>`;
+        return `
+            <div class="dialog-button" style="display:flex;align-items:center;gap:10px;${busy ? 'opacity:0.4;pointer-events:none;' : `border-color:${color};`}"
+                onclick="openRegionExpeditionDuration('${regionKey}', ${d.num})">
+                <span style="font-size:20px;">${icon}</span>
+                <div style="flex:1;text-align:left;">
+                    <span style="color:${color};font-weight:bold;">${d.name}</span><br>
+                    ${status}
+                </div>
+                <span style="color:#6680bb;">›</span>
+            </div>`;
+    }).join('');
+
+    box.innerHTML = `
+        <div style="padding:14px;background:rgba(15,10,5,0.95);border:1px solid #5a6680;border-radius:10px;animation:worldFadeIn 0.3s;">
+            <div style="font-size:15px;font-weight:bold;color:#e8d870;margin-bottom:6px;">🗺️ Wyprawa — ${regionConf.icon} ${regionConf.label}</div>
+            <div style="color:#8090aa;font-size:12px;font-style:italic;margin-bottom:14px;">
+                Smok zawsze przyniesie jedzenie: <b style="color:#cc8844;">${regionConf.food.label}</b>. Im dłuższa wyprawa, tym więcej łupów.
+            </div>
+            <div style="font-size:13px;color:#aab;margin-bottom:8px;">Wybierz smoka:</div>
+            ${dragonOptions}
+        </div>`;
+}
+
+function openRegionExpeditionDuration(regionKey, dragonNum) {
+    const regionConf = REGION_EXPEDITIONS[regionKey];
+    const box = document.getElementById('location-action-area');
+    if (!box || !regionConf) return;
+
+    const vitals = loadDragonVitals(dragonNum);
+    const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
+
+    const durationBtns = REGION_EXPEDITION_DURATIONS.map(d => {
+        const tooTired = vitals.fatigue + d.fatigue > 100;
+        const lootHints = REGION_EXPEDITIONS[regionKey].loot
+            .filter(l => l.minHours <= d.hours)
+            .slice(0, 4)
+            .map(l => l.key).join(', ');
+        return `
+            <div class="dialog-button" style="${tooTired ? 'opacity:0.35;pointer-events:none;border-color:#444;' : 'border-color:#6677bb;'}"
+                onclick="startRegionExpedition('${regionKey}', ${dragonNum}, ${d.hours})">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-weight:bold;color:#e0d8ff;">⏱ ${d.label}</span>
+                    <span style="color:#cc8844;font-size:12px;">+${d.fatigue} zmęczenia</span>
+                </div>
+                <div style="font-size:11px;color:#7080a0;margin-top:3px;">${d.desc}</div>
+                <div style="font-size:11px;color:#556070;margin-top:2px;">Możliwe: ${lootHints}${tooTired ? ' — <span style="color:#cc4422;">za zmęczony!</span>' : ''}</div>
+            </div>`;
+    }).join('');
+
+    box.innerHTML = `
+        <div style="padding:14px;background:rgba(15,10,5,0.95);border:1px solid #5a6680;border-radius:10px;animation:worldFadeIn 0.3s;">
+            <div style="font-size:15px;font-weight:bold;color:#e8d870;margin-bottom:4px;">🗺️ ${regionConf.icon} ${regionConf.label} — wybierz czas</div>
+            <div style="color:#8090aa;font-size:12px;margin-bottom:12px;">Smok: <b style="color:#aabbff;">${name}</b> &nbsp;|&nbsp; Zmęczenie: ${vitals.fatigue}/100</div>
+            ${durationBtns}
+            <div class="dialog-button" style="border-color:#445;color:#778;margin-top:8px;" onclick="openRegionExpedition('${regionKey}')">← Zmień smoka</div>
+        </div>`;
+}
+
+function startRegionExpedition(regionKey, dragonNum, hours) {
+    const regionConf = REGION_EXPEDITIONS[regionKey];
+    if (!regionConf) return;
+
+    const vitals = loadDragonVitals(dragonNum);
+    const dur = REGION_EXPEDITION_DURATIONS.find(d => d.hours === hours);
+    if (!dur) return;
+
+    if (vitals.fatigue + dur.fatigue > 100) {
+        alert('Smok jest zbyt zmęczony na tę wyprawę.');
+        return;
+    }
+    if (loadDragonMission(dragonNum)) {
+        alert('Ten smok jest już na misji.');
+        return;
+    }
+
+    const missionData = {
+        id: `region_expedition_${regionKey}_${hours}h`,
+        name: `Wyprawa: ${regionConf.label} (${dur.label})`,
+        regionKey,
+        hours,
+        fatigue: dur.fatigue,
+        lootRolls: dur.lootRolls,
+        isRegionExpedition: true,
+        endTime: Date.now() + hours * 3600 * 1000,
+        reward: {},
+        dragonNum,
+    };
+    saveDragonMission(dragonNum, missionData);
+
+    const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
+    const box = document.getElementById('location-action-area');
+    if (box) {
+        box.innerHTML = `
+            <div style="padding:14px;background:rgba(10,20,10,0.9);border:1px solid #447744;border-radius:10px;">
+                <div style="color:#88ee88;font-size:15px;font-weight:bold;margin-bottom:6px;">✅ Smok wyruszył!</div>
+                <div style="color:#aab;font-size:13px;line-height:1.8;">
+                    <b style="color:#aabbff;">${name}</b> wyruszył na wyprawę do <b>${regionConf.icon} ${regionConf.label}</b>.<br>
+                    Wróci za: <b style="color:#e8d870;">${dur.label}</b>.<br>
+                    Sprawdź zakładkę <b>Dom</b> po powrocie.
+                </div>
+            </div>`;
+    }
+    updateHomeTab();
+}
+
+function rollRegionExpeditionLoot(regionKey, hours, rolls) {
+    const regionConf = REGION_EXPEDITIONS[regionKey];
+    if (!regionConf) return [];
+    const eligible = regionConf.loot.filter(l => l.minHours <= hours);
+    const totalWeight = eligible.reduce((s, l) => s + l.weight, 0);
+    const results = [];
+
+    for (let i = 0; i < rolls; i++) {
+        if (Math.random() > 0.75) continue; // 25% miss per roll
+        let r = Math.random() * totalWeight;
+        for (const item of eligible) {
+            r -= item.weight;
+            if (r <= 0) { results.push(item.key); break; }
+        }
+    }
+    return results;
+}
+
+function completeRegionExpedition(dragonNum) {
+    const mission = loadDragonMission(dragonNum);
+    if (!mission || !mission.isRegionExpedition) return;
+
+    const regionConf = REGION_EXPEDITIONS[mission.regionKey];
+    const dur = REGION_EXPEDITION_DURATIONS.find(d => d.hours === mission.hours);
+    const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
+
+    // Fatigue
+    const vitals = loadDragonVitals(dragonNum);
+    vitals.fatigue = Math.min(100, vitals.fatigue + mission.fatigue);
+    saveDragonVitals(dragonNum, vitals);
+    saveDragonMission(dragonNum, null);
+
+    // Guaranteed food
+    const foodAmt = 1 + (regionConf.extraFoodByDuration[mission.hours] || 0);
+    if (regionConf.food.key === 'Mięso' || regionConf.food.key === 'Jagody') {
+        const fk = regionConf.food.key === 'Mięso' ? 'mięso' : 'jagody';
+        foodItems[fk] = (foodItems[fk] || 0) + foodAmt;
+        localStorage.setItem('foodItems', JSON.stringify(foodItems));
+    } else {
+        inventory[regionConf.food.key] = (inventory[regionConf.food.key] || 0) + foodAmt;
+        localStorage.setItem('inventory', JSON.stringify(inventory));
+    }
+
+    // Loot rolls
+    const lootFound = rollRegionExpeditionLoot(mission.regionKey, mission.hours, mission.lootRolls);
+    lootFound.forEach(key => {
+        inventory[key] = (inventory[key] || 0) + 1;
+    });
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+
+    updateInventoryTabFull();
+    updateCurrencyDisplay();
+
+    let msg = `🗺️ Wyprawa zakończona!\n\n${name} wrócił z ${regionConf.icon} ${regionConf.label}.\n`;
+    msg += `\n🍽️ Jedzenie: ${foodAmt}× ${regionConf.food.label}`;
+    if (lootFound.length > 0) {
+        msg += `\n\n📦 Znaleziska:\n${lootFound.map(k => `  • ${k}`).join('\n')}`;
+    } else {
+        msg += `\n\nBrak dodatkowych znalezisk tym razem.`;
+    }
+    msg += `\n\nZmęczenie smoka: +${mission.fatigue}`;
+
+    alert(msg);
+    updateHomeTab();
+}
+
 
 /* -----------------------------------------
    ZMIANA ZAKŁADEK
