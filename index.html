@@ -25,7 +25,7 @@
 
         <!-- Analogowy zegar na obrazie -->
         <div id="dragon-clock-img-box">
-            <canvas id="dragon-clock-canvas" width="200" height="200"></canvas>
+            <canvas id="dragon-clock-canvas" width="400" height="400"></canvas>
         </div>
 
         <!-- Cyfrowy czas -->
@@ -64,16 +64,16 @@
 (function () {
     /* ── Konfiguracja pozycji tarczy na obrazie ──────────────────
        Jeśli wskazówki nie trafiają w środek — zmień CLOCK_CX / CLOCK_CY.
-       Wszystkie wartości w pikselach KANWY (canvas 200×200).        */
-    var CANVAS_SIZE = 200;
+       Wszystkie wartości w pikselach KANWY (canvas 400×400).        */
+    var CANVAS_SIZE = 400;
 
     /* Środek tarczy i promień — obliczone z oryginalnego obrazu (1024×559)
-       Kadr źródłowy: x=239.5, y=0, w=h=545 → skala 200/545 = 0.367
+       Kadr źródłowy: x=239.5, y=0, w=h=545 → skala 400/545 = 0.734
        Środek tarczy w oryginale: x=512, y=260
-       Na kanwie: x=(512-239.5)/545*200 = 100.0, y=(260-0)/545*200 = 95.4 */
-    var CLOCK_CX = 100.0;   /* środek tarczy X na kanwie               */
-    var CLOCK_CY = 101.0;    /* środek tarczy Y na kanwie               */
-    var CLOCK_R  = 80.0;    /* promień tarczy na kanwie                */
+       Na kanwie: x=(512-239.5)/545*400 = 200.0, y=(260-0)/545*400 = 190.8 */
+    var CLOCK_CX = 200.0;   /* środek tarczy X na kanwie               */
+    var CLOCK_CY = 202.0;    /* środek tarczy Y na kanwie               */
+    var CLOCK_R  = 160.0;    /* promień tarczy na kanwie                */
 
     /* Długości wskazówek (% promienia) */
     var HOUR_LEN   = CLOCK_R * 0.35;  /* ~45 px */
