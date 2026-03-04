@@ -1117,23 +1117,75 @@ function updateDragonsTab() {
                 </div>` : ''}
             </div>` : '';
 
+        // Build image + change button (left column)
+        const imgSrc = isHatchlingD ? hatchSrcD : null; // future: adult dragon image
+        const variantCount = isHatchlingD ? hatchVariantCountD : (EGG_IMG_MAP[d.element]||[]).length;
+        const cycleFn = isHatchlingD ? `cycleHatchlingVariant(${d.num},'${d.element}')` : `cycleEggVariant(${d.num},'${d.element}')`;
+        const leftCol = imgSrc ? `
+            <div style="flex-shrink:0;width:160px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                <img src="${imgSrc}" alt="smok"
+                     style="width:150px;height:150px;object-fit:cover;border-radius:12px;
+                            filter:drop-shadow(0 0 14px ${hatchGlowD}88);">
+                ${isHatchlingD ? `
+                    <div style="font-size:10px;color:#445566;text-align:center;line-height:1.4;">
+                        Pisklak — poz. ${Math.max(1,d.level)}/${HATCHLING_MAX_LEVEL}
+                        <div style="height:3px;background:#1a2035;border-radius:3px;margin:3px auto;width:120px;">
+                            <div style="height:3px;background:${hatchGlowD};border-radius:3px;width:${Math.min(100,Math.max(1,d.level)/HATCHLING_MAX_LEVEL*100)}%;"></div>
+                        </div>
+                    </div>` : ''}
+                ${variantCount > 1 ? `
+                    <div style="display:flex;gap:5px;align-items:center;margin-bottom:2px;">
+                        ${[...Array(variantCount)].map((_,i) => `
+                            <div onclick="${cycleFn}"
+                                 style="width:8px;height:8px;border-radius:50%;cursor:pointer;
+                                        background:${i+1===(isHatchlingD?getHatchlingVariant(d.num):getEggVariant(d.num)) ? hatchGlowD : '#2a3a55'};
+                                        border:1px solid ${hatchGlowD}44;"></div>
+                        `).join('')}
+                    </div>
+                    <div class="dialog-button" style="padding:4px 12px;font-size:11px;margin:0;width:100%;text-align:center;"
+                         onclick="${cycleFn}">Zmień wygląd</div>` : ''}
+            </div>` : `<div style="flex-shrink:0;width:0;"></div>`;
+
         html += `
             <div class="dragon-slot">
-                ${hatchlingHtmlD}
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <div>
-                        <span style="font-weight:bold; color:#e0e8ff; font-size:15px;">${d.name}</span>
-                        <span style="color:${elColor}; font-size:12px; margin-left:8px;">${d.element ? d.element.toUpperCase() : ''}</span>
-                        <span style="color:#7080aa; font-size:12px; margin-left:8px;">Poz. ${Math.max(1, d.level)}</span>
+                <div style="display:flex;gap:14px;align-items:flex-start;">
+                    ${leftCol}
+                    <div style="flex:1;min-width:0;">
+                        <!-- Nagłówek -->
+                        <div style="margin-bottom:8px;">
+                            <span style="font-weight:bold;color:#e0e8ff;font-size:16px;">${d.name}</span>
+                            <span style="color:${elColor};font-size:13px;font-weight:bold;margin-left:8px;">${d.element ? d.element.toUpperCase() : ''}</span>
+                            <span style="color:#7080aa;font-size:12px;margin-left:8px;">Poz. ${Math.max(1,d.level)}</span>
+                        </div>
+                        <!-- Vitale -->
+                        <div style="font-size:12px;color:#aab;margin-bottom:5px;">
+                            ❤️ ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 ${vitals.fatigue}/100
+                        </div>
+                        <!-- Statystyki -->
+                        <div style="font-size:12px;color:#7080aa;margin-bottom:10px;">
+                            ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
+                        </div>
+                        <!-- Ekwipunek (zwinięty) -->
+                        <details style="margin-bottom:6px;" id="equip-details-dtab-${d.num}">
+                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                                ⚔️ Ekwipunek smoka
+                            </summary>
+                            <div style="margin-top:6px;padding:8px;background:rgba(10,15,30,0.5);border-radius:6px;font-size:12px;color:#8090aa;">
+                                <!-- placeholder — docelowo renderEquipSlots(d.num) -->
+                                Brak ekwipunku
+                            </div>
+                        </details>
+                        <!-- Wyprawa -->
+                        <details style="margin-bottom:4px;" id="mission-details-dtab-${d.num}" open>
+                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                                🗺️ Wyprawa
+                            </summary>
+                            <div style="margin-top:6px;">
+                                ${renderMissionPanel(d.num, !!activeMission, activeMission)}
+                            </div>
+                        </details>
                     </div>
                 </div>
-                <div style="font-size:12px; color:#aab; margin-bottom:6px;">
-                    ❤️ ${vitals.hp}/${maxHP} | 💧 ${vitals.mana}/${maxMana} | 😴 ${vitals.fatigue}/100
-                </div>
-                <div style="font-size:12px; color:#7080aa; margin-bottom:8px;">
-                    ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: ${v}${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' · ')}
-                </div>
-                ${renderMissionPanel(d.num, !!activeMission, activeMission)}
             </div>
         `;
     });
