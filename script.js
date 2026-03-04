@@ -5920,6 +5920,10 @@ function openRegionOriginal(regionKey) {
             <div class="dialog-title">${region.icon} ${region.label}</div>
             <div class="dialog-text" style="white-space:pre-line;">${desc}</div>
             <div id="location-buttons">
+                ${REGION_EXPEDITIONS[regionKey] ? `
+                    <div class="dialog-button" style="border-color:#667799;color:#aabbdd;" onclick="openRegionExpedition('${regionKey}')">🗺️ Wyślij smoka na wyprawę</div>
+                    <div style="margin: 10px 0; border-top: 1px solid rgba(100,110,140,0.25);"></div>
+                ` : ''}
                 ${region.locations.map(loc => `
                     <div class="dialog-button" onclick="openLocation('${regionKey}', '${loc.id}')">
                         ${loc.icon} ${loc.label}
@@ -6549,7 +6553,6 @@ function openLocation(regionKey, locationId) {
             ${extraContent}
             <div id="location-action-area">
                 ${renderCourierSearchButton(regionKey, locationId)}
-                ${regionKey !== 'miasto' && REGION_EXPEDITIONS[regionKey] ? `<div class="dialog-button" style="border-color:#667799;color:#aabbdd;margin-top:6px;" onclick="openRegionExpedition('${regionKey}')">🗺️ Wyślij smoka na wyprawę</div>` : ''}
                 ${(extraQuestActions||[]).map(a => `<div class="dialog-button" onclick="${a.onclick}">${a.label}</div>`).join('')}
                 ${isSerceQuest ? '' : renderLocationActions(regionKey, locationId, activeActions)}
             </div>
