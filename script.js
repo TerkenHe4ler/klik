@@ -5797,9 +5797,12 @@ const worldData = {
     },
 
     pustynia: {
-        name: 'Pustynia Halyaz',
+        label: 'Pustynia Halyaz',
         icon: '🏜️',
-        desc: 'Rozległa, spalona słońcem pustynia rozciągająca się na południe od gór Sarak. Halyaz skrywa ruiny starożytnej cywilizacji, która podobno potrafiła okiełznać same żywioły. Piasek tu jest czerwony — mówią, że to krew dawnych wojen.',
+        firstVisitDesc: `Pustynia Halyaz rozciąga się przed tobą jak morze ognia. Czerwony piasek skrzy się w słońcu, a gorące powietrze drga nad wydmami. Starożytne ruiny sterczą z piasku jak kości zapomnianego olbrzyma. Mówią, że ta ziemia pamięta czasy, kiedy smoki i ludzie walczyli o każdą oazę.
+
+Wiatr przynosi zapach przypraw i dymu z karawany gdzieś na horyzoncie. Dokąd się udasz?`,
+        desc: 'Czerwony piasek Halyaz wita cię żarem i ciszą. Gdzieś w oddali drżą wydmy w upale. Dokąd tym razem?',
         locations: [
             {
                 id: 'oboz_karawany',
