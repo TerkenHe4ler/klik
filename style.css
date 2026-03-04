@@ -134,195 +134,68 @@ body {
     border-radius: 6px;
 }
 
-/* ═══════════════════════════════════════════════════════
-   SMOCZE ZEGARY
-═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   SMOCZE ZEGARY — styl dla zegara z obrazem smoka
+═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&display=swap');
 
 #dragon-clock-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 6px 10px;
-    border-bottom: 1px solid rgba(0,200,80,0.25);
-    margin-bottom: 6px;
+    padding: 10px 4px 8px;
+    border-bottom: 1px solid rgba(180,130,30,0.3);
+    margin-bottom: 8px;
     gap: 6px;
 }
 
-/* ── Outer shell ── */
-#dragon-clock-outer {
+/* ── Kontener obrazu ── */
+#dragon-clock-img-box {
     position: relative;
-    width: 160px;
-    height: 160px;
-    border-radius: 50%;
-    background: radial-gradient(ellipse at 40% 35%, #0d2218 0%, #06110a 60%, #020806 100%);
-    border: 2px solid rgba(0,200,70,0.4);
-    box-shadow: 0 0 18px rgba(0,180,60,0.5), inset 0 0 12px rgba(0,100,30,0.3);
-    transition: box-shadow 0.1s;
-}
-
-/* ── ROGI ── */
-.dragon-horn {
-    position: absolute;
-    top: -22px;
-    width: 0;
-    height: 0;
-    filter: drop-shadow(0 0 4px rgba(0,255,80,0.6));
-    z-index: 2;
-}
-.dragon-horn::before,
-.dragon-horn::after {
-    content: '';
-    position: absolute;
-    display: block;
-}
-
-.dragon-horn-l {
-    left: 32px;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-bottom: 30px solid #0d6630;
-}
-.dragon-horn-l::before {
-    top: 4px; left: -5px;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-bottom: 20px solid #1aaa55;
-    width: 0; height: 0;
-}
-.dragon-horn-l::after {
-    top: 10px; left: -10px;
-    width: 8px; height: 16px;
-    background: linear-gradient(to top right, #0d6630, transparent);
-    clip-path: polygon(100% 100%, 0% 100%, 50% 0%);
-}
-
-.dragon-horn-r {
-    right: 32px;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-bottom: 30px solid #0d6630;
-}
-.dragon-horn-r::before {
-    top: 4px; left: -5px;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-bottom: 20px solid #1aaa55;
-    width: 0; height: 0;
-}
-
-/* ── Boczne kolce ── */
-.dragon-spike {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0; height: 0;
-    z-index: 2;
-    filter: drop-shadow(0 0 3px rgba(0,220,70,0.5));
-}
-.dragon-spike-l {
-    left: -12px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-right: 18px solid #0d5528;
-}
-.dragon-spike-r {
-    right: -12px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-left: 18px solid #0d5528;
-}
-
-/* ── Oczy ── */
-.dragon-eye {
-    position: absolute;
-    top: 34px;
-    width: 22px;
-    height: 16px;
-    background: radial-gradient(ellipse at 40% 35%, #ffcc00 0%, #cc8800 40%, #331100 100%);
-    border-radius: 50% 50% 40% 40%;
-    border: 1.5px solid rgba(255,180,0,0.7);
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 0 8px rgba(255,160,0,0.7), 0 0 3px #ff8800;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.dragon-eye-l { left: 26px; }
-.dragon-eye-r { right: 26px; }
-
-.dragon-pupil {
-    width: 7px;
-    height: 13px;
-    background: radial-gradient(ellipse at 40% 30%, #440000 0%, #1a0000 70%, #000 100%);
-    border-radius: 50% 50% 45% 45% / 60% 60% 40% 40%;
-    border: 1px solid rgba(80,0,0,0.6);
-    transition: transform 0.3s ease;
-    box-shadow: 0 0 3px rgba(0,0,0,0.8);
+    /* Subtelna złota ramka wokół całości */
+    box-shadow:
+        0 0 0 1px rgba(180,130,25,0.35),
+        0 0 18px rgba(120,70,0,0.45),
+        0 4px 20px rgba(0,0,0,0.7);
 }
 
-/* ── Dolna szczęka ── */
-.dragon-jaw {
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-    z-index: 3;
-}
-.dragon-tooth {
-    width: 0; height: 0;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 10px solid #1a7a44;
-    filter: drop-shadow(0 2px 4px rgba(0,200,80,0.4));
-}
-.dragon-tooth:nth-child(2) {
-    border-top-width: 14px;
-    border-left-width: 6px;
-    border-right-width: 6px;
-    margin-top: -4px;
-}
-
-/* ── Canvas (czas analogowy) ── */
 #dragon-clock-canvas {
     display: block;
-    position: relative;
-    z-index: 1;
-    border-radius: 50%;
+    width: 200px;
+    height: 200px;
 }
 
 /* ── Cyfrowy czas ── */
 #dragon-clock-digital {
-    font-family: 'Courier New', monospace;
-    font-size: 22px;
-    font-weight: bold;
+    font-family: 'Cinzel', 'Georgia', serif;
+    font-size: 19px;
+    font-weight: 600;
     letter-spacing: 3px;
-    color: #00ff77;
-    text-shadow: 0 0 10px rgba(0,255,100,0.8), 0 0 20px rgba(0,200,60,0.4);
-    background: rgba(0,0,0,0.5);
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(0,180,60,0.35);
-    position: relative;
-}
-/* pulsujące dwukropki */
-#dragon-clock-digital::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 6px;
-    box-shadow: inset 0 0 8px rgba(0,255,80,0.1);
-    pointer-events: none;
+    color: #d4a030;
+    text-shadow:
+        0 0 8px  rgba(210,160,30,0.85),
+        0 0 20px rgba(180,120,10,0.4),
+        0 1px 2px rgba(0,0,0,0.9);
+    background: linear-gradient(180deg, rgba(10,6,2,0.92) 0%, rgba(5,3,1,0.92) 100%);
+    padding: 4px 12px 4px 14px;
+    border-radius: 5px;
+    border: 1px solid rgba(160,110,20,0.4);
+    border-top-color: rgba(200,150,30,0.3);
+    box-shadow: inset 0 1px 0 rgba(200,150,30,0.08), 0 2px 8px rgba(0,0,0,0.5);
 }
 
 /* ── Data ── */
 #dragon-clock-date {
-    font-size: 10px;
-    color: rgba(0,200,80,0.75);
+    font-family: 'Cinzel', 'Georgia', serif;
+    font-size: 9.5px;
+    letter-spacing: 0.8px;
+    color: rgba(180,130,35,0.75);
     text-align: center;
-    letter-spacing: 0.5px;
-    text-shadow: 0 0 6px rgba(0,180,60,0.5);
-    line-height: 1.4;
+    text-shadow: 0 0 8px rgba(160,110,20,0.5);
+    line-height: 1.5;
 }
