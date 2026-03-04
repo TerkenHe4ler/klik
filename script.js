@@ -657,6 +657,25 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
     }
 
     const isOnMission = !!mission;
+
+    // Hatchling image (poziom 1-20)
+    const isHatchling = level <= HATCHLING_MAX_LEVEL;
+    const hatchImgSrc = isHatchling ? getHatchlingImgSrc(element, num) : null;
+    const elGlowColorsH = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
+    const hatchGlowCol = elGlowColorsH[element] || '#aabbff';
+    const hatchlingHtml = hatchImgSrc ? `
+        <div style="text-align:center;margin-bottom:10px;">
+            <img src="${hatchImgSrc}" alt="pisklak"
+                 style="width:200px;height:auto;border-radius:12px;display:block;margin:0 auto 6px;
+                        filter:drop-shadow(0 0 16px ${hatchGlowCol}88);">
+            <div style="font-size:11px;color:#556688;">
+                Pisklak — rośnie do poziomu ${HATCHLING_MAX_LEVEL} 
+                &nbsp;|&nbsp; Poz. ${level}/${HATCHLING_MAX_LEVEL}
+                <div style="height:4px;background:#1a2035;border-radius:3px;margin:4px auto;width:140px;">
+                    <div style="height:4px;background:${hatchGlowCol};border-radius:3px;width:${Math.min(100,level/HATCHLING_MAX_LEVEL*100)}%;transition:width 0.4s;"></div>
+                </div>
+            </div>
+        </div>` : '';
     let missionHtml = '';
     if (isOnMission) {
         const remaining = Math.max(0, mission.endTime - Date.now());
@@ -678,6 +697,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
 
     return `
         <div class="dragon-slot">
+            ${hatchlingHtml}
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
                 <div>
                     <b>${name}</b> — ${element ? element.toUpperCase() : '?'} | Poziom ${level}
@@ -932,6 +952,44 @@ const EGG_IMG_MAP = {
     magma:     ['1/Magma 1.png',     '2/Magma 2.png'],
 };
 
+const HATCHLING_IMG_MAP = {
+    ogien:     ['Pisklaki/Ogień 1.png',     'Pisklaki/Ogień 2.png'],
+    woda:      ['Pisklaki/Woda 1.png',      'Pisklaki/Woda 2.png'],
+    ziemia:    ['Pisklaki/Ziemia 1.png',    'Pisklaki/Ziemia 2.png'],
+    powietrze: ['Pisklaki/Powietrze 1.png', 'Pisklaki/Powietrze 2.png'],
+    swiatlo:   ['Pisklaki/Światło 1.png',   'Pisklaki/Światło 2.png'],
+    cien:      ['Pisklaki/Cień 1.png',      'Pisklaki/Cień 2.png'],
+    lod:       ['Pisklaki/Lód 1.png',       'Pisklaki/Lód 2.png'],
+    magma:     ['Pisklaki/Magma 1.png',     'Pisklaki/Magma 2.png'],
+};
+
+const HATCHLING_MAX_LEVEL = 20;
+
+function getHatchlingVariant(dragonNum) {
+    return Number(localStorage.getItem(`hatchlingVariant${dragonNum}`)) || 1;
+}
+
+function setHatchlingVariant(dragonNum, variant) {
+    localStorage.setItem(`hatchlingVariant${dragonNum}`, variant);
+}
+
+function getHatchlingImgSrc(element, dragonNum) {
+    const imgs = HATCHLING_IMG_MAP[element];
+    if (!imgs) return null;
+    const v = getHatchlingVariant(dragonNum);
+    return imgs[v - 1] || imgs[0];
+}
+
+function cycleHatchlingVariant(dragonNum, element) {
+    const imgs = HATCHLING_IMG_MAP[element];
+    if (!imgs) return;
+    const current = getHatchlingVariant(dragonNum);
+    const next = current >= imgs.length ? 1 : current + 1;
+    setHatchlingVariant(dragonNum, next);
+    updateDragonsTab();
+    updateHomeTab();
+}
+
 function getEggVariant(dragonNum) {
     return Number(localStorage.getItem(`eggVariant${dragonNum}`)) || 1;
 }
@@ -1030,8 +1088,38 @@ function updateDragonsTab() {
         const elColors = { ogien:'#ff8866', woda:'#66bbff', ziemia:'#88cc66', powietrze:'#ccddff', swiatlo:'#ffe566', cien:'#aa77ff', lod:'#aaeeff', magma:'#ff6633' };
         const elColor = elColors[d.element] || '#aab';
 
+        const isHatchlingD = d.level <= HATCHLING_MAX_LEVEL;
+        const hatchSrcD = isHatchlingD ? getHatchlingImgSrc(d.element, d.num) : null;
+        const hatchVariantCountD = (HATCHLING_IMG_MAP[d.element] || []).length;
+        const hatchGlowD = elColors[d.element] || '#aabbff';
+        const hatchlingHtmlD = hatchSrcD ? `
+            <div style="text-align:center;margin-bottom:10px;">
+                <img src="${hatchSrcD}" alt="pisklak"
+                     style="width:200px;height:auto;border-radius:12px;display:block;margin:0 auto 6px;
+                            filter:drop-shadow(0 0 16px ${hatchGlowD}88);">
+                <div style="font-size:11px;color:#556688;margin-bottom:4px;">
+                    Pisklak — rośnie do poziomu ${HATCHLING_MAX_LEVEL}
+                    <div style="height:4px;background:#1a2035;border-radius:3px;margin:4px auto;width:140px;">
+                        <div style="height:4px;background:${hatchGlowD};border-radius:3px;width:${Math.min(100,d.level/HATCHLING_MAX_LEVEL*100)}%;"></div>
+                    </div>
+                </div>
+                ${hatchVariantCountD > 1 ? `
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px;">
+                    <span style="font-size:11px;color:#556688;">Wygląd:</span>
+                    ${[...Array(hatchVariantCountD)].map((_,i) => `
+                        <div style="width:10px;height:10px;border-radius:50%;cursor:pointer;
+                                    background:${i+1===getHatchlingVariant(d.num) ? hatchGlowD : '#2a3a55'};
+                                    border:1px solid ${hatchGlowD}55;"
+                             onclick="cycleHatchlingVariant(${d.num},'${d.element}')"></div>
+                    `).join('')}
+                    <div class="dialog-button" style="padding:3px 10px;font-size:11px;margin:0;"
+                         onclick="cycleHatchlingVariant(${d.num},'${d.element}')">Zmień wygląd</div>
+                </div>` : ''}
+            </div>` : '';
+
         html += `
             <div class="dragon-slot">
+                ${hatchlingHtmlD}
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                     <div>
                         <span style="font-weight:bold; color:#e0e8ff; font-size:15px;">${d.name}</span>
