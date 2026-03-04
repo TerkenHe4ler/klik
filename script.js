@@ -7753,6 +7753,12 @@ function showQuestion() {
         return;
     }
 
+    // Ukryj sidebar i content do momentu wyboru jajka
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    if (sidebar) sidebar.style.display = 'none';
+    if (content) { content.style.marginRight = '0'; content.style.display = 'flex'; content.style.alignItems = 'center'; content.style.justifyContent = 'center'; content.style.minHeight = '100vh'; }
+
     const intro = document.getElementById("intro");
 
     intro.innerHTML = `
@@ -7834,7 +7840,10 @@ function finalizeDragon() {
    START GRY
 ----------------------------------------- */
 function startGame() {
-    document.getElementById("sidebar").style.display = "flex";
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    if (sidebar) sidebar.style.display = 'flex';
+    if (content) { content.style.marginRight = ''; content.style.display = ''; content.style.alignItems = ''; content.style.justifyContent = ''; content.style.minHeight = ''; }
     document.getElementById("intro").style.display = "none";
     if (!workUnlocked) {
         unlockWork();
