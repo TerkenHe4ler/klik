@@ -1051,7 +1051,7 @@ function updateDragonsTab() {
                 <div class="dragon-slot" style="text-align:center;">
                     ${eggSrc ? `
                         <img src="${eggSrc}" alt="jajo"
-                             style="width:200px;height:auto;border-radius:12px;margin:4px auto 10px;display:block;filter:${heatGlow};transition:filter 0.5s;"
+                             style="width:260px;height:auto;border-radius:14px;margin:4px auto 10px;display:block;filter:${heatGlow};transition:filter 0.5s;"
                              id="egg-img-dtab-${d.num}">
                         ${variantCount > 1 ? `
                         <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
@@ -1122,9 +1122,9 @@ function updateDragonsTab() {
         const variantCount = isHatchlingD ? hatchVariantCountD : (EGG_IMG_MAP[d.element]||[]).length;
         const cycleFn = isHatchlingD ? `cycleHatchlingVariant(${d.num},'${d.element}')` : `cycleEggVariant(${d.num},'${d.element}')`;
         const leftCol = imgSrc ? `
-            <div style="flex-shrink:0;width:160px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div style="flex-shrink:0;width:220px;display:flex;flex-direction:column;align-items:center;gap:6px;">
                 <img src="${imgSrc}" alt="smok"
-                     style="width:150px;height:150px;object-fit:cover;border-radius:12px;
+                     style="width:210px;height:210px;object-fit:cover;border-radius:14px;
                             filter:drop-shadow(0 0 14px ${hatchGlowD}88);">
                 ${isHatchlingD ? `
                     <div style="font-size:10px;color:#445566;text-align:center;line-height:1.4;">
