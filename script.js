@@ -2648,7 +2648,7 @@ function getMoonGateStatus() {
         return { open: true, msg: null };
     }
     if (nearFullMoon && !inNight) {
-        return { open: false, msg: "Brama istnieje, lecz milczy. Powróć gdy księżyc wzniesie się wyżej — między dziewiątą a piątą." };
+        return { open: false, msg: "Brama istnieje, lecz milczy. Kamień jest zimny w dotyku." };
     }
     if (!nearFullMoon) {
         const d = daysToFull > 0 ? daysToFull : Math.round(29.53 - phase + 14.76);
@@ -2728,7 +2728,7 @@ function getMoonGateQuestContent(moonOpen) {
     if (localStorage.getItem('gateHintMoonPhases') === 'true') {
         extra += `<div style="margin:8px 0; padding:10px; background:rgba(30,10,60,0.5); border-left:3px solid #9966cc; border-radius:6px; color:#cc99ff; font-size:13px; font-style:italic; line-height:1.7;">
             📖 Po oddaniu szkicu bibliotekarzowi, mówił on o <b>fazach księżyca</b> i o <b>magii za bramą</b>...<br>
-            Może brama otwiera się tylko wtedy, gdy księżyc jest w pełni?
+            Może cykl księżyca ma w tym swój udział... Obserwuj niebo o różnych porach.
         </div>`;
     }
 
@@ -8798,21 +8798,28 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
     const vitals = loadDragonVitals(dragonNum);
     const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
 
+    const dragonLevel = dragonNum === 1 ? (Number(localStorage.getItem('dragonFeedings'))||0)*5 || 1
+        : dragonNum === 2 ? (Number(localStorage.getItem('secondDragonFeedings'))||0)*5 || 1
+        : (Number(localStorage.getItem('thirdDragonFeedings'))||0)*5 || 1;
+
     const durationBtns = REGION_EXPEDITION_DURATIONS.map(d => {
         const tooTired = vitals.fatigue + d.fatigue > 100;
+        const tooYoung = dragonLevel < 25 && d.hours >= 8;
+        const blocked = tooTired || tooYoung;
         const lootHints = REGION_EXPEDITIONS[regionKey].loot
             .filter(l => l.minHours <= d.hours)
             .slice(0, 4)
             .map(l => l.key).join(', ');
+        const blockReason = tooYoung ? ` — <span style="color:#aa7722;">wymaga poz. 25</span>` : tooTired ? ` — <span style="color:#cc4422;">za zmęczony!</span>` : '';
         return `
-            <div class="dialog-button" style="${tooTired ? 'opacity:0.35;pointer-events:none;border-color:#444;' : 'border-color:#6677bb;'}"
+            <div class="dialog-button" style="${blocked ? 'opacity:0.35;pointer-events:none;border-color:#444;' : 'border-color:#6677bb;'}"
                 onclick="startRegionExpedition('${regionKey}', ${dragonNum}, ${d.hours})">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-weight:bold;color:#e0d8ff;">⏱ ${d.label}</span>
                     <span style="color:#cc8844;font-size:12px;">+${d.fatigue} zmęczenia</span>
                 </div>
                 <div style="font-size:11px;color:#7080a0;margin-top:3px;">${d.desc}</div>
-                <div style="font-size:11px;color:#556070;margin-top:2px;">Możliwe: ${lootHints}${tooTired ? ' — <span style="color:#cc4422;">za zmęczony!</span>' : ''}</div>
+                <div style="font-size:11px;color:#556070;margin-top:2px;">Możliwe: ${lootHints}${blockReason}</div>
             </div>`;
     }).join('');
 
