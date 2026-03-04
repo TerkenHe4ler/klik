@@ -263,13 +263,7 @@ function completeDragonMission(dragonNum) {
     updateHomeTab();
 }
 
-function restDragon(dragonNum) {
-    const vitals = loadDragonVitals(dragonNum);
-    const before = vitals.fatigue;
-    vitals.fatigue = Math.max(0, vitals.fatigue - 20);
-    saveDragonVitals(dragonNum, vitals);
-    return `Smok odpoczął. Zmęczenie: ${before} → ${vitals.fatigue}.`;
-}
+// restDragon — see full implementation below
 
 /* =========================================
    SYSTEM ARENY
@@ -884,7 +878,8 @@ function renderMissionPanel(num, isOnMission, mission) {
         `;
     }
     const moonOpen = getMoonGateStatus().open;
-    const missions = DRAGON_MISSIONS.filter(m => m.id !== 'wyprawa_ksiezycowa' || moonOpen);
+    const moonEntered = localStorage.getItem('moonGateEntered') === 'true';
+    const missions = DRAGON_MISSIONS.filter(m => m.id !== 'wyprawa_ksiezycowa' || (moonOpen && moonEntered));
     const selectId = `mission-select-${num}`;
     const infoId   = `mission-info-${num}`;
     const optionsHtml = missions.map((m, i) =>
@@ -8940,6 +8935,11 @@ function startRegionExpedition(regionKey, dragonNum, hours) {
     }
     if (loadDragonMission(dragonNum)) {
         alert('Ten smok jest już na misji.');
+        return;
+    }
+    const drgLvl = (Number(localStorage.getItem(dragonNum===1?'dragonFeedings':dragonNum===2?'secondDragonFeedings':'thirdDragonFeedings'))||0)*5 || 1;
+    if (drgLvl < 25 && hours >= 8) {
+        alert('Twój smok jest za młody na tak długą wyprawę! Wymagany poziom: 25.');
         return;
     }
 
