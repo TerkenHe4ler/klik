@@ -670,7 +670,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
                         filter:drop-shadow(0 0 16px ${hatchGlowCol}88);">
             <div style="font-size:11px;color:#556688;">
                 Pisklak — rośnie do poziomu ${HATCHLING_MAX_LEVEL} 
-                &nbsp;|&nbsp; Poz. ${level}/${HATCHLING_MAX_LEVEL}
+                &nbsp;|&nbsp; Poz. ${Math.max(1, level)}/${HATCHLING_MAX_LEVEL}
                 <div style="height:4px;background:#1a2035;border-radius:3px;margin:4px auto;width:140px;">
                     <div style="height:4px;background:${hatchGlowCol};border-radius:3px;width:${Math.min(100,level/HATCHLING_MAX_LEVEL*100)}%;transition:width 0.4s;"></div>
                 </div>
@@ -700,7 +700,7 @@ function renderDragonHomeSlot(num, name, element, heats, level, feedings) {
             ${hatchlingHtml}
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
                 <div>
-                    <b>${name}</b> — ${element ? element.toUpperCase() : '?'} | Poziom ${level}
+                    <b>${name}</b> — ${element ? element.toUpperCase() : '?'} | Poziom ${Math.max(1, level)}
                 </div>
             </div>
 
@@ -1124,7 +1124,7 @@ function updateDragonsTab() {
                     <div>
                         <span style="font-weight:bold; color:#e0e8ff; font-size:15px;">${d.name}</span>
                         <span style="color:${elColor}; font-size:12px; margin-left:8px;">${d.element ? d.element.toUpperCase() : ''}</span>
-                        <span style="color:#7080aa; font-size:12px; margin-left:8px;">Poz. ${d.level}</span>
+                        <span style="color:#7080aa; font-size:12px; margin-left:8px;">Poz. ${Math.max(1, d.level)}</span>
                     </div>
                 </div>
                 <div style="font-size:12px; color:#aab; margin-bottom:6px;">
@@ -8127,6 +8127,7 @@ function heatEgg1() {
     lastHeat = Date.now();
     localStorage.setItem('eggHeats', String(eggHeats));
     localStorage.setItem('lastHeat', String(lastHeat));
+
     updateHomeTab();
     updateDragonsTab();
 }
@@ -8160,6 +8161,7 @@ function heatEgg2() {
     secondLastHeat = Date.now();
     localStorage.setItem('secondEggHeats', String(secondEggHeats));
     localStorage.setItem('secondLastHeat', String(secondLastHeat));
+
     updateHomeTab();
     updateDragonsTab();
 }
@@ -8171,6 +8173,7 @@ function heatEgg3() {
     thirdLastHeat = Date.now();
     localStorage.setItem('thirdEggHeats', String(thirdEggHeats));
     localStorage.setItem('thirdLastHeat', String(thirdLastHeat));
+
     updateHomeTab();
     updateDragonsTab();
 }
