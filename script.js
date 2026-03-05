@@ -1154,41 +1154,34 @@ function updateDragonsTab() {
 
         html += `
             <div class="dragon-slot">
-                <div style="display:flex;gap:14px;align-items:flex-start;">
+                <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:nowrap;">
+
+                    <!-- KOLUMNA 1: zdjęcie + wariant + poziom -->
                     ${leftCol}
-                    <div style="flex:1;min-width:0;">
-                        <!-- Nagłówek -->
-                        <div style="margin-bottom:8px;display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
+
+                    <!-- KOLUMNA 2: imię / statystyki / wyprawa -->
+                    <div style="flex:1;min-width:0;max-width:340px;">
+                        <!-- Imię + żywioł + poziom -->
+                        <div style="margin-bottom:6px;display:flex;align-items:center;flex-wrap:wrap;gap:5px;">
                             <span style="font-weight:bold;color:#e0e8ff;font-size:16px;">${d.name}</span>
                             <span style="color:${elColor};font-size:13px;font-weight:bold;">${d.element ? d.element.toUpperCase() : ''}</span>
                             <span style="color:#7080aa;font-size:12px;">Poz. ${Math.max(1,d.level)}</span>
-                            <div class="dialog-button" style="padding:2px 8px;font-size:11px;margin:0;border-color:#445566;color:#7799bb;"
+                            <div class="dialog-button" style="padding:2px 7px;font-size:11px;margin:0;border-color:#445566;color:#7799bb;"
                                  onclick="renameDragonInTab(${d.num})">✏️ Zmień imię</div>
                         </div>
                         <!-- Vitale -->
-                        <div style="font-size:12px;color:#aab;margin-bottom:5px;">
+                        <div style="font-size:12px;color:#aab;margin-bottom:4px;">
                             ❤️ ${vitals.hp}/${maxHP} &nbsp;|&nbsp; 💧 ${vitals.mana}/${maxMana} &nbsp;|&nbsp; 😴 ${vitals.fatigue}/100
                         </div>
                         <!-- Odpoczynek -->
                         ${vitals.fatigue > 0 ? `
-                        <div class="dialog-button" style="padding:5px 12px;font-size:12px;margin:0 0 8px 0;border-color:#336655;color:#88ddaa;"
-                             onclick="restDragon(${d.num})">😴 Odpoczynek — zeruje zmęczenie</div>` : `
-                        <div style="font-size:11px;color:#336655;margin-bottom:8px;font-style:italic;">✅ Smok jest wypoczęty</div>`}
+                        <div class="dialog-button" style="padding:4px 10px;font-size:12px;margin:0 0 6px 0;border-color:#336655;color:#88ddaa;"
+                             onclick="restDragon(${d.num})">😴 Odpoczynek</div>` : `
+                        <div style="font-size:11px;color:#336655;margin-bottom:6px;font-style:italic;">✅ Wypoczęty</div>`}
                         <!-- Statystyki -->
-                        <div style="font-size:12px;color:#7080aa;margin-bottom:10px;">
+                        <div style="font-size:12px;color:#7080aa;margin-bottom:10px;line-height:1.7;">
                             ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
                         </div>
-                        <!-- Karmienie (zwinięte) -->
-                        <details style="margin-bottom:6px;">
-                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
-                                🍖 Nakarm smoka
-                            </summary>
-                            <div style="margin-top:6px;">
-                                ${renderFeedPanel(d.num)}
-                            </div>
-                        </details>
-                        <!-- Ekwipunek (zwinięty) -->
-                        ${renderDragonGearPanel(d.num, d.level)}
                         <!-- Wyprawa -->
                         <details style="margin-bottom:4px;" id="mission-details-dtab-${d.num}" open>
                             <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
@@ -1199,6 +1192,31 @@ function updateDragonsTab() {
                             </div>
                         </details>
                     </div>
+
+                    <!-- KOLUMNA 3: karmienie / ekwipunek / zaklęcia -->
+                    <div style="flex:1;min-width:0;">
+                        <!-- Karmienie -->
+                        <details style="margin-bottom:6px;">
+                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                                🍖 Nakarm smoka
+                            </summary>
+                            <div style="margin-top:6px;">
+                                ${renderFeedPanel(d.num)}
+                            </div>
+                        </details>
+                        <!-- Ekwipunek -->
+                        ${renderDragonGearPanel(d.num, d.level)}
+                        <!-- Zaklęcia -->
+                        <details style="margin-bottom:4px;">
+                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                                ✨ Zaklęcia
+                            </summary>
+                            <div style="margin-top:6px;font-size:12px;color:#556677;font-style:italic;">
+                                Brak znanych zaklęć.
+                            </div>
+                        </details>
+                    </div>
+
                 </div>
             </div>
         `;
@@ -2165,8 +2183,10 @@ function renderDragonGearPanel(dragonNum, dragonLvl) {
         const locked = slot.minLevel && dragonLvl < slot.minLevel;
         const available = gearInventory.filter(g => g.slot === slot.id);
         const selectId = `gear-select-${dragonNum}-${slot.id}`;
+        // Auto-open when equipped OR when has items to suggest (nothing equipped)
+        const slotOpen = equipped || (!equipped && !locked && available.length > 0);
 
-        html += `<details style="margin:4px 0;" ${equipped ? 'open' : ''}>
+        html += `<details style="margin:4px 0;" ${slotOpen ? 'open' : ''}>
             <summary style="cursor:pointer; list-style:none; padding:6px 10px;
                 background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;
                 display:flex; justify-content:space-between; align-items:center;
