@@ -9243,11 +9243,13 @@ function startRegionExpedition(regionKey, dragonNum, hours) {
         box.innerHTML = `
             <div style="padding:14px;background:rgba(10,20,10,0.9);border:1px solid #447744;border-radius:10px;">
                 <div style="color:#88ee88;font-size:15px;font-weight:bold;margin-bottom:6px;">✅ Smok wyruszył!</div>
-                <div style="color:#aab;font-size:13px;line-height:1.8;">
+                <div style="color:#aab;font-size:13px;line-height:1.8;margin-bottom:10px;">
                     <b style="color:#aabbff;">${name}</b> wyruszył na wyprawę do <b>${regionConf.icon} ${regionConf.label}</b>.<br>
                     Wróci za: <b style="color:#e8d870;">${dur.label}</b>.<br>
                     Sprawdź zakładkę <b>Dom</b> po powrocie.
                 </div>
+                <div class="dialog-button" style="border-color:#667799;color:#aabbdd;"
+                     onclick="openRegionExpedition('${regionKey}')">← Wróć do wyboru smoka</div>
             </div>`;
     }
     updateHomeTab();
