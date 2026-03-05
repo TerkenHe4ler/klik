@@ -1180,10 +1180,17 @@ function updateDragonsTab() {
                         <div class="dialog-button" style="padding:4px 10px;font-size:12px;margin:0 0 6px 0;border-color:#336655;color:#88ddaa;"
                              onclick="restDragon(${d.num})">😴 Odpoczynek</div>` : `
                         <div style="font-size:11px;color:#336655;margin-bottom:6px;font-style:italic;">✅ Wypoczęty</div>`}
-                        <!-- Statystyki -->
-                        <div style="font-size:12px;color:#7080aa;margin-bottom:10px;line-height:1.7;">
-                            ${Object.entries(stats).map(([k,v]) => `${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k]?` <span style="color:#88ff88;">+${equipBonus[k]}</span>`:''}`).join(' &nbsp;·&nbsp; ')}
-                        </div>
+                        <!-- Statystyki — 2 rzędy po 3 -->
+                        ${(() => {
+                            const statEntries = Object.entries(stats);
+                            const row1 = statEntries.slice(0,3);
+                            const row2 = statEntries.slice(3,6);
+                            const renderStat = ([k,v]) => `<span style="white-space:nowrap;">${STAT_LABELS[k]}: <b style="color:#99aacc;">${v}</b>${equipBonus[k] ? ` <span style="color:#88ff88;">+${equipBonus[k]}</span>` : ''}</span>`;
+                            return `<div style="font-size:12px;color:#7080aa;margin-bottom:10px;">
+                                <div style="display:flex;gap:10px;margin-bottom:3px;">${row1.map(renderStat).join(' <span style="color:#334;">·</span> ')}</div>
+                                <div style="display:flex;gap:10px;">${row2.map(renderStat).join(' <span style="color:#334;">·</span> ')}</div>
+                            </div>`;
+                        })()}
                         <!-- Wyprawa -->
                         <details style="margin-bottom:4px;" id="mission-details-dtab-${d.num}" open>
                             <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
@@ -1195,7 +1202,7 @@ function updateDragonsTab() {
                         </details>
                     </div>
 
-                    <!-- KOLUMNA 3: karmienie / ekwipunek / zaklęcia -->
+                    <!-- KOLUMNA 3: karmienie / zaklęcia -->
                     <div style="flex:1;min-width:0;">
                         <!-- Karmienie -->
                         <details style="margin-bottom:6px;" ${localStorage.getItem('feedPanelOpen_'+d.num)==='true' ? 'open' : ''}
@@ -1208,8 +1215,6 @@ function updateDragonsTab() {
                                 ${renderFeedPanel(d.num)}
                             </div>
                         </details>
-                        <!-- Ekwipunek -->
-                        ${renderDragonGearPanel(d.num, d.level)}
                         <!-- Zaklęcia -->
                         <details style="margin-bottom:4px;">
                             <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
@@ -1219,6 +1224,11 @@ function updateDragonsTab() {
                                 Brak znanych zaklęć.
                             </div>
                         </details>
+                    </div>
+
+                    <!-- KOLUMNA 4: ekwipunek -->
+                    <div style="flex:1;min-width:0;">
+                        ${renderDragonGearPanel(d.num, d.level)}
                     </div>
 
                 </div>
