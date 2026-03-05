@@ -33,6 +33,7 @@ function spendCurrency(copperCost) {
     localStorage.setItem('silver', silver);
     localStorage.setItem('gold', gold);
     updateCurrencyDisplay();
+    initNightModeBtn();
     return true;
 }
 
@@ -839,6 +840,8 @@ function feedDragonFood(dragonNum, foodType) {
     const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
     alert(`${name} zjadł ${foodType}!\n+5 poziomów | +1 ${foodDef.label}`);
 
+    // Keep feed panel open after re-render
+    localStorage.setItem(`feedPanelOpen_${dragonNum}`, 'true');
     updateHomeTab();
     updateDragonsTab();
     updateInventoryTabFull();
@@ -892,7 +895,6 @@ function renderMissionPanel(num, isOnMission, mission) {
         : '';
     return `
         <div style="margin:10px 0;">
-            <div style="font-size:12px; color:#8090aa; margin-bottom:5px;">🗺️ Wyprawa</div>
             <div style="display:flex; gap:8px; align-items:stretch;">
                 <select id="${selectId}"
                     onchange="updateMissionInfo(${num})"
@@ -1196,7 +1198,9 @@ function updateDragonsTab() {
                     <!-- KOLUMNA 3: karmienie / ekwipunek / zaklęcia -->
                     <div style="flex:1;min-width:0;">
                         <!-- Karmienie -->
-                        <details style="margin-bottom:6px;">
+                        <details style="margin-bottom:6px;" ${localStorage.getItem('feedPanelOpen_'+d.num)==='true' ? 'open' : ''}
+                                 id="feed-details-dtab-${d.num}"
+                                 ontoggle="if(!this.open) localStorage.removeItem('feedPanelOpen_${d.num}')">
                             <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
                                 🍖 Nakarm smoka
                             </summary>
@@ -2793,6 +2797,10 @@ function isMoonGateOpen() {
 }
 
 function getMoonGateStatus() {
+    // Dev toggle: force full moon + midnight
+    if (localStorage.getItem('forceNightMode') === 'true') {
+        return { open: true, msg: null };
+    }
     const phase = getMoonPhase();
     const hour = new Date().getHours();
     const inNight = (hour >= 21 || hour < 5);
@@ -9604,6 +9612,33 @@ function openTab(name) {
 /* -----------------------------------------
    RESET GRY
 ----------------------------------------- */
+function initNightModeBtn() {
+    const active = localStorage.getItem('forceNightMode') === 'true';
+    const btn = document.getElementById('night-mode-btn');
+    if (btn) {
+        btn.textContent = active ? '🌕 Noc (włączona)' : '☀️ Noc (wyłączona)';
+        btn.style.borderColor = active ? '#9966cc' : '#445566';
+        btn.style.color = active ? '#cc99ff' : '#778899';
+    }
+}
+
+function toggleNightMode() {
+    const active = localStorage.getItem('forceNightMode') === 'true';
+    localStorage.setItem('forceNightMode', active ? 'false' : 'true');
+    const btn = document.getElementById('night-mode-btn');
+    if (btn) {
+        const on = !active;
+        btn.textContent = on ? '🌕 Noc (włączona)' : '☀️ Noc (wyłączona)';
+        btn.style.borderColor = on ? '#9966cc' : '#445566';
+        btn.style.color = on ? '#cc99ff' : '#778899';
+    }
+    // Refresh world tab if open
+    if (document.getElementById('world-content-area')) {
+        const area = document.getElementById('world-content-area');
+        if (area) area.innerHTML = '';
+    }
+}
+
 function resetGame() {
     localStorage.clear();
     location.reload();
