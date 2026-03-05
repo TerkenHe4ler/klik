@@ -1193,7 +1193,7 @@ function updateDragonsTab() {
                         })()}
                         <!-- Wyprawa -->
                         <details style="margin-bottom:4px;" id="mission-details-dtab-${d.num}" open>
-                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                            <summary style="cursor:pointer;color:#9ab;padding:4px 0;list-style:none;">
                                 🗺️ Wyprawa
                             </summary>
                             <div style="margin-top:6px;">
@@ -1208,7 +1208,7 @@ function updateDragonsTab() {
                         <details style="margin-bottom:6px;" ${localStorage.getItem('feedPanelOpen_'+d.num)==='true' ? 'open' : ''}
                                  id="feed-details-dtab-${d.num}"
                                  ontoggle="if(!this.open) localStorage.removeItem('feedPanelOpen_${d.num}')">
-                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                            <summary style="cursor:pointer;color:#9ab;padding:4px 0;list-style:none;">
                                 🍖 Nakarm smoka
                             </summary>
                             <div style="margin-top:6px;">
@@ -1217,7 +1217,7 @@ function updateDragonsTab() {
                         </details>
                         <!-- Zaklęcia -->
                         <details style="margin-bottom:4px;">
-                            <summary style="cursor:pointer;color:#8090aa;font-size:13px;padding:4px 0;list-style:none;">
+                            <summary style="cursor:pointer;color:#9ab;padding:4px 0;list-style:none;">
                                 ✨ Zaklęcia
                             </summary>
                             <div style="margin-top:6px;font-size:12px;color:#556677;font-style:italic;">
