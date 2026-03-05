@@ -6134,6 +6134,47 @@ Wiatr przynosi zapach przypraw i dymu z karawany gdzieś na horyzoncie. Dokąd s
                 ]
             }
         ]
+    },
+    cmentarz: {
+        label: 'Cmentarz Wspomnień',
+        icon: '🪦',
+        firstVisitDesc: `Mgła leży tu gęsto, nawet gdy na niebie świeci słońce. Stare kamienne nagrobki wyrastają z ziemi jak zęby — jedne proste, inne pochylone, niektóre już dawno niemożliwe do odczytania.\n\nPowietrze jest ciche. Nie chodzi tu wiatr, nie śpiewają ptaki. Ale czujesz się obserwowany — choć za każdym razem gdy się obracasz, jest pusto.\n\nMieszkańcy Astorveil rzadko tu wchodzą po zmroku. Mówią że cmentarz pamięta wszystkich, którzy przez niego przeszli.`,
+        desc: `Nagrobki stoją tak jak zawsze — nieruchome, cierpliwe, obojętne. Mgła otula wszystko miękko. Gdzieś skrzypi stara furtka.`,
+        locations: [
+            {
+                id: 'stara_kaplica',
+                label: 'Stara Kaplica',
+                icon: '⛪',
+                desc: `Kaplica stoi na środku cmentarza — dach ma pęknięty, witraże wybite. Przez otwory w murze wchodzi blade światło. Wewnątrz rzędy zniszczonych ławek i główny ołtarz pokryty mchem.\n\nNa ołtarzu ktoś zostawił niedawno świeży kwiat. Ktoś tu jeszcze przychodzi.`,
+                actions: [
+                    { label: 'Obejrzyj ołtarz', action: 'inspectAltar' },
+                    { label: 'Przeszukaj ławki', action: 'searchPews' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'katakumby',
+                label: 'Wejście do Katakumb',
+                icon: '🕳️',
+                desc: `Przy północnym murze cmentarza ziemia opada stromo. Między korzeniami starego dębu widać wejście — niskie, obłożone kamieniem, z napisem wydrapanym nad nadprożem.\n\nNapis jest prawie nieczytelny. Udaje ci się odcyfrować tylko trzy słowa: <em>„Tu leżą ci, których nikt nie zapamiętał."</em>\n\nZ wnętrza wieje chłodem.`,
+                actions: [
+                    { label: 'Wejdź do katakumb', action: 'enterCatacombs' },
+                    { label: 'Odczytaj inskrypcję', action: 'readInscription' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
+                id: 'ogrodnik_cmentarny',
+                label: 'Szopa Ogrodnika',
+                icon: '🌿',
+                desc: `Na uboczu, przy wschodniej ścianie, stoi mała szopa z desek. Drzwi są uchylone. W środku unosi się zapach wilgotnej ziemi i starych ziół.\n\nStary człowiek siedzi przy stole i czyści łopatę. Kiedy podnosi głowę, widzisz że jedno jego oko jest białe, zamglone. Drugie patrzy na ciebie przenikliwie.\n\n— Rzadko tu ktoś zachodzi — mówi spokojnie. — Żywi boją się tego miejsca. Szkoda. Tu jest spokojniej niż gdziekolwiek.`,
+                actions: [
+                    { label: 'Porozmawiaj z Ogrodnikiem', action: 'talkGardener' },
+                    { label: 'Zapytaj o historię cmentarza', action: 'askCemeteryHistory' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            }
+        ]
     }
 };
 
@@ -6179,7 +6220,7 @@ function openRegionOriginal(regionKey) {
             <div class="dialog-title">${region.icon} ${region.label}</div>
             <div class="dialog-text" style="white-space:pre-line;">${desc}</div>
             <div id="location-buttons">
-                ${(REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey]) ? `
+                ${(REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey]) ? `
                     <div class="dialog-button" style="border-color:#667799;color:#aabbdd;" onclick="openRegionExpedition('${regionKey}')">🗺️ Wyślij smoka na wyprawę</div>
                     <div style="margin: 10px 0; border-top: 1px solid rgba(100,110,140,0.25);"></div>
                 ` : ''}
@@ -7534,6 +7575,70 @@ const locationResponses = {
             return "Przechodzisz przez bramę. Przez sekundę wszystko jest srebrzyste i ciche — absolutna cisza, jak przed snem. Potem z powrotem jesteś przy bramie, od drugiej strony. Ale coś jest inne. Nie wiesz co. Po powrocie do Astorveil, jeden ze smoków zachowuje się spokojniej.";
         }
         return "Przechodzisz przez bramę ponownie. Cisza. Srebro. I z powrotem. Tym razem bez zaskoczenia — ale nie bez poczucia, że brama coś wie o tobie.";
+    },
+
+    // CMENTARZ WSPOMNIEŃ — STARA KAPLICA
+    inspectAltar: () => {
+        const roll = Math.random();
+        if (roll > 0.7) {
+            inventory['Stary kamień'] = (inventory['Stary kamień'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTabFull();
+            return 'Ołtarz pokryty jest mchem i inskrypcjami w zapomnianym języku. Pod warstwą popiołu znajdujesz kamień — ciemny, gładki, wyraźnie starszy niż kaplica. Bierzesz go. +1 Stary kamień.';
+        }
+        return 'Ołtarz jest zimny w dotyku. Inskrypcje nie mówią ci nic. Świeży kwiat — biały, bez zapachu — leży w centrum. Ktoś tu regularnie przychodzi. Ale kto i po co, nie wiesz.';
+    },
+    searchPews: () => {
+        const outcomes = [
+            'Między spróchniałymi deskami ławek znajdujesz pożółkłą kartkę. Zanim zdążysz ją przeczytać, rozpada się w pył.',
+            'Pod ostatnią ławką leży mała figurka z kości — smok z rozpostartymi skrzydłami. Jest bardzo stara. Zostawiasz ją tam, gdzie była.',
+            'Ławki są puste. Ale na jednej z nich ktoś wydrapał w drewnie imię: <em>Elara</em>. Pod spodem: <em>„Czekaj na mnie."</em>',
+            'Nic. Tylko kurz, mech i cisza, która trwa tu od dawna.'
+        ];
+        return outcomes[Math.floor(Math.random() * outcomes.length)];
+    },
+
+    // CMENTARZ WSPOMNIEŃ — KATAKUMBY
+    enterCatacombs: () => {
+        const roll = Math.random();
+        if (roll > 0.65) {
+            inventory['Kryształ krwi'] = (inventory['Kryształ krwi'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTabFull();
+            return 'Schodzisz wąskim korytarzem. Powietrze jest martwe i zimne. Ściany wyłożone są płytami z imionami. Jedna z płyt jest luźna — za nią nisza, a w niej coś błyszczy. Kryształ o głębokim czerwonym kolorze. +1 Kryształ krwi.';
+        }
+        if (roll > 0.3) {
+            return 'Katakumby są długie i ciche. Chodniki rozgałęziają się kilkukrotnie. Nie gubisz się tylko dlatego, że przez cały czas masz poczucie, że coś cię wyprowadza. Wychodzisz bez niczego — ale spokojniejszy niż wszedłeś.';
+        }
+        return 'Schodzisz kilka kroków. Pochodnia wybucha i gaśnie. Ciemność jest absolutna. Wycofujesz się szybko — serce bije mocno. Może następnym razem lepiej się przygotujesz.';
+    },
+    readInscription: () => {
+        const inscriptions = [
+            '„Tu leżą ci, których nikt nie zapamiętał." Pod spodem, mniejszymi literami: „Ale Cmentarz pamięta wszystkich."',
+            'Inskrypcja jest w trzech językach. Dwa są ci znane — trzeciego nie. Wspólne słowa w dwóch znanych językach to: „spokój", „granica" i „smok".',
+            'Litery są głęboko wyryte — ktoś chciał, żeby przetrwały długo. Udało się. Ale znaczenie... znaczenie zaginęło razem z językiem.'
+        ];
+        return inscriptions[Math.floor(Math.random() * inscriptions.length)];
+    },
+
+    // CMENTARZ WSPOMNIEŃ — SZOPA OGRODNIKA
+    talkGardener: () => {
+        const lines = [
+            '— Każdy nagrobek tu to była historia — mówi ogrodnik, nie podnosząc wzroku od łopaty. — Większość ludzi boi się tego miejsca. Wolę takich co się nie boją. Oni przynajmniej słuchają.',
+            '— Przychodzę tu od czterdziestu lat — mówi spokojnie. — Widziałem rzeczy, których nie powiem nikomu. Nie dlatego że nie chcę. Dlatego że nikt by nie uwierzył.',
+            '— Wie pan co jest najdziwniejsze w tym miejscu? — pyta ogrodnik. — Nagrobki. Co rok jest ich trochę więcej. A ja nikogo nie chowam.'
+        ];
+        return lines[Math.floor(Math.random() * lines.length)];
+    },
+    askCemeteryHistory: () => {
+        const roll = Math.random();
+        if (roll > 0.5) {
+            inventory['Stary kamień'] = (inventory['Stary kamień'] || 0) + 1;
+            localStorage.setItem('inventory', JSON.stringify(inventory));
+            updateInventoryTabFull();
+            return '— Historia? — ogrodnik odkłada łopatę i siada. — Cmentarz jest starszy niż Astorveil. Starszy niż pierwsze mury, pierwsze domy. Mówią że smoki przychodziły tu umierać. Nie wiem czy to prawda. Ale ziemia tu jest czarna jak nigdzie indziej. Sięga po stary kamień leżący na półce. — Weź. Znalazłem go przy kopaniu. Nie wiem skąd pochodzi. +1 Stary kamień.';
+        }
+        return '— Cmentarz ma tyle historii ile ma nagrobków — mówi ogrodnik. — Każdy inną. Ale wszystkie kończą się tak samo. — Milknie. — Poza jedną. Jest tu grób bez imienia, bez dat. Tylko jeden symbol. Podobno ktoś tu wciąż przychodzi. Co noc. Ale rano zawsze jest świeży kwiat na ołtarzu w kaplicy i nic więcej.';
     }
 };
 
@@ -8892,6 +8997,29 @@ const REGION_EXPEDITIONS_MOON = {
     },
 };
 
+
+const REGION_EXPEDITIONS_CMENTARZ = {
+    cmentarz: {
+        label: 'Cmentarz Wspomnień',
+        icon: '🪦',
+        food: { key: 'Zioła leśne', label: 'Zioła leśne', desc: 'Smok wrócił z cmentarza z rzadkimi ziołami rosnącymi na starych grobach.' },
+        loot: [
+            { key: 'Stary kamień',              weight: 40, minHours: 1 },
+            { key: 'Zioła leśne',               weight: 35, minHours: 1 },
+            { key: 'Niebieski kwiat',            weight: 25, minHours: 1 },
+            { key: 'Kryształ krwi',              weight: 18, minHours: 3 },
+            { key: 'Nocny płaszcz',              weight: 12, minHours: 3 },
+            { key: 'Stary miecz',                weight: 10, minHours: 3 },
+            { key: 'Amulet smoczego pazura',     weight: 8,  minHours: 8 },
+            { key: 'Fragment runicznego kamienia I',   weight: 5, minHours: 8 },
+            { key: 'Fragment runicznego kamienia II',  weight: 5, minHours: 8 },
+            { key: 'Fragment runicznego kamienia III', weight: 3, minHours: 24 },
+            { key: 'Kryształ górski',            weight: 6,  minHours: 24 },
+        ],
+        extraFoodByDuration: { 3: 1, 8: 2, 24: 3 },
+    },
+};
+
 const REGION_EXPEDITION_DURATIONS = [
     { hours: 1,  label: '1 godzina',   fatigue: 15, lootRolls: 1, desc: 'Krótki zwiad. Smok zbiera co znajdzie w pobliżu.' },
     { hours: 3,  label: '3 godziny',   fatigue: 25, lootRolls: 2, desc: 'Solidna wyprawa. Większy teren, więcej możliwości.' },
@@ -8908,7 +9036,7 @@ function getAvailableDragons() {
 }
 
 function openRegionExpedition(regionKey) {
-    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey];
     if (!regionConf) return;
     // At region level we write to world-content-area; inside a location to location-action-area
     const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
@@ -8958,7 +9086,7 @@ function openRegionExpedition(regionKey) {
 }
 
 function openRegionExpeditionDuration(regionKey, dragonNum) {
-    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey];
     const box = document.getElementById('location-action-area') || document.getElementById('world-content-area');
     if (!box || !regionConf) return;
 
@@ -8973,7 +9101,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
         const tooTired = vitals.fatigue + d.fatigue > 100;
         const tooYoung = dragonLevel < 25 && d.hours >= 8;
         const blocked = tooTired || tooYoung;
-        const lootHints = (REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey]).loot
+        const lootHints = (REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey]).loot
             .filter(l => l.minHours <= d.hours)
             .slice(0, 4)
             .map(l => l.key).join(', ');
@@ -9000,7 +9128,7 @@ function openRegionExpeditionDuration(regionKey, dragonNum) {
 }
 
 function startRegionExpedition(regionKey, dragonNum, hours) {
-    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey];
     if (!regionConf) return;
 
     const vitals = loadDragonVitals(dragonNum);
@@ -9052,7 +9180,7 @@ function startRegionExpedition(regionKey, dragonNum, hours) {
 }
 
 function rollRegionExpeditionLoot(regionKey, hours, rolls) {
-    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey];
+    const regionConf = REGION_EXPEDITIONS[regionKey] || REGION_EXPEDITIONS_MOON[regionKey] || REGION_EXPEDITIONS_CMENTARZ[regionKey];
     if (!regionConf) return [];
     const eligible = regionConf.loot.filter(l => l.minHours <= hours);
     const totalWeight = eligible.reduce((s, l) => s + l.weight, 0);
@@ -9073,7 +9201,7 @@ function completeRegionExpedition(dragonNum) {
     const mission = loadDragonMission(dragonNum);
     if (!mission || !mission.isRegionExpedition) return;
 
-    const regionConf = REGION_EXPEDITIONS[mission.regionKey] || REGION_EXPEDITIONS_MOON[mission.regionKey];
+    const regionConf = REGION_EXPEDITIONS[mission.regionKey] || REGION_EXPEDITIONS_MOON[mission.regionKey] || REGION_EXPEDITIONS_CMENTARZ[mission.regionKey];
     const dur = REGION_EXPEDITION_DURATIONS.find(d => d.hours === mission.hours);
     const name = dragonNum === 1 ? dragonName : dragonNum === 2 ? secondDragonName : thirdDragonName;
 
