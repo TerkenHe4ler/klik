@@ -2154,55 +2154,91 @@ function completeDragonMission(dragonNum) {
 function renderDragonGearPanel(dragonNum, dragonLvl) {
     const equipment = loadDragonEquipment(dragonNum);
     const gearInventory = loadGearInventory();
-    
+
     const gearOpen = getDetailsState('gear', dragonNum) !== 'closed';
-    let html = `<details style="margin:8px 0;" ${gearOpen ? 'open' : ''} ontoggle="saveDetailsState('gear', ${dragonNum}, this.open)"><summary style="cursor:pointer; color:#9ab; padding:6px 0;">🛡️ Ekwipunek smoka</summary><div style="margin-top:8px;">`;
-    
+    let html = `<details style="margin:8px 0;" ${gearOpen ? 'open' : ''} ontoggle="saveDetailsState('gear', ${dragonNum}, this.open)">
+        <summary style="cursor:pointer; color:#9ab; padding:4px 0; list-style:none;">⚔️ Ekwipunek smoka</summary>
+        <div style="margin-top:6px;">`;
+
     DRAGON_EQUIPMENT_SLOTS.forEach(slot => {
         const equipped = equipment[slot.id];
         const locked = slot.minLevel && dragonLvl < slot.minLevel;
-        const availableGear = gearInventory.filter(g => g.slot === slot.id);
+        const available = gearInventory.filter(g => g.slot === slot.id);
+        const selectId = `gear-select-${dragonNum}-${slot.id}`;
 
-        html += `<div style="margin:6px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;">
-            <b>${slot.icon} ${slot.label}</b>${locked ? ` <span style="color:#996; font-size:11px;">(wymaga poz. ${slot.minLevel})</span>` : ''}`;
-        
+        html += `<details style="margin:4px 0;" ${equipped ? 'open' : ''}>
+            <summary style="cursor:pointer; list-style:none; padding:6px 10px;
+                background:rgba(10,20,40,0.5); border-radius:6px; font-size:13px;
+                display:flex; justify-content:space-between; align-items:center;
+                border-left:3px solid ${equipped ? '#44cc88' : locked ? '#554422' : '#334466'};">
+                <span>${slot.icon} ${slot.label}${locked ? ` <span style="color:#886644;font-size:11px;">(poz. ${slot.minLevel})</span>` : ''}</span>
+                <span style="font-size:12px; color:${equipped ? '#66ff99' : '#556677'};">
+                    ${equipped ? equipped.name : '— puste —'}
+                </span>
+            </summary>
+            <div style="padding:8px 10px; background:rgba(8,16,32,0.6); border-radius:0 0 6px 6px; border-left:3px solid ${equipped ? '#44cc88' : '#334466'};">`;
+
         if (equipped) {
-            const statStr = Object.entries(equipped.stats || {}).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(', ');
-            html += `<div style="color:#66cc88; margin:3px 0;">${equipped.name} ${statStr ? `(${statStr})` : ''} ${equipped.speedBonus ? `+${Math.round(equipped.speedBonus*100)}% szybkości` : ''}</div>`;
-            html += `<div class="dialog-button" style="margin-top:3px; font-size:12px;" onclick="handleUnequip(${dragonNum}, '${slot.id}')">Zdejmij</div>`;
-        } else if (!locked) {
-            html += `<div style="color:#6070a0; margin:3px 0;">— puste —</div>`;
+            const statStr = Object.entries(equipped.stats || {}).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(' · ');
+            html += `<div style="color:#66cc88; font-size:12px; margin-bottom:6px;">
+                <b>${equipped.name}</b>${statStr ? ` — ${statStr}` : ''}${equipped.speedBonus ? ` · +${Math.round(equipped.speedBonus*100)}% szybkości` : ''}
+                ${equipped.rarity === 'rare' ? ' ✨' : equipped.rarity === 'epic' ? ' 💎' : ''}
+            </div>
+            <div class="dialog-button" style="padding:4px 12px; font-size:12px; margin:0; border-color:#cc4444; color:#ff8888;"
+                 onclick="handleUnequip(${dragonNum}, '${slot.id}')">Zdejmij</div>`;
         }
 
-        if (!locked && availableGear.length > 0) {
-            html += `<div style="margin-top:4px;">`;
-            availableGear.forEach(g => {
-                const statStr = Object.entries(g.stats || {}).map(([k,v]) => `+${v} ${STAT_LABELS[k]}`).join(', ');
-                html += `<div style="margin:3px 0; padding:4px 8px; background:rgba(20,35,55,0.6); border-radius:4px; font-size:12px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                    <span>${g.name} ${statStr ? `(${statStr})` : ''}${g.rarity === 'rare' ? ' ✨' : g.rarity === 'epic' ? ' 💎' : ''}</span>
-                    <div class="dialog-button" style="margin:0; padding:4px 10px; font-size:11px; white-space:nowrap;" onclick="handleEquip(${dragonNum}, ${g.instanceId})">Załóż</div>
-                </div>`;
-            });
-            html += `</div>`;
+        if (!locked && available.length > 0) {
+            html += `<div style="margin-top:${equipped ? '8px' : '0'};">
+                <div style="font-size:11px; color:#556677; margin-bottom:4px;">Dostępne przedmioty:</div>
+                <div style="display:flex; gap:6px; align-items:stretch;">
+                    <select id="${selectId}"
+                        style="flex:1; background:#0d1525; color:#e0e8ff; border:1px solid #4a5a8a;
+                               border-radius:6px; padding:5px 8px; font-size:12px; cursor:pointer; outline:none;">
+                        ${available.map(g => {
+                            const ss = Object.entries(g.stats||{}).map(([k,v])=>`+${v} ${STAT_LABELS[k]}`).join(', ');
+                            const rar = g.rarity==='rare' ? ' ✨' : g.rarity==='epic' ? ' 💎' : '';
+                            return `<option value="${g.instanceId}">${g.name}${ss ? ' ('+ss+')' : ''}${rar}</option>`;
+                        }).join('')}
+                    </select>
+                    <div class="dialog-button" style="margin:0; padding:5px 12px; font-size:12px; white-space:nowrap;"
+                         onclick="handleEquipFromSelect(${dragonNum}, '${selectId}')">Załóż</div>
+                </div>
+            </div>`;
+        } else if (!locked && !equipped) {
+            html += `<div style="font-size:12px; color:#445566; font-style:italic;">Brak przedmiotów do założenia.</div>`;
+        } else if (locked) {
+            html += `<div style="font-size:12px; color:#665533; font-style:italic;">Odblokuj na poziomie ${slot.minLevel}.</div>`;
         }
 
-        html += `</div>`;
+        html += `</div></details>`;
     });
 
     html += `</div></details>`;
     return html;
 }
 
+function handleEquipFromSelect(dragonNum, selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const instanceId = Number(sel.value);
+    if (!instanceId) return;
+    saveDetailsState('gear', dragonNum, true);
+    const success = equipGear(dragonNum, instanceId);
+    if (success) { updateHomeTab(); updateDragonsTab(); }
+}
+
 function handleEquip(dragonNum, instanceId) {
     saveDetailsState('gear', dragonNum, true);
     const success = equipGear(dragonNum, instanceId);
-    if (success) updateHomeTab();
+    if (success) { updateHomeTab(); updateDragonsTab(); }
 }
 
 function handleUnequip(dragonNum, slot) {
     saveDetailsState('gear', dragonNum, true);
     unequipGear(dragonNum, slot);
     updateHomeTab();
+    updateDragonsTab();
 }
 
 /* =========================================
