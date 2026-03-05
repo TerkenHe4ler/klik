@@ -9414,7 +9414,10 @@ function getQuestLog() {
     // ── 4. RUNY KSIĘŻYCOWEJ BRAMY ────────────────────────────────
     const runeStage = localStorage.getItem('runeQuestProgress') || 'none';
     if (runeStage !== 'none') {
-        const isDone = runeStage === 'translated' || runeStage === 'done';
+        const moonEntered = localStorage.getItem('moonGateEntered') === 'true';
+        // Quest is complete when: explicitly done/translated, OR research finished AND player entered the gate
+        const isDone = runeStage === 'translated' || runeStage === 'done'
+            || ((runeStage === 'researchDone' || runeStage === 'researchAcknowledged') && moonEntered);
         quests.push({
             id: 'rune_quest',
             title: 'Runy Księżycowej Bramy',
@@ -9520,7 +9523,7 @@ function stageLabelRune(stage) {
         readFirst:    'Etap 2 — Dostarcz szkic bibliotekarzowi',
         readBooks:    'Etap 3 — Bibliotekarz bada szkic',
         delivered:    'Etap 4 — Dostarczono kartę z runami',
-        researchDone: 'Etap 5 — Badania zakończone. Przejdź przez Księżycową Bramę',
+        researchDone: localStorage.getItem('moonGateEntered')==='true' ? 'Zakończono — przeszedłeś przez Bramę' : 'Etap 5 — Badania zakończone. Przejdź przez Księżycową Bramę',
         fragment_hunt:'Etap 6 — Szukasz fragmentów kamienia',
         translated:   'Zakończono — runy przetłumaczone',
         done:         'Zakończono',
