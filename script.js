@@ -1760,59 +1760,92 @@ function libAcceptIngredients(choice) {
     }
 }
 
+// ═══════════════════════════════════════════════════════
+// QUEST BIBLIOTEKARZA — SKŁADNIKI Z KSIĘŻYCOWEJ BRAMY
+// ═══════════════════════════════════════════════════════
+const LIB_INGREDIENT_LIST = [
+    { key: 'Księżycowy Kamień',              need: 3, desc: 'Kamień nasycony energią księżycowej pełni.' },
+    { key: 'Srebrny Pył Zza Bramy',          need: 2, desc: 'Świecący pył zebrany po drugiej stronie bramy.' },
+    { key: 'Strzęp Zasłony Między Światami', need: 2, desc: 'Materiał istniejący tylko w okolicach bramy.' },
+    { key: 'Eter Księżycowy',                need: 1, desc: 'Skupiona magia miejsca — niezwykle rzadka.' },
+];
+
+function checkLibIngredientsDone() {
+    return LIB_INGREDIENT_LIST.every(i => (inventory[i.key] || 0) >= i.need);
+}
+
 function renderLibrarianIngredientShop(box, intro) {
-    // Items the librarian buys from the Moon Gate
-    const GATE_ITEMS_BUYLIST = [
-        { key: 'Księżycowy Kamień',                 price: 3,  unit: 'silver', desc: 'Kamień nasycony energią księżycowej pełni.' },
-        { key: 'Srebrny Pył Zza Bramy',             price: 5,  unit: 'silver', desc: 'Świecący pył zebrany po drugiej stronie.' },
-        { key: 'Strzęp Zasłony Między Światami',    price: 8,  unit: 'silver', desc: 'Materiał istniejący tylko przy bramie.' },
-        { key: 'Eter Księżycowy',                   price: 10, unit: 'silver', desc: 'Skupiona magia miejsca — niezwykle rzadka.' },
-        { key: 'Fragment Ostrza Śmierci',           price: 15, unit: 'silver', desc: '⚠️ Przerażający fragment zakazanego artefaktu. Bibliotekarz bierze go z wahaniem.' },
-    ];
+    const allDone = checkLibIngredientsDone();
 
-    let hasAny = GATE_ITEMS_BUYLIST.some(item => (inventory[item.key] || 0) > 0);
+    let listHtml = '';
+    LIB_INGREDIENT_LIST.forEach(item => {
+        const have = inventory[item.key] || 0;
+        const done = have >= item.need;
+        listHtml += `
+            <div style="margin:4px 0; padding:8px 12px; background:rgba(10,20,40,0.5); border-radius:6px;
+                        border-left:3px solid ${done ? '#44cc88' : '#334466'};">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:${done ? '#88ffbb' : '#c0d0ff'};">${done ? '✅' : '⬜'} ${item.key}</span>
+                    <span style="font-size:12px; color:${done ? '#44cc88' : '#ffcc44'};">${have}/${item.need}</span>
+                </div>
+                <div style="font-size:11px; color:#556070; margin-top:2px;">${item.desc}</div>
+            </div>`;
+    });
 
-    let shopHtml = intro + libTextBox('— Witaj z powrotem! — mówi z ożywieniem. — Masz coś dla mnie z tamtej strony?', '#c0d0ff', '#6677cc');
+    let shopHtml = intro + libTextBox(
+        '— Witaj z powrotem! — mówi z ożywieniem, odkładając księgę. — Mam tu listę rzeczy, które potrzebuję do badań. Wszystko dostępne tylko <em>po tamtej stronie</em> bramy.<br><br>Każdy z tych materiałów ma unikalny sygnet energetyczny — tylko twój smok będzie mógł je bezpiecznie przetransportować.',
+        '#c0d0ff', '#6677cc'
+    );
 
-    if (!hasAny) {
-        shopHtml += libTextBox('Przeglądasz ekwipunek. Nie masz przy sobie żadnych składników z Księżycowej Bramy.<br><br>Wyślij smoka na wyprawę do bramy — być może coś znajdzie.', '#8090aa', '#556');
+    shopHtml += `<div style="font-size:13px; color:#8090aa; margin:10px 0 6px;">📋 Lista składników:</div>`;
+    shopHtml += listHtml;
+
+    if (!allDone) {
+        const missing = LIB_INGREDIENT_LIST.filter(i => (inventory[i.key]||0) < i.need);
+        shopHtml += libTextBox(
+            `Brakuje jeszcze: ${missing.map(i => `<b style="color:#ffcc44;">${i.key}</b> (${inventory[i.key]||0}/${i.need})`).join(', ')}.<br><br>Wyślij smoka na wyprawę przez Księżycową Bramę — powinien znaleźć to czego szukamy.`,
+            '#8090aa', '#445566'
+        );
     } else {
-        shopHtml += `<div style="font-size:13px; color:#aab; margin:8px 0;">Bibliotekarz skupuje:</div>`;
-        GATE_ITEMS_BUYLIST.forEach(item => {
-            const qty = inventory[item.key] || 0;
-            if (qty > 0) {
-                shopHtml += `
-                    <div style="margin:4px 0; padding:8px; background:rgba(10,20,40,0.5); border-radius:6px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="color:#e0d0ff;">${item.key} <span style="color:#8090aa;">(masz: ${qty})</span></span>
-                            <span style="color:#ffcc44;">${item.price} srebrnych/szt.</span>
-                        </div>
-                        <div style="font-size:11px; color:#7080a0; margin:2px 0 6px;">${item.desc}</div>
-                        <div style="display:flex; gap:6px;">
-                            <div class="dialog-button" style="flex:1; padding:4px; font-size:12px;" onclick="sellGateItem('${item.key}', 1, ${item.price})">Sprzedaj 1</div>
-                            ${qty > 1 ? `<div class="dialog-button" style="flex:1; padding:4px; font-size:12px;" onclick="sellGateItem('${item.key}', ${qty}, ${item.price})">Sprzedaj wszystkie (${qty})</div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }
-        });
+        shopHtml += libTextBox(
+            '— Masz wszystko! — bibliotekarz szeroko otwiera oczy. — To... niesamowite. Jesteś pewien że możesz mi to oddać?',
+            '#99ffcc', '#44cc88'
+        );
+        shopHtml += `<div class="dialog-button" style="border-color:#44cc88; color:#99ffcc;" onclick="libDeliverIngredients()">Oddaj wszystkie składniki</div>`;
     }
 
-    shopHtml += `<div class="dialog-button" style="margin-top:10px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
+    shopHtml += `<div class="dialog-button" style="margin-top:8px; border-color:#778; color:#aab;" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
     box.innerHTML = shopHtml;
 }
 
-function sellGateItem(key, qty, pricePerUnit) {
-    const have = inventory[key] || 0;
-    const selling = Math.min(qty, have);
-    if (selling <= 0) return;
-    inventory[key] -= selling;
-    if (inventory[key] <= 0) delete inventory[key];
+function libDeliverIngredients() {
+    // Consume items
+    LIB_INGREDIENT_LIST.forEach(item => {
+        inventory[item.key] = (inventory[item.key] || 0) - item.need;
+        if (inventory[item.key] <= 0) delete inventory[item.key];
+    });
     localStorage.setItem('inventory', JSON.stringify(inventory));
-    adjustCurrency('silver', selling * pricePerUnit);
-    updateCurrencyDisplay();
+
+    // Give reward — Dziwna rękojeść
+    inventory['Dziwna rękojeść'] = (inventory['Dziwna rękojeść'] || 0) + 1;
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+
+    localStorage.setItem('libIngredientQuest', 'done');
     updateInventoryTabFull();
-    renderLibrarianRuneOptions();
+
+    const box = document.getElementById('location-action-area');
+    if (!box) return;
+
+    box.innerHTML = libTextBox(
+        '— Doskonale! — bibliotekarz przejmuje składniki z niemal nabożną ostrożnością.<br><br>Przez chwilę milczy, porządkując je na biurku. Potem odwraca się i sięga na najwyższą półkę — tam, gdzie stały przedmioty, do których, jak widać, nie sięgał od lat.<br><br>Wyciąga coś zawiniętego w zgniłozieloną tkaninę. Odkłada ostrożnie na biurko i odwija.<br><br>— To zostawił mój poprzednik — mówi wolno. — Nie wiem co to jest. Nigdy nie umiałem odczytać napisów na ostrzu, bo to tylko... rękojeść. Albo fragment czegoś. Poprzednik mówił żebym nikomu nie dawał. Ale on nie żyje już od dwudziestu lat.<br><br>Patrzy na ciebie z powagą.<br><br>— A ty — rozwiązałeś zagadkę, do której inni nie chcieli nawet podejść. Myślę, że wiesz co z tym zrobić lepiej niż ja.',
+        '#e0d0ff', '#9966cc'
+    ) + `
+        <div style="padding:12px; background:rgba(80,20,80,0.3); border:1px solid #9944aa; border-radius:8px; margin:8px 0; text-align:center;">
+            <div style="font-size:22px; margin-bottom:4px;">🗡️</div>
+            <div style="color:#dd99ff; font-weight:bold; font-size:15px;">Dziwna rękojeść</div>
+            <div style="font-size:12px; color:#9966aa; margin-top:4px; font-style:italic;">„Fragment czegoś starego. Napisy są nieczytelne — ale trzymając ją, czujesz że to nie koniec."</div>
+        </div>
+        <div class="dialog-button" onclick="openRegion('miasto')">← Wróć do Astorveil</div>`;
 }
 
 function handleDeliverRunes() {
@@ -9197,6 +9230,15 @@ function getQuestLog() {
     const ingQuest = localStorage.getItem('libIngredientQuest') || 'none';
     if (ingQuest !== 'none') {
         const isDone = ingQuest === 'done';
+        // Build progress label
+        let ingStageLabel = 'Aktywne — zbieraj składniki na wyprawach przez Księżycową Bramę';
+        if (!isDone && typeof LIB_INGREDIENT_LIST !== 'undefined') {
+            const parts = LIB_INGREDIENT_LIST.map(i => {
+                const have = (JSON.parse(localStorage.getItem('inventory')||'{}')[i.key]||0);
+                return `${i.key.split(' ')[0]}: ${Math.min(have,i.need)}/${i.need}`;
+            });
+            ingStageLabel = 'Postęp: ' + parts.join(' · ');
+        }
         quests.push({
             id: 'lib_ingredients',
             title: 'Składniki Zza Bramy',
@@ -9205,10 +9247,10 @@ function getQuestLog() {
             region: 'Księżycowa Brama / Biblioteka',
             active: !isDone,
             done: isDone,
-            desc: 'Bibliotekarz prosi o składniki z Księżycowej Bramy — unikalne materiały, których nie można zdobyć nigdzie indziej.',
-            stageLabel: isDone ? 'Zakończono' : 'Aktywne — przynieś składniki z Księżycowej Bramy',
-            reward: isDone ? 'Zapłata od bibliotekarza za dostarczone składniki' : null,
-            rewardIcon: isDone ? '💰' : null,
+            desc: 'Bibliotekarz potrzebuje czterech unikalnych materiałów, które można zdobyć tylko podczas wypraw przez Księżycową Bramę: Księżycowy Kamień ×3, Srebrny Pył ×2, Strzęp Zasłony ×2, Eter Księżycowy ×1.',
+            stageLabel: isDone ? 'Zakończono — nagroda odebrana' : ingStageLabel,
+            reward: isDone ? '🗡️ Dziwna rękojeść — fragment tajemniczego ostrza pozostawiony przez poprzednika bibliotekarza' : null,
+            rewardIcon: isDone ? '🗡️' : null,
         });
     }
 
