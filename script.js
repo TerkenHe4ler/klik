@@ -6238,6 +6238,17 @@ Wiatr przynosi zapach przypraw i dymu z karawany gdzieś na horyzoncie. Dokąd s
                 ]
             },
             {
+                id: 'pomnik_bohatera',
+                label: 'Pomnik bohatera',
+                icon: '🗿',
+                desc: `Na niewielkim wzgórzu pośrodku cmentarza stoi kamienny pomnik wojownika. Czas zatarł rysy jego twarzy, ale na cokole wciąż można odczytać napis: „Tym, którzy ocalili innych, choć sami zostali zapomniani". U stóp pomnika leży kilka zwiędłych kwiatów.`,
+                actions: [
+                    { label: 'Przeczytaj inskrypcję', action: 'readHeroMonument' },
+                    { label: 'Złóż kwiat u stóp pomnika', action: 'leaveHeroFlower' },
+                    { label: 'Zawróć', action: 'back' }
+                ]
+            },
+            {
                 id: 'ogrodnik_cmentarny',
                 label: 'Szopa Ogrodnika',
                 icon: '🌿',
@@ -7671,6 +7682,8 @@ const locationResponses = {
         ];
         return outcomes[Math.floor(Math.random() * outcomes.length)];
     },
+    readHeroMonument: () => 'Litery są starte, ale udaje ci się odczytać jeszcze jedno zdanie: „Prawdziwe bohaterstwo nie potrzebuje świadków". Przez chwilę masz wrażenie, że kamienna postać spogląda w twoją stronę.',
+    leaveHeroFlower: () => 'Kładziesz kwiat u stóp pomnika. Wiatr porusza mgłą, a przez moment cmentarz wydaje się mniej pusty.',
 
     // CMENTARZ WSPOMNIEŃ — KATAKUMBY
     enterCatacombs: () => {
