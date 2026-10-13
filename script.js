@@ -8214,7 +8214,7 @@ function showQuestion() {
     const sidebar = document.getElementById('sidebar');
     const content = document.getElementById('content');
     if (sidebar) sidebar.style.display = 'none';
-    if (content) { content.style.marginRight = '0'; content.style.display = 'flex'; content.style.alignItems = 'center'; content.style.justifyContent = 'center'; content.style.minHeight = '100vh'; }
+    if (content) { content.style.marginRight = '0'; content.style.display = 'flex'; content.style.alignItems = 'safe center'; content.style.justifyContent = 'center'; content.style.minHeight = '100vh'; }
 
     const intro = document.getElementById("intro");
 
@@ -9668,7 +9668,11 @@ function toggleNightMode() {
 }
 
 function resetGame() {
-    localStorage.clear();
+    Object.keys(localStorage).forEach(key => {
+        if (!key.startsWith('sb-') && key !== 'klik.account-session-seen') {
+            localStorage.removeItem(key);
+        }
+    });
     location.reload();
 }
 

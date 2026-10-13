@@ -69,6 +69,99 @@ body {
     display: none;
 }
 
+/* LOGOWANIE */
+.auth-panel {
+    width: min(100%, 420px);
+    margin: 24px auto;
+    padding: 24px;
+    background: rgba(10, 20, 40, 0.95);
+    border: 1px solid #6688cc;
+    border-radius: 14px;
+    box-shadow: 0 0 20px rgba(100, 130, 200, 0.3);
+    box-sizing: border-box;
+}
+
+.auth-panel h1 {
+    margin: 0 0 8px;
+    color: #cfd8ff;
+    text-align: center;
+}
+
+.auth-panel p {
+    color: #aab8d8;
+    line-height: 1.5;
+}
+
+.auth-panel label {
+    display: block;
+    margin: 14px 0 6px;
+    color: #cfd8ff;
+}
+
+.auth-panel input {
+    width: 100%;
+    padding: 11px;
+    background: #0f1b33;
+    border: 1px solid #667799;
+    border-radius: 6px;
+    color: #dfe8ff;
+    box-sizing: border-box;
+}
+
+.auth-panel button {
+    width: 100%;
+    padding: 11px;
+    margin-top: 14px;
+    background: #1f3357;
+    border: 1px solid #8aabdd;
+    border-radius: 6px;
+    color: #dfe8ff;
+    cursor: pointer;
+}
+
+.auth-panel button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.auth-message {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #ffcc88;
+    line-height: 1.5;
+}
+
+#account-controls {
+    padding: 8px;
+    margin: 4px 0;
+    background: #0d1728;
+    border: 1px solid #334466;
+    border-radius: 6px;
+    text-align: center;
+}
+
+#account-email,
+#account-save-status {
+    display: block;
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+}
+
+#account-save-status {
+    color: #99bbcc;
+}
+
+#account-controls button {
+    width: 100%;
+    padding: 6px;
+    background: #16233a;
+    border: 1px solid #667799;
+    border-radius: 5px;
+    color: #dfe8ff;
+    cursor: pointer;
+}
+
 /* OKNA DIALOGOWE */
 .dialog-window {
     background: rgba(10, 20, 40, 0.85);
