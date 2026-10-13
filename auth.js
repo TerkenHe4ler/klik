@@ -69,6 +69,10 @@ function showAuthScreen(message = '') {
                 <input id="auth-email" name="email" type="email" autocomplete="email" required>
                 <label for="auth-password">Hasło</label>
                 <input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="6" required>
+                <div id="auth-password-confirm-field" hidden>
+                    <label for="auth-password-confirm">Powtórz hasło</label>
+                    <input id="auth-password-confirm" name="password-confirm" type="password" autocomplete="new-password" minlength="6">
+                </div>
                 <button id="auth-submit" type="submit">Zaloguj się</button>
             </form>
             <div id="auth-message" class="auth-message" role="status" aria-live="polite"></div>
@@ -80,11 +84,15 @@ function showAuthScreen(message = '') {
     const submit = document.getElementById('auth-submit');
     const messageEl = document.getElementById('auth-message');
     const password = document.getElementById('auth-password');
+    const passwordConfirmField = document.getElementById('auth-password-confirm-field');
+    const passwordConfirm = document.getElementById('auth-password-confirm');
     const setMode = nextMode => {
         mode = nextMode;
         const signingUp = mode === 'signup';
         submit.textContent = signingUp ? 'Utwórz konto' : 'Zaloguj się';
         password.autocomplete = signingUp ? 'new-password' : 'current-password';
+        passwordConfirmField.hidden = !signingUp;
+        passwordConfirm.required = signingUp;
         document.getElementById('auth-login-tab').style.opacity = signingUp ? '0.65' : '1';
         document.getElementById('auth-signup-tab').style.opacity = signingUp ? '1' : '0.65';
         messageEl.textContent = '';
@@ -105,6 +113,11 @@ function showAuthScreen(message = '') {
 
         try {
             if (mode === 'signup') {
+                if (passwordValue !== String(formData.get('password-confirm'))) {
+                    messageEl.textContent = 'Hasła nie są takie same.';
+                    passwordConfirm.focus();
+                    return;
+                }
                 const { data, error } = await supabase.auth.signUp({
                     email,
                     password: passwordValue,
